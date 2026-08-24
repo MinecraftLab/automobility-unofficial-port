@@ -13,10 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * BarHud - minimal procedural velocimeter.
+ * BarHud - compact procedural driving dashboard.
  *
- * Renders a horizontal row of thin vertical bar segments that fill left-to-right
- * proportional to speed. No textures - drawn entirely with fill() and drawText().
+ * The default layout keeps the speed readout, speed/boost segments and cruise marker
+ * inside one declared panel so companion HUD elements can anchor without guessing.
  *
  * Layout tuned under the "barHud" config section.
  *
@@ -31,10 +31,24 @@ public class BarHud {
 
     private static final double TO_KMH = 72.0;
 
-    // Debug panel colors
-    private static final int COL_PANEL_BG   = 0xAA000000;
-    private static final int COL_PANEL_EDGE = 0xFF444444;
+    private static final int COL_PANEL_BG = 0xD916181A;
+    private static final int COL_PANEL_TOP = 0xFF3B3F42;
+    private static final int COL_PANEL_BOTTOM = 0xFF090A0B;
+    private static final int COL_EMPTY_SEGMENT = 0xFF303438;
+    private static final int COL_DIAL_METAL = 0xFFD8C7A6;
     private static final int CRUISE_INDICATOR_WIDTH = 10;
+    private static final int[][] TINY_DIGITS = {
+            {0b111, 0b101, 0b101, 0b101, 0b111},
+            {0b010, 0b110, 0b010, 0b010, 0b111},
+            {0b111, 0b001, 0b111, 0b100, 0b111},
+            {0b111, 0b001, 0b111, 0b001, 0b111},
+            {0b101, 0b101, 0b111, 0b001, 0b001},
+            {0b111, 0b100, 0b111, 0b001, 0b111},
+            {0b111, 0b100, 0b111, 0b101, 0b111},
+            {0b111, 0b001, 0b010, 0b010, 0b010},
+            {0b111, 0b101, 0b111, 0b101, 0b111},
+            {0b111, 0b101, 0b111, 0b001, 0b111}
+    };
 
     public static void render(GuiGraphicsExtractor graphics, float tickDelta) {
         Minecraft client = Minecraft.getInstance();
@@ -54,46 +68,206 @@ public class BarHud {
         int screenW = client.getWindow().getGuiScaledWidth();
         int screenH = client.getWindow().getGuiScaledHeight();
 
-        int originX = b.x >= 0 ? b.x : screenW - b.totalWidth - (int)(screenW * b.xFraction);
-        int originY = b.y >= 0 ? b.y : screenH - b.totalHeight - b.marginBottom;
+        DashboardHudLayout.PanelSize panel = DashboardHudLayout.resolvePanelSize(
+                screenW, b.totalWidth, b.totalHeight);
+        DashboardHudLayout.Origin origin = DashboardHudLayout.resolveOrigin(
+                screenW, screenH, panel.width(), panel.height(),
+                b.x, b.y, b.xFraction, b.marginBottom);
+        int originX = origin.x();
+        int originY = origin.y();
 
         double speedKmh = auto.getEffectiveSpeed() * TO_KMH;
 
         // Separate engine vs boost contributions so boost bars can be coloured differently.
         // engineSpeed is the base; hSpeed = engineSpeed + boostSpeed.
         double engineKmh = (auto instanceof SteeringDebugAccessor acc)
-                ? acc.momentum$getEngineSpeed() * TO_KMH
+                ? DashboardHudLayout.baseSpeedKmh(
+                        speedKmh, acc.momentum$getEngineSpeed() * TO_KMH)
                 : speedKmh;
-        engineKmh = Math.max(0.0, engineKmh); // clamp: engineSpeed can go negative in reverse
 
-        // How many segments fit and how many should be lit
-        int numBars         = (b.totalWidth + b.barSpacing) / (b.barWidth + b.barSpacing);
-        int engineBars      = Math.max(0, (int) Math.round(Math.min(engineKmh / b.maxSpeedKmh, 1.0) * numBars));
-        int totalFilledBars = Math.max(0, (int) Math.round(Math.min(speedKmh  / b.maxSpeedKmh, 1.0) * numBars));
-
-        for (int i = 0; i < totalFilledBars; i++) {
-            int bx    = originX + i * (b.barWidth + b.barSpacing);
-            int color = i < engineBars ? barColor : b.boostBarColor;
-            graphics.fill(bx, originY, bx + b.barWidth, originY + b.totalHeight, color);
+        if (b.compactDashboard) {
+            renderCompactDashboard(graphics, client, b, panel, originX, originY,
+                    speedKmh, engineKmh, cruiseActive, cruiseColor, barColor, textColor);
+            return;
         }
 
-        // Speed text - positioned relative to bar origin via textOffsetX/Y
-        String speedStr = String.format("%.0f km/h", speedKmh);
-        int textX = originX + b.textOffsetX;
-        int textY = originY + b.textOffsetY;
-        graphics.text(client.font, Component.literal(speedStr),
-                textX,
-                textY,
-                textColor);
+        renderLegacyDashboard(graphics, client, b, panel, originX, originY,
+                speedKmh, engineKmh, cruiseActive, cruiseColor, barColor, textColor);
+    }
 
+    private static void renderCompactDashboard(GuiGraphicsExtractor graphics, Minecraft client,
+                                               MomentumConfig.BarHud config,
+                                               DashboardHudLayout.PanelSize panel,
+                                               int originX, int originY,
+                                               double speedKmh, double engineKmh,
+                                               boolean cruiseActive, int cruiseColor,
+                                               int barColor, int textColor) {
+        DashboardHudLayout.Layout layout = DashboardHudLayout.resolve(
+                panel.width(), panel.height(), cruiseActive);
+        if (!layout.renderable()) return;
+
+        drawPanel(graphics, originX, originY, layout.width(), layout.height());
+        drawSpeedDial(graphics, originX + layout.iconX(), originY + layout.iconY(),
+                cruiseActive ? cruiseColor : COL_DIAL_METAL,
+                cruiseActive ? cruiseColor : barColor);
+
+        long displayedSpeed = Math.clamp(Math.round(Math.max(0.0, speedKmh)), 0L, 999L);
+        String speedText = Long.toString(displayedSpeed);
+        int speedWidth = client.font.width(speedText);
+        int speedX = originX + layout.numberX()
+                + Math.max(0, layout.numberWidth() - speedWidth);
+        int speedY = originY + Math.max(2, (layout.height() - 9) / 2);
+        graphics.text(client.font, Component.literal(speedText), speedX, speedY, textColor);
+
+        int auxiliaryX = originX + layout.auxiliaryX();
+        int compactGlyphY = originY + Math.max(5, (layout.height() - 5) / 2);
+        drawKmhUnit(graphics, auxiliaryX, compactGlyphY, textColor);
         if (cruiseActive) {
-            int indicatorX = textX + client.font.width(speedStr) + 4;
-            drawCruiseChevrons(graphics, indicatorX, textY, cruiseColor);
-            graphics.text(client.font, Component.literal(String.format("%.0f", MomentumCruiseControl.getTargetKmh())),
-                    indicatorX + CRUISE_INDICATOR_WIDTH + 2,
-                    textY,
+            int cruiseX = auxiliaryX + DashboardHudLayout.UNIT_AREA_WIDTH + 1;
+            int chevronY = originY + Math.max(3, (layout.height() - 7) / 2);
+            drawMiniChevron(graphics, cruiseX, chevronY, cruiseColor);
+            drawTinyNumber(graphics, cruiseX + 5, compactGlyphY,
+                    Math.clamp(Math.round(MomentumCruiseControl.getTargetKmh()), 0L, 999L),
                     cruiseColor);
         }
+
+        int engineSegments = DashboardHudLayout.filledSegments(
+                engineKmh, config.maxSpeedKmh, layout.segmentCount());
+        int filledSegments = DashboardHudLayout.filledSegments(
+                speedKmh, config.maxSpeedKmh, layout.segmentCount());
+        for (int segment = 0; segment < layout.segmentCount(); segment++) {
+            int segmentX = originX + layout.segmentX(segment);
+            int segmentY = originY + layout.barY();
+            graphics.fill(segmentX, segmentY,
+                    segmentX + DashboardHudLayout.SEGMENT_WIDTH,
+                    segmentY + layout.segmentHeight(), COL_EMPTY_SEGMENT);
+            if (segment >= filledSegments) continue;
+
+            int segmentColor = segment < engineSegments ? barColor : config.boostBarColor;
+            graphics.fill(segmentX, segmentY,
+                    segmentX + DashboardHudLayout.SEGMENT_WIDTH,
+                    segmentY + layout.segmentHeight(), segmentColor);
+            graphics.fill(segmentX, segmentY,
+                    segmentX + DashboardHudLayout.SEGMENT_WIDTH,
+                    segmentY + 1, lighten(segmentColor));
+        }
+
+        if (cruiseActive) {
+            int marker = DashboardHudLayout.markerSegment(MomentumCruiseControl.getTargetKmh(),
+                    config.maxSpeedKmh, layout.segmentCount());
+            if (marker >= 0) {
+                int markerX = originX + layout.segmentX(marker);
+                graphics.fill(markerX, originY + 1,
+                        markerX + DashboardHudLayout.SEGMENT_WIDTH, originY + 2, cruiseColor);
+                graphics.fill(markerX, originY + layout.height() - 2,
+                        markerX + DashboardHudLayout.SEGMENT_WIDTH,
+                        originY + layout.height() - 1, cruiseColor);
+            }
+        }
+    }
+
+    private static void renderLegacyDashboard(GuiGraphicsExtractor graphics, Minecraft client,
+                                              MomentumConfig.BarHud config,
+                                              DashboardHudLayout.PanelSize panel,
+                                              int originX, int originY,
+                                              double speedKmh, double engineKmh,
+                                              boolean cruiseActive, int cruiseColor,
+                                              int barColor, int textColor) {
+        int numBars = Math.max(0,
+                (panel.width() + config.barSpacing) / (config.barWidth + config.barSpacing));
+        int engineBars = DashboardHudLayout.filledSegments(engineKmh, config.maxSpeedKmh, numBars);
+        int totalFilledBars = DashboardHudLayout.filledSegments(speedKmh, config.maxSpeedKmh, numBars);
+
+        for (int segment = 0; segment < totalFilledBars; segment++) {
+            int segmentX = originX + segment * (config.barWidth + config.barSpacing);
+            int color = segment < engineBars ? barColor : config.boostBarColor;
+            graphics.fill(segmentX, originY, segmentX + config.barWidth,
+                    originY + panel.height(), color);
+        }
+
+        String speedText = String.format("%.0f km/h", speedKmh);
+        int textX = originX + config.textOffsetX;
+        int textY = originY + config.textOffsetY;
+        graphics.text(client.font, Component.literal(speedText), textX, textY, textColor);
+
+        if (cruiseActive) {
+            int indicatorX = textX + client.font.width(speedText) + 4;
+            drawCruiseChevrons(graphics, indicatorX, textY, cruiseColor);
+            graphics.text(client.font,
+                    Component.literal(String.format("%.0f", MomentumCruiseControl.getTargetKmh())),
+                    indicatorX + CRUISE_INDICATOR_WIDTH + 2, textY, cruiseColor);
+        }
+    }
+
+    private static void drawSpeedDial(GuiGraphicsExtractor graphics, int x, int y,
+                                      int metalColor, int needleColor) {
+        graphics.fill(x + 2, y, x + 6, y + 1, metalColor);
+        graphics.fill(x + 1, y + 1, x + 2, y + 3, metalColor);
+        graphics.fill(x + 6, y + 1, x + 7, y + 3, metalColor);
+        graphics.fill(x, y + 3, x + 1, y + 7, metalColor);
+        graphics.fill(x + 7, y + 3, x + 8, y + 7, metalColor);
+        graphics.fill(x + 1, y + 6, x + 7, y + 7, metalColor);
+        graphics.fill(x + 3, y + 4, x + 5, y + 6, needleColor);
+        graphics.fill(x + 4, y + 3, x + 6, y + 4, needleColor);
+        graphics.fill(x + 5, y + 2, x + 7, y + 3, needleColor);
+    }
+
+    private static void drawKmhUnit(GuiGraphicsExtractor graphics, int x, int y, int color) {
+        // Tiny 2x5 K M H glyphs retain the speed unit without spending a full text row.
+        pixel(graphics, x, y, 0b101, color);
+        pixel(graphics, x, y + 1, 0b110, color);
+        pixel(graphics, x, y + 2, 0b100, color);
+        pixel(graphics, x, y + 3, 0b110, color);
+        pixel(graphics, x, y + 4, 0b101, color);
+        pixel(graphics, x + 4, y, 0b101, color);
+        pixel(graphics, x + 4, y + 1, 0b111, color);
+        pixel(graphics, x + 4, y + 2, 0b111, color);
+        pixel(graphics, x + 4, y + 3, 0b101, color);
+        pixel(graphics, x + 4, y + 4, 0b101, color);
+        pixel(graphics, x + 8, y, 0b101, color);
+        pixel(graphics, x + 8, y + 1, 0b101, color);
+        pixel(graphics, x + 8, y + 2, 0b111, color);
+        pixel(graphics, x + 8, y + 3, 0b101, color);
+        pixel(graphics, x + 8, y + 4, 0b101, color);
+    }
+
+    private static void pixel(GuiGraphicsExtractor graphics, int x, int y, int bits, int color) {
+        for (int bit = 0; bit < 3; bit++) {
+            if ((bits & (1 << (2 - bit))) != 0) {
+                graphics.fill(x + bit, y, x + bit + 1, y + 1, color);
+            }
+        }
+    }
+
+    private static void drawTinyNumber(GuiGraphicsExtractor graphics, int x, int y,
+                                       long value, int color) {
+        String digits = Long.toString(value);
+        for (int index = 0; index < digits.length(); index++) {
+            int digit = digits.charAt(index) - '0';
+            for (int row = 0; row < 5; row++) {
+                pixel(graphics, x + index * 4, y + row, digitRow(digit, row), color);
+            }
+        }
+    }
+
+    private static int digitRow(int digit, int row) {
+        if (digit < 0 || digit >= TINY_DIGITS.length || row < 0 || row >= 5) return 0;
+        return TINY_DIGITS[digit][row];
+    }
+
+    private static void drawMiniChevron(GuiGraphicsExtractor graphics, int x, int y, int color) {
+        graphics.fill(x, y, x + 1, y + 1, color);
+        graphics.fill(x + 1, y + 1, x + 2, y + 2, color);
+        graphics.fill(x + 2, y + 2, x + 3, y + 4, color);
+        graphics.fill(x + 1, y + 4, x + 2, y + 5, color);
+        graphics.fill(x, y + 5, x + 1, y + 6, color);
+    }
+
+    private static int lighten(int color) {
+        int red = ((color >>> 16) & 0xFF) + (0xFF - ((color >>> 16) & 0xFF)) / 2;
+        int green = ((color >>> 8) & 0xFF) + (0xFF - ((color >>> 8) & 0xFF)) / 2;
+        int blue = (color & 0xFF) + (0xFF - (color & 0xFF)) / 2;
+        return (color & 0xFF000000) | red << 16 | green << 8 | blue;
     }
 
     // ── Debug overlay ─────────────────────────────────────────────────────────
@@ -176,10 +350,11 @@ public class BarHud {
     }
 
     private static void drawPanel(GuiGraphicsExtractor g, int x, int y, int w, int h) {
-        g.fill(x, y, x + w, y + h, COL_PANEL_BG);
-        g.fill(x,         y,         x + w,     y + 1,     COL_PANEL_EDGE); // top
-        g.fill(x,         y + h - 1, x + w,     y + h,     COL_PANEL_EDGE); // bottom
-        g.fill(x,         y,         x + 1,     y + h,     COL_PANEL_EDGE); // left
-        g.fill(x + w - 1, y,         x + w,     y + h,     COL_PANEL_EDGE); // right
+        int right = x + w;
+        int bottom = y + h;
+        g.fill(x + 1, y, right - 1, bottom, COL_PANEL_BG);
+        g.fill(x, y + 1, right, bottom - 1, COL_PANEL_BG);
+        g.fill(x + 2, y + 1, right - 2, y + 2, COL_PANEL_TOP);
+        g.fill(x + 2, bottom - 2, right - 2, bottom - 1, COL_PANEL_BOTTOM);
     }
 }

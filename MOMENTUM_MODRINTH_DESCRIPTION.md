@@ -10,7 +10,9 @@ Momentum adjusts Automobility's acceleration, coasting, braking, steering, drift
 - Separate brake and handbrake/drift inputs
 - Multiple drift profiles and drift skid sounds
 - Camera response for steering, braking, reversing, and drifting
-- Compact speed HUD with a cruise-control indicator and target speed
+- Compact pixel dashboard with exact speed, graphical km/h unit, speed/boost segments,
+  and a persistent cruise-control target marker
+- Optional legacy bar-and-text HUD through the in-game configuration
 - Cruise control on the `C` key while driving
 - Controlify support through Automobility's controller bindings
 - Dedicated multiplayer synchronization for brake, drift, and gameplay configuration

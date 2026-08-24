@@ -1,5 +1,6 @@
 package io.github.milkucha.momentum.config;
 
+import com.google.gson.Gson;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 
@@ -41,7 +42,51 @@ class MomentumConfigTest {
 
         assertTrue(config.movement.accelerationScale > 0f);
         assertTrue(config.barHud.maxSpeedKmh > 0f);
+        assertTrue(config.barHud.compactDashboard);
         assertEquals(MomentumConfig.ODrift.Profile.RESPONSIVE, config.oDrift.profile);
+    }
+
+    @Test
+    void compactDashboardIsEnabledForExistingConfigsWithoutTheNewField() {
+        var config = new Gson().fromJson("""
+                {
+                  "barHud": {
+                    "enabled": true,
+                    "totalWidth": 90,
+                    "totalHeight": 15
+                  }
+                }
+                """, MomentumConfig.class);
+
+        config.sanitize();
+
+        assertTrue(config.barHud.compactDashboard);
+    }
+
+    @Test
+    void compactDashboardSanitizesToOneStableBridgeContract() {
+        var config = new MomentumConfig();
+        config.barHud.compactDashboard = true;
+        config.barHud.totalWidth = 60;
+        config.barHud.totalHeight = 8;
+
+        config.sanitize();
+
+        assertEquals(MomentumConfig.BarHud.COMPACT_MIN_WIDTH, config.barHud.totalWidth);
+        assertEquals(MomentumConfig.BarHud.COMPACT_MIN_HEIGHT, config.barHud.totalHeight);
+    }
+
+    @Test
+    void legacyDashboardUsesTheBridgeSafeMinimumWidth() {
+        var config = new MomentumConfig();
+        config.barHud.compactDashboard = false;
+        config.barHud.totalWidth = 10;
+        config.barHud.totalHeight = 1;
+
+        config.sanitize();
+
+        assertEquals(24, config.barHud.totalWidth);
+        assertEquals(1, config.barHud.totalHeight);
     }
 
     @Test
