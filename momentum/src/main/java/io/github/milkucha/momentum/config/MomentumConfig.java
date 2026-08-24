@@ -70,7 +70,13 @@ public class MomentumConfig {
     }
 
     public static class BarHud {
+        public static final int COMPACT_MIN_WIDTH = 90;
+        public static final int COMPACT_MIN_HEIGHT = 15;
+
         public boolean enabled    = true;
+        // Draw speed, cruise state and segments inside one compact dashboard panel.
+        // Disable only to retain the legacy text-above-bars layout.
+        public boolean compactDashboard = true;
         // Negative coordinates use edge anchoring; defaults place the HUD at top right.
         public int   x            = -1;
         public int   y            = 18;
@@ -311,8 +317,10 @@ public class MomentumConfig {
         barHud.y = bounded(barHud.y, -1, 1_000_000);
         barHud.xFraction = finite(barHud.xFraction, 0f, 1f, defaults.barHud.xFraction);
         barHud.marginBottom = bounded(barHud.marginBottom, 0, 1_000_000);
-        barHud.totalWidth = bounded(barHud.totalWidth, 1, 4096);
-        barHud.totalHeight = bounded(barHud.totalHeight, 1, 4096);
+        int minimumHudWidth = barHud.compactDashboard ? BarHud.COMPACT_MIN_WIDTH : 24;
+        int minimumHudHeight = barHud.compactDashboard ? BarHud.COMPACT_MIN_HEIGHT : 1;
+        barHud.totalWidth = bounded(barHud.totalWidth, minimumHudWidth, 4096);
+        barHud.totalHeight = bounded(barHud.totalHeight, minimumHudHeight, 4096);
         barHud.barWidth = bounded(barHud.barWidth, 1, 4096);
         barHud.barSpacing = bounded(barHud.barSpacing, 0, 4096);
         barHud.maxSpeedKmh = finite(barHud.maxSpeedKmh, 1f, 10_000f, defaults.barHud.maxSpeedKmh);

@@ -1,5 +1,20 @@
 # Changelog
 
+## Momentum 0.1.11-unofficial.5 - 2026-08-24
+
+HUD polish update for the unofficial Minecraft Java 26.2 Fabric port of Momentum for Automobility.
+
+### Added
+- Added a compact unified driving dashboard with a speedometer icon, exact speed,
+  graphical km/h unit, visible empty segments, boost coloring and cruise target marker.
+- Added a YACL toggle that keeps the previous configurable bar-and-text HUD available
+  as a legacy layout.
+
+### Changed
+- Kept every compact HUD element inside Momentum's declared 90 x 15 pixel panel so
+  companion overlays can anchor without guessing at hidden text bounds.
+- Matched the panel chrome and segment treatment used by Automobility Fuel System 1.5.
+
 ## 0.5.0-unofficial.29 - 2026-08-24
 
 ### Fixed

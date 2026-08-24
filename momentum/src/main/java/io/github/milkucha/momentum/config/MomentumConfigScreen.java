@@ -187,16 +187,19 @@ public class MomentumConfigScreen {
                         .build())
                 .group(OptionGroup.createBuilder()
                         .name(Component.literal("Bar  |  Size"))
-                        .option(intOpt("Total Width", "Total width of the bar area in pixels.",
+                        .option(boolOpt("Compact Dashboard", "Keep speed, km/h, cruise target and bars inside one polished panel. Disable for the legacy layout.",
+                                def.barHud.compactDashboard,
+                                () -> cfg.barHud.compactDashboard, v -> cfg.barHud.compactDashboard = v))
+                        .option(intOpt("Total Width", "Dashboard width; compact values below 90 are corrected when saved.",
                                 def.barHud.totalWidth,
-                                () -> cfg.barHud.totalWidth, v -> cfg.barHud.totalWidth = v, 10, 500, 1))
-                        .option(intOpt("Total Height", "Total height of the bar area in pixels.",
+                                () -> cfg.barHud.totalWidth, v -> cfg.barHud.totalWidth = v, 24, 500, 1))
+                        .option(intOpt("Total Height", "Dashboard height; compact values below 15 are corrected when saved.",
                                 def.barHud.totalHeight,
                                 () -> cfg.barHud.totalHeight, v -> cfg.barHud.totalHeight = v, 1, 100, 1))
-                        .option(intOpt("Bar Width", "Width of each individual bar segment.",
+                        .option(intOpt("Bar Width", "Legacy layout only: width of each individual bar segment.",
                                 def.barHud.barWidth,
                                 () -> cfg.barHud.barWidth, v -> cfg.barHud.barWidth = v, 1, 50, 1))
-                        .option(intOpt("Bar Spacing", "Gap between bar segments.",
+                        .option(intOpt("Bar Spacing", "Legacy layout only: gap between bar segments.",
                                 def.barHud.barSpacing,
                                 () -> cfg.barHud.barSpacing, v -> cfg.barHud.barSpacing = v, 0, 20, 1))
                         .option(floatOpt("Max Speed (km/h)", "Speed at which all segments are filled.",
@@ -218,10 +221,10 @@ public class MomentumConfigScreen {
                         .build())
                 .group(OptionGroup.createBuilder()
                         .name(Component.literal("Bar  |  Text Position"))
-                        .option(intOpt("Text Offset X", "Speed text X relative to bar top-left.",
+                        .option(intOpt("Text Offset X", "Legacy layout only: speed text X relative to bar top-left.",
                                 def.barHud.textOffsetX,
                                 () -> cfg.barHud.textOffsetX, v -> cfg.barHud.textOffsetX = v, -100, 100, 1))
-                        .option(intOpt("Text Offset Y", "Speed text Y relative to bar top-left. Negative = above bar.",
+                        .option(intOpt("Text Offset Y", "Legacy layout only: speed text Y relative to bar top-left. Negative = above bar.",
                                 def.barHud.textOffsetY,
                                 () -> cfg.barHud.textOffsetY, v -> cfg.barHud.textOffsetY = v, -100, 100, 1))
                         .build())
