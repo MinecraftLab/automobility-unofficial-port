@@ -165,8 +165,15 @@ public class HitboxEntity extends Entity implements EntityWithContainer {
         return super.getName();
     }
 
-    private boolean canCollideWithAutomobileHitbox(Entity other) {
+    private boolean canCollideWithAutomobileHitbox(@Nullable Entity other) {
         var automobile = automobile();
+        // Minecraft 26.2 uses a null argument as a general "is this entity a hard
+        // collision" query (notably from natural spawning and Lithium's optimized
+        // collision iterator). An active automobile hitbox must answer yes without
+        // dereferencing that nullable query target.
+        if (other == null) {
+            return HitboxCollisionPolicy.answersGeneralHardCollisionQuery(automobile != null);
+        }
         if (other instanceof HitboxEntity hitbox) {
             return automobile != null && hitbox.automobile() != automobile;
         }
@@ -183,7 +190,7 @@ public class HitboxEntity extends Entity implements EntityWithContainer {
     }
 
     @Override
-    public boolean canBeCollidedWith(Entity other) {
+    public boolean canBeCollidedWith(@Nullable Entity other) {
         return this.canCollideWithAutomobileHitbox(other);
     }
 

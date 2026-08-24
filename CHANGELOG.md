@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0-unofficial.29 - 2026-08-24
+
+### Fixed
+- Made automobile hitboxes handle Minecraft 26.2's nullable hard-collision query,
+  preventing a dedicated-server crash during natural spawn collision checks with Lithium.
+
 ## 0.5.0-unofficial.28 - 2026-08-14
 
 Compatibility and translation update for the unofficial Minecraft Java 26.1.x and 26.2 Fabric ports.
