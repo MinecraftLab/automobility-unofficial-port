@@ -1,13 +1,33 @@
 package io.github.milkucha.momentum.hud;
 
 final class DashboardHudLayout {
-    static final int PANEL_INSET = 2;
+    static final int COMPACT_WIDTH = 104;
+    static final int COMPACT_HEIGHT = 17;
+
+    static final int ICON_X = 3;
+    static final int ICON_Y = 5;
     static final int ICON_WIDTH = 8;
-    static final int NUMBER_AREA_WIDTH = 18;
-    static final int UNIT_AREA_WIDTH = 11;
-    static final int CRUISE_AREA_WIDTH = 16;
+    static final int NUMBER_X = 13;
+    static final int NUMBER_WIDTH = 20;
+    static final int NUMBER_Y = 4;
+    static final int UNIT_X = 36;
+    static final int UNIT_Y = 6;
+    static final int DIVIDER_X = 49;
+    static final int DIVIDER_Y = 3;
+    static final int DIVIDER_HEIGHT = 11;
+    static final int BAR_X = 52;
+    static final int BAR_Y = 5;
+    static final int SEGMENT_COUNT = 10;
     static final int SEGMENT_WIDTH = 4;
     static final int SEGMENT_SPACING = 1;
+    static final int SEGMENT_HEIGHT = 7;
+
+    static final int TOP_POD_OFFSET_Y = -13;
+    static final int CRUISE_OFFSET_X = 66;
+    static final int CRUISE_WIDTH = 38;
+    static final int CRUISE_HEIGHT = 11;
+    static final int NARROW_VIEWPORT_WIDTH = 426;
+    static final int NARROW_BOTTOM_MARGIN = 58;
 
     private DashboardHudLayout() {}
 
@@ -22,43 +42,54 @@ final class DashboardHudLayout {
                                 int width, int height,
                                 int configuredX, int configuredY,
                                 float xFraction, int marginBottom) {
+        return resolveOrigin(screenWidth, screenHeight, width, height,
+                configuredX, configuredY, xFraction, marginBottom, false);
+    }
+
+    static Origin resolveCompactOrigin(int screenWidth, int screenHeight,
+                                       int width, int height,
+                                       int configuredX, int configuredY,
+                                       float xFraction, int marginBottom) {
+        Origin resolved = resolveOrigin(screenWidth, screenHeight, width, height,
+                configuredX, configuredY, xFraction, marginBottom, true);
+        int maximumY = Math.max(0, screenHeight - Math.max(1, height));
+        int minimumDockableY = Math.min(-TOP_POD_OFFSET_Y, maximumY);
+        return new Origin(resolved.x(), Math.max(minimumDockableY, resolved.y()));
+    }
+
+    private static Origin resolveOrigin(int screenWidth, int screenHeight,
+                                        int width, int height,
+                                        int configuredX, int configuredY,
+                                        float xFraction, int marginBottom,
+                                        boolean raiseOnNarrowViewport) {
         int safeWidth = Math.max(1, width);
         int safeHeight = Math.max(1, height);
         float safeFraction = Math.clamp(xFraction, 0.0f, 1.0f);
         int x = configuredX >= 0 ? configuredX
                 : screenWidth - safeWidth - (int) (screenWidth * safeFraction);
+        int responsiveBottomMargin = configuredY < 0 && raiseOnNarrowViewport
+                && screenWidth < NARROW_VIEWPORT_WIDTH
+                ? Math.max(Math.max(0, marginBottom), NARROW_BOTTOM_MARGIN)
+                : Math.max(0, marginBottom);
         int y = configuredY >= 0 ? configuredY
-                : screenHeight - safeHeight - Math.max(0, marginBottom);
+                : screenHeight - safeHeight - responsiveBottomMargin;
         return new Origin(
                 Math.clamp(x, 0, Math.max(0, screenWidth - safeWidth)),
                 Math.clamp(y, 0, Math.max(0, screenHeight - safeHeight)));
     }
 
-    static Layout resolve(int width, int height, boolean cruiseActive) {
+    static Origin resolveCruiseOrigin(Origin mainOrigin) {
+        return new Origin(mainOrigin.x() + CRUISE_OFFSET_X,
+                Math.max(0, mainOrigin.y() + TOP_POD_OFFSET_Y));
+    }
+
+    static Layout resolve(int width, int height) {
         int safeWidth = Math.max(1, width);
         int safeHeight = Math.max(1, height);
-        int iconX = PANEL_INSET;
-        int iconY = Math.max(PANEL_INSET, (safeHeight - 7) / 2);
-        int numberX = iconX + ICON_WIDTH + 2;
-        int numberWidth = Math.min(NUMBER_AREA_WIDTH,
-                Math.max(0, safeWidth - numberX - PANEL_INSET));
-        int auxiliaryX = numberX + numberWidth + 2;
-        int requestedAuxiliaryWidth = UNIT_AREA_WIDTH
-                + (cruiseActive ? 1 + CRUISE_AREA_WIDTH : 0);
-        int auxiliaryWidth = Math.min(requestedAuxiliaryWidth,
-                Math.max(0, safeWidth - auxiliaryX - PANEL_INSET));
-        int barX = auxiliaryX + auxiliaryWidth + 3;
-        int barWidth = Math.max(0, safeWidth - barX - 3);
-        int segmentCount = Math.max(0,
-                (barWidth + SEGMENT_SPACING) / (SEGMENT_WIDTH + SEGMENT_SPACING));
-        int actualBarWidth = segmentCount == 0 ? 0
-                : segmentCount * SEGMENT_WIDTH + (segmentCount - 1) * SEGMENT_SPACING;
-        int segmentHeight = Math.clamp(safeHeight - 8, 3, 7);
-        int barY = Math.max(PANEL_INSET, (safeHeight - segmentHeight) / 2);
-        return new Layout(safeWidth, safeHeight, iconX, iconY, numberX, numberWidth,
-                auxiliaryX, auxiliaryWidth,
-                barX + Math.max(0, (barWidth - actualBarWidth) / 2), barY,
-                segmentCount, segmentHeight);
+        return new Layout(safeWidth, safeHeight,
+                ICON_X, ICON_Y, NUMBER_X, NUMBER_WIDTH, NUMBER_Y,
+                UNIT_X, UNIT_Y, DIVIDER_X, DIVIDER_Y, DIVIDER_HEIGHT,
+                BAR_X, BAR_Y, SEGMENT_COUNT, SEGMENT_HEIGHT);
     }
 
     static int filledSegments(double speedKmh, float maxSpeedKmh, int segmentCount) {
@@ -82,11 +113,12 @@ final class DashboardHudLayout {
     }
 
     record Layout(int width, int height, int iconX, int iconY,
-                  int numberX, int numberWidth, int auxiliaryX, int auxiliaryWidth,
-                  int barX, int barY,
-                  int segmentCount, int segmentHeight) {
+                  int numberX, int numberWidth, int numberY,
+                  int unitX, int unitY,
+                  int dividerX, int dividerY, int dividerHeight,
+                  int barX, int barY, int segmentCount, int segmentHeight) {
         boolean renderable() {
-            return width >= 48 && height >= 12 && numberWidth >= 12 && segmentCount >= 2;
+            return width >= COMPACT_WIDTH && height >= COMPACT_HEIGHT;
         }
 
         int segmentX(int index) {

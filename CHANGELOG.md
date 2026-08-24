@@ -1,5 +1,15 @@
 # Changelog
 
+## Momentum 0.1.11-unofficial.6 - 2026-08-24
+
+- Rebuilt the compact HUD as a stable 104 x 17 bottom-right speed instrument with
+  ten speed/boost segments that never reflow when cruise control changes state.
+- Moved the cruise target into its own aligned 38 x 11 top pod while retaining the
+  exact target marker on the main speed bar.
+- Added responsive narrow-screen clearance and a selective migration for the exact
+  previous Rosenvik compact preset without moving explicitly positioned user HUDs.
+- Kept the legacy dashboard mode and public Fuel System reflection contract intact.
+
 ## Momentum 0.1.11-unofficial.5 - 2026-08-24
 
 HUD polish update for the unofficial Minecraft Java 26.2 Fabric port of Momentum for Automobility.

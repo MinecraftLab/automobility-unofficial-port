@@ -70,22 +70,22 @@ public class MomentumConfig {
     }
 
     public static class BarHud {
-        public static final int COMPACT_MIN_WIDTH = 90;
-        public static final int COMPACT_MIN_HEIGHT = 15;
+        public static final int COMPACT_MIN_WIDTH = 104;
+        public static final int COMPACT_MIN_HEIGHT = 17;
 
         public boolean enabled    = true;
-        // Draw speed, cruise state and segments inside one compact dashboard panel.
+        // Draw a stable speed panel plus an aligned cruise pod in compact dashboard chrome.
         // Disable only to retain the legacy text-above-bars layout.
         public boolean compactDashboard = true;
-        // Negative coordinates use edge anchoring; defaults place the HUD at top right.
+        // Negative coordinates use edge anchoring; defaults place the HUD at bottom right.
         public int   x            = -1;
-        public int   y            = 18;
+        public int   y            = -1;
         public float xFraction    = 0.016f;  // fraction of screenW from right edge; resolution-independent
-        public int   marginBottom = 29;
+        public int   marginBottom = 12;
 
         // Overall size of the velocimeter area in pixels.
-        public int   totalWidth   = 90;
-        public int   totalHeight  = 15;
+        public int   totalWidth   = 104;
+        public int   totalHeight  = 17;
 
         // Size of each individual bar segment and the gap between them.
         // numBars = floor((totalWidth + barSpacing) / (barWidth + barSpacing))
@@ -313,6 +313,7 @@ public class MomentumConfig {
         camera.brakeZoomSpring = finite(camera.brakeZoomSpring, 0f, 10f, defaults.camera.brakeZoomSpring);
         camera.brakeZoomDamping = finite(camera.brakeZoomDamping, 0f, 1f, defaults.camera.brakeZoomDamping);
 
+        migrateRosenvikCompactPreset();
         barHud.x = bounded(barHud.x, -1, 1_000_000);
         barHud.y = bounded(barHud.y, -1, 1_000_000);
         barHud.xFraction = finite(barHud.xFraction, 0f, 1f, defaults.barHud.xFraction);
@@ -340,6 +341,22 @@ public class MomentumConfig {
         sanitizeArcade(defaults.arcadeDrift);
         sanitizeResponsive(defaults.responsiveDrift);
         sound.enginePitchCeiling = finite(sound.enginePitchCeiling, 1f, 10_000f, defaults.sound.enginePitchCeiling);
+    }
+
+    private void migrateRosenvikCompactPreset() {
+        if (!barHud.compactDashboard
+                || barHud.x != -1 || barHud.y != -1
+                || barHud.totalWidth != 90 || barHud.totalHeight != 15
+                || Float.compare(barHud.xFraction, 0.5f) != 0
+                || barHud.marginBottom != 29) {
+            return;
+        }
+
+        var current = new BarHud();
+        barHud.xFraction = current.xFraction;
+        barHud.marginBottom = current.marginBottom;
+        barHud.totalWidth = current.totalWidth;
+        barHud.totalHeight = current.totalHeight;
     }
 
     private void sanitizeArcade(ArcadeDrift defaults) {
