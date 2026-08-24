@@ -7,22 +7,60 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class DashboardHudLayoutTest {
     @Test
-    void liveAndOffscreenOriginsAreClampedExactlyLikeTheFuelBridge() {
-        assertEquals(new DashboardHudLayout.Origin(337, 436),
-                DashboardHudLayout.resolveOrigin(854, 480, 90, 15,
-                        -1, -1, 0.5f, 29));
-        assertEquals(new DashboardHudLayout.Origin(0, 436),
-                DashboardHudLayout.resolveOrigin(854, 480, 90, 15,
-                        -1, -1, 1.0f, 29));
-        assertEquals(new DashboardHudLayout.Origin(764, 465),
-                DashboardHudLayout.resolveOrigin(854, 480, 90, 15,
-                        10_000, 10_000, 0.5f, 29));
+    void livePresetResolvesTheExactSharedClusterGeometry() {
+        DashboardHudLayout.Origin main = DashboardHudLayout.resolveCompactOrigin(
+                854, 480, 104, 17, -1, -1, 0.016f, 12);
+
+        assertEquals(new DashboardHudLayout.Origin(737, 451), main);
+        assertEquals(new DashboardHudLayout.Origin(803, 438),
+                DashboardHudLayout.resolveCruiseOrigin(main));
     }
 
     @Test
-    void panelSizeUsesTheSameViewportBoundsAsTheFuelBridge() {
-        assertEquals(new DashboardHudLayout.PanelSize(90, 15),
-                DashboardHudLayout.resolvePanelSize(854, 90, 15));
+    void offscreenExplicitOriginsAreClampedWithoutChangingTheirAnchorMode() {
+        assertEquals(new DashboardHudLayout.Origin(0, 451),
+                DashboardHudLayout.resolveCompactOrigin(854, 480, 104, 17,
+                        -1, -1, 1.0f, 12));
+        assertEquals(new DashboardHudLayout.Origin(750, 463),
+                DashboardHudLayout.resolveCompactOrigin(854, 480, 104, 17,
+                        10_000, 10_000, 0.016f, 12));
+    }
+
+    @Test
+    void explicitTopEdgePositionKeepsCruisePodDockedWithoutOverlap() {
+        DashboardHudLayout.Origin main = DashboardHudLayout.resolveCompactOrigin(
+                854, 480, 104, 17, 100, 0, 0.016f, 12);
+        DashboardHudLayout.Origin cruise = DashboardHudLayout.resolveCruiseOrigin(main);
+
+        assertEquals(new DashboardHudLayout.Origin(100, 13), main);
+        assertEquals(new DashboardHudLayout.Origin(166, 0), cruise);
+        assertEquals(cruise.y() + DashboardHudLayout.CRUISE_HEIGHT + 2, main.y());
+    }
+
+    @Test
+    void narrowViewportRaisesTheWholeClusterAboveTouchControls() {
+        DashboardHudLayout.Origin main = DashboardHudLayout.resolveCompactOrigin(
+                425, 240, 104, 17, -1, -1, 0.016f, 12);
+
+        assertEquals(new DashboardHudLayout.Origin(315, 165), main);
+        assertEquals(182, main.y() + DashboardHudLayout.COMPACT_HEIGHT);
+        assertEquals(240 - DashboardHudLayout.NARROW_BOTTOM_MARGIN,
+                main.y() + DashboardHudLayout.COMPACT_HEIGHT);
+        assertEquals(new DashboardHudLayout.Origin(381, 152),
+                DashboardHudLayout.resolveCruiseOrigin(main));
+    }
+
+    @Test
+    void legacyOriginKeepsItsConfiguredBottomMarginOnNarrowViewports() {
+        assertEquals(new DashboardHudLayout.Origin(315, 211),
+                DashboardHudLayout.resolveOrigin(
+                        425, 240, 104, 17, -1, -1, 0.016f, 12));
+    }
+
+    @Test
+    void panelSizeUsesViewportBoundsAndTheNewPreset() {
+        assertEquals(new DashboardHudLayout.PanelSize(104, 17),
+                DashboardHudLayout.resolvePanelSize(854, 104, 17));
         assertEquals(new DashboardHudLayout.PanelSize(312, 48),
                 DashboardHudLayout.resolvePanelSize(320, 4096, 4096));
         assertEquals(new DashboardHudLayout.PanelSize(24, 1),
@@ -30,29 +68,34 @@ final class DashboardHudLayoutTest {
     }
 
     @Test
-    void deployedPresetKeepsEveryElementInsideDeclaredPanel() {
-        DashboardHudLayout.Layout layout = DashboardHudLayout.resolve(90, 15, false);
+    void mainPanelUsesTheExactTenSegmentInstrumentLayout() {
+        DashboardHudLayout.Layout layout = DashboardHudLayout.resolve(104, 17);
 
         assertTrue(layout.renderable());
-        assertEquals(8, layout.segmentCount());
-        assertTrue(layout.iconX() >= 0 && layout.iconX() + 8 <= layout.width());
-        assertTrue(layout.numberX() >= 0
-                && layout.numberX() + layout.numberWidth() <= layout.width());
-        assertTrue(layout.barY() >= 0
-                && layout.barY() + layout.segmentHeight() <= layout.height());
-        assertTrue(layout.segmentX(layout.segmentCount() - 1)
-                + DashboardHudLayout.SEGMENT_WIDTH <= layout.width());
+        assertEquals(3, layout.iconX());
+        assertEquals(5, layout.iconY());
+        assertEquals(13, layout.numberX());
+        assertEquals(4, layout.numberY());
+        assertEquals(36, layout.unitX());
+        assertEquals(6, layout.unitY());
+        assertEquals(49, layout.dividerX());
+        assertEquals(52, layout.barX());
+        assertEquals(5, layout.barY());
+        assertEquals(10, layout.segmentCount());
+        assertEquals(97, layout.segmentX(9));
+        assertEquals(101, layout.segmentX(9) + DashboardHudLayout.SEGMENT_WIDTH);
     }
 
     @Test
-    void cruiseLayoutReservesPersistentTargetWithoutLeavingPanel() {
-        DashboardHudLayout.Layout layout = DashboardHudLayout.resolve(90, 15, true);
+    void cruisePodDoesNotMutateOrResizeTheMainLayout() {
+        DashboardHudLayout.Layout beforeCruise = DashboardHudLayout.resolve(104, 17);
+        DashboardHudLayout.resolveCruiseOrigin(new DashboardHudLayout.Origin(737, 451));
+        DashboardHudLayout.Layout duringCruise = DashboardHudLayout.resolve(104, 17);
 
-        assertTrue(layout.renderable());
-        assertEquals(5, layout.segmentCount());
-        assertTrue(layout.auxiliaryX() + layout.auxiliaryWidth() <= layout.barX());
-        assertTrue(layout.segmentX(layout.segmentCount() - 1)
-                + DashboardHudLayout.SEGMENT_WIDTH <= layout.width());
+        assertEquals(beforeCruise, duringCruise);
+        assertEquals(10, duringCruise.segmentCount());
+        assertEquals(104, duringCruise.width());
+        assertEquals(17, duringCruise.height());
     }
 
     @Test
@@ -66,10 +109,10 @@ final class DashboardHudLayoutTest {
 
     @Test
     void unsafeTinyPanelFallsBackInsteadOfDrawingOutsideBounds() {
-        DashboardHudLayout.Layout layout = DashboardHudLayout.resolve(30, 8, false);
+        DashboardHudLayout.Layout layout = DashboardHudLayout.resolve(30, 8);
 
         assertTrue(!layout.renderable());
-        assertTrue(layout.segmentCount() >= 0);
+        assertEquals(10, layout.segmentCount());
     }
 
     @Test

@@ -187,13 +187,13 @@ public class MomentumConfigScreen {
                         .build())
                 .group(OptionGroup.createBuilder()
                         .name(Component.literal("Bar  |  Size"))
-                        .option(boolOpt("Compact Dashboard", "Keep speed, km/h, cruise target and bars inside one polished panel. Disable for the legacy layout.",
+                        .option(boolOpt("Compact Dashboard", "Use the polished instrument cluster with a stable speed panel and aligned cruise pod. Disable for the legacy layout.",
                                 def.barHud.compactDashboard,
                                 () -> cfg.barHud.compactDashboard, v -> cfg.barHud.compactDashboard = v))
-                        .option(intOpt("Total Width", "Dashboard width; compact values below 90 are corrected when saved.",
+                        .option(intOpt("Total Width", "Dashboard width; compact values below 104 are corrected when saved.",
                                 def.barHud.totalWidth,
                                 () -> cfg.barHud.totalWidth, v -> cfg.barHud.totalWidth = v, 24, 500, 1))
-                        .option(intOpt("Total Height", "Dashboard height; compact values below 15 are corrected when saved.",
+                        .option(intOpt("Total Height", "Dashboard height; compact values below 17 are corrected when saved.",
                                 def.barHud.totalHeight,
                                 () -> cfg.barHud.totalHeight, v -> cfg.barHud.totalHeight = v, 1, 100, 1))
                         .option(intOpt("Bar Width", "Legacy layout only: width of each individual bar segment.",
