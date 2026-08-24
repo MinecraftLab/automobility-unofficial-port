@@ -9,10 +9,10 @@ final class DashboardHudLayoutTest {
     @Test
     void livePresetResolvesTheExactSharedClusterGeometry() {
         DashboardHudLayout.Origin main = DashboardHudLayout.resolveCompactOrigin(
-                854, 480, 104, 17, -1, -1, 0.016f, 12);
+                854, 480, 104, 17, 12, -1, 0.016f, 12);
 
-        assertEquals(new DashboardHudLayout.Origin(737, 451), main);
-        assertEquals(new DashboardHudLayout.Origin(803, 438),
+        assertEquals(new DashboardHudLayout.Origin(12, 451), main);
+        assertEquals(new DashboardHudLayout.Origin(78, 438),
                 DashboardHudLayout.resolveCruiseOrigin(main));
     }
 
@@ -40,13 +40,13 @@ final class DashboardHudLayoutTest {
     @Test
     void narrowViewportRaisesTheWholeClusterAboveTouchControls() {
         DashboardHudLayout.Origin main = DashboardHudLayout.resolveCompactOrigin(
-                425, 240, 104, 17, -1, -1, 0.016f, 12);
+                425, 240, 104, 17, 12, -1, 0.016f, 12);
 
-        assertEquals(new DashboardHudLayout.Origin(315, 165), main);
+        assertEquals(new DashboardHudLayout.Origin(12, 165), main);
         assertEquals(182, main.y() + DashboardHudLayout.COMPACT_HEIGHT);
         assertEquals(240 - DashboardHudLayout.NARROW_BOTTOM_MARGIN,
                 main.y() + DashboardHudLayout.COMPACT_HEIGHT);
-        assertEquals(new DashboardHudLayout.Origin(381, 152),
+        assertEquals(new DashboardHudLayout.Origin(78, 152),
                 DashboardHudLayout.resolveCruiseOrigin(main));
     }
 
@@ -89,7 +89,7 @@ final class DashboardHudLayoutTest {
     @Test
     void cruisePodDoesNotMutateOrResizeTheMainLayout() {
         DashboardHudLayout.Layout beforeCruise = DashboardHudLayout.resolve(104, 17);
-        DashboardHudLayout.resolveCruiseOrigin(new DashboardHudLayout.Origin(737, 451));
+        DashboardHudLayout.resolveCruiseOrigin(new DashboardHudLayout.Origin(12, 451));
         DashboardHudLayout.Layout duringCruise = DashboardHudLayout.resolve(104, 17);
 
         assertEquals(beforeCruise, duringCruise);

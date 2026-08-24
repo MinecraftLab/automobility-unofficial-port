@@ -1,5 +1,13 @@
 # Changelog
 
+## Momentum 0.1.11-unofficial.7 - 2026-08-24
+
+- Moved the complete compact driving cluster to the bottom-left by default while
+  preserving the configurable right-edge anchor for users who choose it.
+- Added a persisted one-time layout migration for the two exact Rosenvik presets,
+  without moving custom coordinates or overriding later user changes.
+- Kept the Fuel System reflection contract and narrow-screen vertical clearance intact.
+
 ## Momentum 0.1.11-unofficial.6 - 2026-08-24
 
 - Rebuilt the compact HUD as a stable 104 x 17 bottom-right speed instrument with
