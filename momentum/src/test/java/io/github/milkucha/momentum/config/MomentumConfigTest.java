@@ -89,12 +89,49 @@ class MomentumConfigTest {
 
         config.sanitize();
 
-        assertEquals(-1, config.barHud.x);
+        assertEquals(12, config.barHud.x);
         assertEquals(-1, config.barHud.y);
         assertEquals(0.016f, config.barHud.xFraction);
         assertEquals(12, config.barHud.marginBottom);
         assertEquals(104, config.barHud.totalWidth);
         assertEquals(17, config.barHud.totalHeight);
+    }
+
+    @Test
+    void exactPreviousRightDockedClusterMigratesToBottomLeft() {
+        var config = new MomentumConfig();
+        config.barHud.compactDashboard = true;
+        config.barHud.x = -1;
+        config.barHud.y = -1;
+        config.barHud.xFraction = 0.016f;
+        config.barHud.marginBottom = 12;
+        config.barHud.totalWidth = 104;
+        config.barHud.totalHeight = 17;
+
+        config.sanitize();
+
+        assertEquals(12, config.barHud.x);
+        assertEquals(-1, config.barHud.y);
+        assertEquals(0.016f, config.barHud.xFraction);
+        assertEquals(12, config.barHud.marginBottom);
+        assertEquals(104, config.barHud.totalWidth);
+        assertEquals(17, config.barHud.totalHeight);
+    }
+
+    @Test
+    void persistedMigrationMarkerLetsTheUserMoveBackToTheRight() {
+        var config = new MomentumConfig();
+        config.barHud.x = -1;
+
+        config.sanitize();
+        assertEquals(12, config.barHud.x);
+
+        String persisted = new Gson().toJson(config);
+        var reloaded = new Gson().fromJson(persisted, MomentumConfig.class);
+        reloaded.barHud.x = -1;
+        reloaded.sanitize();
+
+        assertEquals(-1, reloaded.barHud.x);
     }
 
     @Test

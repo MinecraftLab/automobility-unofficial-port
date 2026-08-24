@@ -15,6 +15,11 @@ import java.time.Instant;
 
 public class MomentumConfig {
 
+    private static final int CURRENT_CONFIG_REVISION = 1;
+
+    /** Persisted so one-time preset migrations never override later user choices. */
+    public int configRevision = 0;
+
     public boolean enabled   = true;
 
     /** GLFW key code for the brake action. Default: S (83). Edit in momentum.json to remap. */
@@ -77,8 +82,9 @@ public class MomentumConfig {
         // Draw a stable speed panel plus an aligned cruise pod in compact dashboard chrome.
         // Disable only to retain the legacy text-above-bars layout.
         public boolean compactDashboard = true;
-        // Negative coordinates use edge anchoring; defaults place the HUD at bottom right.
-        public int   x            = -1;
+        // Explicit default keeps the complete dashboard cluster at the bottom left.
+        // A negative X remains available for legacy/right-edge anchoring in custom configs.
+        public int   x            = 12;
         public int   y            = -1;
         public float xFraction    = 0.016f;  // fraction of screenW from right edge; resolution-independent
         public int   marginBottom = 12;
@@ -344,19 +350,29 @@ public class MomentumConfig {
     }
 
     private void migrateRosenvikCompactPreset() {
-        if (!barHud.compactDashboard
-                || barHud.x != -1 || barHud.y != -1
-                || barHud.totalWidth != 90 || barHud.totalHeight != 15
-                || Float.compare(barHud.xFraction, 0.5f) != 0
-                || barHud.marginBottom != 29) {
+        if (configRevision >= CURRENT_CONFIG_REVISION) {
             return;
         }
 
-        var current = new BarHud();
-        barHud.xFraction = current.xFraction;
-        barHud.marginBottom = current.marginBottom;
-        barHud.totalWidth = current.totalWidth;
-        barHud.totalHeight = current.totalHeight;
+        boolean legacyCenteredPreset = barHud.compactDashboard && barHud.x == -1 && barHud.y == -1
+                && barHud.totalWidth == 90 && barHud.totalHeight == 15
+                && Float.compare(barHud.xFraction, 0.5f) == 0
+                && barHud.marginBottom == 29;
+        boolean previousRightDockedPreset = barHud.compactDashboard && barHud.x == -1 && barHud.y == -1
+                && barHud.totalWidth == 104 && barHud.totalHeight == 17
+                && Float.compare(barHud.xFraction, 0.016f) == 0
+                && barHud.marginBottom == 12;
+        if (legacyCenteredPreset || previousRightDockedPreset) {
+            var current = new BarHud();
+            barHud.x = current.x;
+            barHud.y = current.y;
+            barHud.xFraction = current.xFraction;
+            barHud.marginBottom = current.marginBottom;
+            barHud.totalWidth = current.totalWidth;
+            barHud.totalHeight = current.totalHeight;
+        }
+
+        configRevision = CURRENT_CONFIG_REVISION;
     }
 
     private void sanitizeArcade(ArcadeDrift defaults) {
