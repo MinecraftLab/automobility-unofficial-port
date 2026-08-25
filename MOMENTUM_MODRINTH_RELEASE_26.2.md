@@ -1,4 +1,4 @@
-# Modrinth Release - Momentum 0.1.11-unofficial.5 for 26.2
+# Modrinth Release - Momentum 0.1.11-unofficial.7 for 26.2
 
 Use this file for the 26.2 upload after the release candidate passes the in-game smoke test.
 
@@ -10,7 +10,7 @@ Use this file for the 26.2 upload after the release candidate passes the in-game
 ## Version Form
 
 - Version type: `beta`
-- Version number: `0.1.11-unofficial.5+26.2`
+- Version number: `0.1.11-unofficial.7+26.2`
 - Version subtitle: `for Minecraft 26.2`
 - Loaders: `Fabric`
 - Game versions: `26.2`
@@ -27,9 +27,9 @@ YACL enables the in-game options screen. Mod Menu exposes that screen in its mod
 
 ## Upload File
 
-- Local JAR: `momentum\build\libs\momentum-0.1.11-unofficial.5+26.2-fabric.jar`
-- Candidate size: `101623` bytes
-- Candidate SHA-256: `8ABE9D2B19BE08C9A74D65B7FDA057313F9EBB8E45D417B7C160816AD4186BAC`
+- Local JAR: `momentum\build\libs\momentum-0.1.11-unofficial.7+26.2-fabric.jar`
+- Candidate size: `178350` bytes
+- Candidate SHA-256: `5CAB0236BAEFC6C9A9584B6392AB06BC567F9881E99CDAEE39B67393458C8ED1`
 
 Recompute both values from the final canonical artifact after the in-game smoke test;
 do not publish if either differs without a documented rebuild.
@@ -39,17 +39,20 @@ do not publish if either differs without a documented rebuild.
 Use this changelog:
 
 ```markdown
-HUD polish release for the unofficial Minecraft Java 26.2 Fabric port of Momentum for Automobility.
+Dashboard and localization release for the unofficial Minecraft Java 26.2 Fabric port of Momentum for Automobility.
 
-- Added a compact unified driving dashboard with exact speed, graphical km/h unit,
-  visible speed/boost segments and a persistent cruise target.
-- Kept every visual inside the declared dashboard panel for reliable companion-HUD placement.
-- Retained the previous configurable bar-and-text HUD as an optional legacy layout.
+- Moved the complete compact driving cluster to the bottom-left by default while
+  retaining custom coordinates and the configurable right-edge anchor.
+- Localized the full options screen, notifications and debug HUD in the same 17
+  languages as the Automobility port.
+- Added strict automated locale validation for key parity, non-empty values and
+  formatting placeholders.
+- Kept the Fuel System reflection contract and narrow-screen clearance intact.
 ```
 
 ## Before Upload
 
-- Complete the 26.2 singleplayer smoke test with the matching Automobility `.29` JAR.
+- Complete the 26.2 client singleplayer and multiplayer smoke tests with the matching Automobility `.29` JAR.
 - Push the `port/26.2` branch and create the matching GitHub release.
 - Upload exactly the JAR and metadata listed above.
 - Keep the version as beta while the port still has limited public testing.
