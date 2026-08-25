@@ -1,4 +1,4 @@
-# Modrinth Release - Automobility 0.5.0-unofficial.28 for 26.1.x
+# Modrinth Release - Automobility 0.5.0-unofficial.29 for 26.1.x
 
 Use this file for the 26.1.x upload after the release candidate passes the in-game smoke test.
 
@@ -13,7 +13,7 @@ Use this file for the 26.1.x upload after the release candidate passes the in-ga
 ## Version Form
 
 - Version type: `beta`
-- Version number: `0.5.0-unofficial.28+26.1.2`
+- Version number: `0.5.0-unofficial.29+26.1.2`
 - Version subtitle: `for Minecraft 26.1.x`
 - Loaders: `Fabric`
 - Game versions: `26.1`, `26.1.1`, `26.1.2`
@@ -29,29 +29,34 @@ Do not add Fabric Loader as a project dependency. The JAR metadata already requi
 
 ## Upload File
 
-- Local JAR: `dist\release-candidate-0.5.0-unofficial.28\automobility-0.5.0-unofficial.28+26.1.2-fabric.jar`
-- Size: `1369695` bytes
-- SHA-256: `DC8DA1C773AC8FF2D9AC700C5EEB81C8CB04515752A5D9D731E36DF4C0883D3F`
+- Local JAR: `dist\release-candidate-0.5.0-unofficial.29\automobility-0.5.0-unofficial.29+26.1.2-fabric.jar`
+- Size: `1370366` bytes
+- SHA-256: `CC8237F8F3C381E6768678F2AEF46FC9A6CBD8035CC2411F333DFF653FB54260`
+- SHA-512: `1CA268765ED47C43D1157448B32EB57BF5C4D9F6E5659C2896315E09309D547E7C966D121C7771925C4AB8A75539DED19B5EEE502449275A2FD73881FEE17093`
 
 ## Version Changelog
 
 ```markdown
-Compatibility and translation update for the unofficial Minecraft Java 26.1.x Fabric port.
-
-### Added
-- Added complete Czech, Polish, and Korean translations using current Automobility keys and official Minecraft terminology for vanilla content.
-- Added component-specific Auto Mechanic Table input ingredients for addons that require an exact vehicle component variant.
+Version-alignment and defensive stability update for the unofficial Minecraft Java 26.1.x Fabric port.
 
 ### Fixed
-- Completed the Simplified Chinese translation and replaced obsolete MidnightControls keys with the current Controlify bindings.
-- Made translation validation require every locale to match the complete English key set while preserving formatting placeholders.
-- Preserved component-specific recipe requirements in the mechanic table UI, shift-click matching, and client-server recipe sync.
+- Made automobile hitboxes answer targetless hard-collision queries safely, keeping the 26.1.2 and 26.2 port lines aligned without dereferencing a missing query target.
 ```
+
+## Verification Record
+
+- Java 25 clean build: passed on 2026-08-25.
+- Fabric test suite: 10 passed, 0 failed, 0 skipped.
+- Dedicated Minecraft 26.1.2 full-stack start: passed with Automobility `.29`,
+  Momentum `.7`, Pumps & Pistons core and its Automobility integration.
+- The server loaded 1,623 recipes and 1,623 advancements, reached `Done`, then
+  stopped cleanly with every dimension saved.
+- Client and multiplayer smoke tests remain required before upload.
 
 ## Before Upload
 
 - Complete the 26.1.2 singleplayer and multiplayer smoke test.
-- Push the `main` branch and create the matching GitHub release.
+- Push the `port/26.1.2` branch and create the matching GitHub release.
 - Upload exactly the JAR and metadata listed above.
 - Keep the version as beta while the port still has limited public testing.
 - Use `MODRINTH_DESCRIPTION.md` as the project description.
