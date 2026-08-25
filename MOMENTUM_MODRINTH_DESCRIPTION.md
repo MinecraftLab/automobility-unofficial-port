@@ -16,6 +16,8 @@ Momentum adjusts Automobility's acceleration, coasting, braking, steering, drift
 - Cruise control on the `C` key while driving
 - Controlify support through Automobility's controller bindings
 - Dedicated multiplayer synchronization for brake, drift, and gameplay configuration
+- Complete localized options, notifications and debug HUD in the same 17 languages
+  as the Automobility port
 
 Cruise control disengages when braking, drifting, reversing, leaving the driver seat, or hitting a wall or vehicle hard enough to count as an impact.
 

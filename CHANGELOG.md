@@ -1,6 +1,17 @@
 # Changelog
 
-## Momentum 0.1.11-unofficial.7 - 2026-08-24
+## Momentum 0.1.11-unofficial.7 - 2026-08-25
+
+Dual-version dashboard and localization release for the unofficial Minecraft Java
+26.1.x and 26.2 Fabric ports of Momentum for Automobility.
+
+### Added
+- Localized Momentum's complete options screen, status notifications and debug HUD
+  in the same 17 languages shipped by the Automobility port.
+- Added automated locale validation for the exact language set, complete key parity,
+  non-empty values and preserved formatting placeholders.
+
+### Changed
 
 - Moved the complete compact driving cluster to the bottom-left by default while
   preserving the configurable right-edge anchor for users who choose it.
