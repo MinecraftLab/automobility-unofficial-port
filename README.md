@@ -11,8 +11,8 @@ Automobility adds customizable and functional vehicles, automobile parts, attach
 ## Available for Fabric
 - Supports Minecraft Java **26.1.x** and **26.2** through separate matching builds
 - 26.1.x release builds are smoke-tested on **26.1.2**
-- Requires **[Fabric API](https://modrinth.com/mod/fabric-api)**
-- Requires Fabric Loader **0.19.2 or newer**
+- Requires **[Fabric API](https://modrinth.com/mod/fabric-api)** matching the Minecraft build
+- Requires Fabric Loader **0.19.2+ for 26.1.x** or **0.19.3+ for 26.2**
 - Requires Java **25 or newer**
 - Optional Fabric controller support through **[Controlify](https://modrinth.com/mod/controlify)**
 
