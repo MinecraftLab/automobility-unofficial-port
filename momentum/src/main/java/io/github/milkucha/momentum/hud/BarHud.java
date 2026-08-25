@@ -301,17 +301,18 @@ public class BarHud {
         boolean onGround  = dbg.momentum$isOnGround();
         boolean cruise    = MomentumCruiseControl.isActiveFor(auto);
 
-        List<String>  texts  = new ArrayList<>();
+        List<Component> texts = new ArrayList<>();
         List<Integer> colors = new ArrayList<>();
 
-        row(texts, colors, "GENERAL",                                           0xFF999999);
-        row(texts, colors, String.format("steer:  %+.3f", steering),            0xFFFFFF55);
-        row(texts, colors, String.format("hSpd:   %.3f",  hSpd),                0xFF55FFFF);
-        row(texts, colors, String.format("engSpd: %.3f",  engSpd),              0xFFAAAAAA);
-        row(texts, colors, String.format("angSpd: %+.3f", angSpd),              0xFFFF55FF);
-        row(texts, colors, "ground: " + yn(onGround),     onGround ? 0xFF55FF55 : 0xFF999999);
-        row(texts, colors, "drift:  " + yn(drifting),     drifting ? 0xFF55FF55 : 0xFF999999);
-        row(texts, colors, String.format("cruise: %s %.0f", yn(cruise), MomentumCruiseControl.getTargetKmh()),
+        row(texts, colors, debug("general"), 0xFF999999);
+        row(texts, colors, debug("steering", String.format("%+.3f", steering)), 0xFFFFFF55);
+        row(texts, colors, debug("horizontal_speed", String.format("%.3f", hSpd)), 0xFF55FFFF);
+        row(texts, colors, debug("engine_speed", String.format("%.3f", engSpd)), 0xFFAAAAAA);
+        row(texts, colors, debug("angular_speed", String.format("%+.3f", angSpd)), 0xFFFF55FF);
+        row(texts, colors, debug("ground", yesNo(onGround)), onGround ? 0xFF55FF55 : 0xFF999999);
+        row(texts, colors, debug("drift", yesNo(drifting)), drifting ? 0xFF55FF55 : 0xFF999999);
+        row(texts, colors, debug("cruise", yesNo(cruise),
+                        String.format("%.0f", MomentumCruiseControl.getTargetKmh())),
                 cruise ? MomentumConfig.get().cruise.activeColor : 0xFF999999);
 
         int lineH  = 9;
@@ -328,17 +329,23 @@ public class BarHud {
 
         drawPanel(graphics, dbgX, dbgY, dbgW, dbgH);
         for (int i = 0; i < texts.size(); i++) {
-            graphics.text(client.font, Component.literal(texts.get(i)),
+            graphics.text(client.font, texts.get(i),
                     dbgX + padX, dbgY + padY + i * lineH, colors.get(i));
         }
     }
 
-    private static void row(List<String> texts, List<Integer> colors, String text, int color) {
+    private static void row(List<Component> texts, List<Integer> colors, Component text, int color) {
         texts.add(text);
         colors.add(color);
     }
 
-    private static String yn(boolean v) { return v ? "YES" : "no"; }
+    private static Component debug(String key, Object... args) {
+        return Component.translatable("debug.momentum." + key, args);
+    }
+
+    private static Component yesNo(boolean value) {
+        return debug(value ? "yes" : "no");
+    }
 
     private static void drawCruiseChevrons(GuiGraphicsExtractor g, int x, int y, int color) {
         int shadow = 0x99000000;

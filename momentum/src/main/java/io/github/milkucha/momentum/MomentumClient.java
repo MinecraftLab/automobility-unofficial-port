@@ -172,19 +172,21 @@ public class MomentumClient implements ClientModInitializer {
                 if (client.player.getVehicle() instanceof AutomobileEntity auto && auto.isDriving(client.player)) {
                     boolean active = MomentumCruiseControl.toggle(auto);
                     if (active) {
-                        client.player.sendOverlayMessage(Component.literal(String.format("[Momentum] Cruise %.0f km/h", MomentumCruiseControl.getTargetKmh())));
+                        client.player.sendOverlayMessage(Component.translatable(
+                                "message.momentum.cruise_enabled",
+                                String.format("%.0f", MomentumCruiseControl.getTargetKmh())));
                     } else {
-                        client.player.sendOverlayMessage(Component.literal("[Momentum] Cruise off"));
+                        client.player.sendOverlayMessage(Component.translatable("message.momentum.cruise_disabled"));
                     }
                 } else {
                     MomentumCruiseControl.deactivate();
-                    client.player.sendOverlayMessage(Component.literal("[Momentum] Cruise off"));
+                    client.player.sendOverlayMessage(Component.translatable("message.momentum.cruise_disabled"));
                 }
             }
 
             if (reloadKey.consumeClick() && client.player != null) {
                 MomentumConfig.reload();
-                client.player.sendOverlayMessage(Component.literal("[Momentum] Config reloaded"));
+                client.player.sendOverlayMessage(Component.translatable("message.momentum.config_reloaded"));
             }
             if (openOptionsKey != null && openOptionsKey.consumeClick()) {
                 client.execute(() -> {
@@ -194,7 +196,8 @@ public class MomentumClient implements ClientModInitializer {
                         client.setScreen((net.minecraft.client.gui.screens.Screen) create.invoke(null, client.screen));
                     } catch (ReflectiveOperationException | LinkageError e) {
                         if (client.player != null) {
-                            client.player.sendOverlayMessage(Component.literal("[Momentum] Config screen unavailable"));
+                            client.player.sendOverlayMessage(Component.translatable(
+                                    "message.momentum.config_screen_unavailable"));
                         }
                     }
                 });
