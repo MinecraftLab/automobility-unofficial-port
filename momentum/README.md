@@ -6,8 +6,8 @@ Momentum changes Automobility vehicle movement feel and adds a compact driving d
 
 ## Requirements
 - A matching Minecraft Java 26.x build
-- Fabric Loader 0.19.2 or newer
-- Fabric API
+- Fabric Loader 0.19.2+ for Minecraft 26.1.x, or 0.19.3+ for Minecraft 26.2
+- Fabric API matching the Minecraft build
 - Java 25 or newer
 - Automobility `0.5.0-unofficial.29` or newer
 
