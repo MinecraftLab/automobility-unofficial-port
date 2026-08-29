@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0-unofficial.30 - 2026-08-28
+
+### Fixed
+- Kept rear attachments aligned with their automobile after large same-dimension
+  teleports while preserving normal towing physics, reverse articulation, vertical
+  movement and even extreme in-tick Momentum speeds.
+- Restored localized inventory names for Automobility's six block items instead of
+  exposing raw `item.automobility.*` translation keys.
+- Removed stale mixin refmap declarations that referenced a file no longer emitted
+  by the current Fabric Loom build.
+
 ## Momentum 0.1.11-unofficial.7 - 2026-08-25
 
 Dual-version dashboard and localization release for the unofficial Minecraft Java
