@@ -1,4 +1,4 @@
-# Modrinth Release - Automobility 0.5.0-unofficial.29 for 26.2
+# Modrinth Release - Automobility 0.5.0-unofficial.30 for 26.2
 
 Use this file for the 26.2 upload after the release candidate passes the in-game smoke test.
 
@@ -10,7 +10,7 @@ Use this file for the 26.2 upload after the release candidate passes the in-game
 ## Version Form
 
 - Version type: `beta`
-- Version number: `0.5.0-unofficial.29+26.2`
+- Version number: `0.5.0-unofficial.30+26.2`
 - Version subtitle: `for Minecraft 26.2`
 - Loaders: `Fabric`
 - Game versions: `26.2`
@@ -26,34 +26,37 @@ Do not add Fabric Loader as a project dependency. The JAR metadata already requi
 
 ## Upload File
 
-- Local JAR: `dist\release-candidate-0.5.0-unofficial.29\automobility-0.5.0-unofficial.29+26.2-fabric.jar`
-- Size: `1370245` bytes
-- SHA-256: `A442F17C5604BF3BAFDFFE18FB87992EC3353B56B94AB4FF5D0660BCEF095ADA`
-- SHA-512: `188BD344DEFE5453B40AB99AF1492E1D2FB6EAAD10A631A6929CE996DDE5F06407CE76A42FE68C93B2FC80836ABCB462FF11F44A25EE654279FEC3E33F50D733`
+- Local JAR: `dist\release-candidate-0.5.0-unofficial.30\automobility-0.5.0-unofficial.30+26.2-fabric.jar`
+- Size: `1372366` bytes
+- SHA-256: `C06D293D70A2746CB664C94A1058D75FFD5F764B4479794F2DDEBD999E748DD5`
+- SHA-512: `D6336787B66C00F358F8D755512C68B970C491093ED937FCB89E78B5E6B3B9FD3B7899C5B1CF8231CAAF66E1994A88B62CCE5DC309CAF6F22FC7E40EA203CE68`
 
 ## Version Changelog
 
 Use this exact changelog:
 
 ```markdown
-Dedicated-server stability update for the unofficial Minecraft Java 26.2 Fabric port.
+Attachment, inventory-name and packaging reliability update for the unofficial
+Minecraft Java 26.2 Fabric port.
 
 ### Fixed
 
-- Made automobile hitboxes handle Minecraft 26.2's nullable hard-collision query,
-  preventing a dedicated-server crash during natural spawn collision checks with Lithium.
+- Rear attachments now realign after large same-dimension teleports without changing
+  normal towing, reverse articulation, vertical motion or high-speed Momentum travel.
+- Automobility's six registered block items now use their existing localized block
+  names instead of displaying raw `item.automobility.*` translation keys.
+- Removed stale mixin refmap declarations that referenced an unbundled file.
 ```
 
 ## Verification Record
 
-- Java 25 clean Fabric build: passed on 2026-08-25.
-- Fabric test suite: 10 passed, 0 failed, 0 skipped.
-- Exact-artifact integrated smoke test: passed with the SHA-256 listed above.
-- The packaged client loaded Automobility `.29`, Fuel System 1.8, its adapter,
-  Momentum and RIAutomobility; an existing world loaded, the automobile and fuel
-  assets rendered, and Save & Quit completed with all dimensions saved.
-- No Automobility, mixin or collision exception occurred. Authentication warnings
-  from the deliberately offline QA identity are expected and unrelated to the mod.
+- Java 25 clean Fabric build: passed on 2026-08-29.
+- Fabric test suite: 20 passed, 0 failed, 0 skipped.
+- The rebuilt JAR matched the immutable r8 QA snapshot byte-for-byte.
+- Exact-artifact dedicated-server and physical-client testing passed in the complete
+  Pumps & Pistons Roadworks stack, including large teleport recovery, driving,
+  attachment collision, persistence, restart and clean shutdown.
+- No Automobility, mixin, attachment or collision exception occurred.
 
 ## Before Upload
 
@@ -62,10 +65,6 @@ Dedicated-server stability update for the unofficial Minecraft Java 26.2 Fabric 
   release record. The tested world must load and exit through Save & Quit without an
   Automobility, mixin or collision failure.
 - Push the `port/26.2` branch and create the matching GitHub release.
-- Apply the current structured content disclosures accurately: AI-generated code,
-  AI-generated text and derivative content are applicable. The JAR has no
-  generative-AI runtime functionality, and no AI-generated image may be used as
-  project media.
 - Upload exactly the JAR and metadata listed above.
 - Keep the version as beta while the port still has limited public testing.
 
@@ -73,6 +72,6 @@ Dedicated-server stability update for the unofficial Minecraft Java 26.2 Fabric 
 
 - Download the public Modrinth file and compare its SHA-256 with the value above.
 - Confirm the anonymous Modrinth API, CDN download and Maven coordinate all return
-  the `.29` artifact before publishing dependants that require it.
+  the `.30` artifact before publishing dependants that require it.
 - Confirm Modrinth shows Fabric and only Minecraft 26.2 for this file.
 - Confirm Fabric API is required and both Controlify and Momentum are optional.

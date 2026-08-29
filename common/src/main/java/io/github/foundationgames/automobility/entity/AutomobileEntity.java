@@ -204,6 +204,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private float smoothAngVel = 0;
 
     private Vec3 prevTailPos = null;
+    private transient Vec3 previousServerTickEndPosition = null;
+    private transient ResourceKey<Level> previousServerTickEndDimension = null;
     private float prevYawForRotate = 0;
 
     private int slopeStickingTimer = 0;
@@ -857,10 +859,21 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (!level().isClientSide()) {
             this.resolveRecentDismountHitboxOverlap();
 
-            var prevTailPos = this.prevTailPos != null ? this.prevTailPos : this.getTailPos();
             var tailPos = this.getTailPos();
+            var currentDimension = this.level().dimension();
+            boolean dimensionChanged = this.previousServerTickEndDimension != null
+                    && !this.previousServerTickEndDimension.equals(currentDimension);
 
-            this.rearAttachment.pull(prevTailPos.subtract(tailPos));
+            if (RearAttachmentMovementPolicy.shouldRealign(
+                    this.previousServerTickEndPosition,
+                    prevPos,
+                    dimensionChanged
+            )) {
+                this.rearAttachment.setYaw(this.getYRot());
+            } else {
+                var prevTailPos = this.prevTailPos != null ? this.prevTailPos : tailPos;
+                this.rearAttachment.pull(prevTailPos.subtract(tailPos));
+            }
             this.prevTailPos = tailPos;
 
             if (serverSyncTicks > 0) {
@@ -923,6 +936,10 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
 
         displacementTick(first || (this.position().subtract(prevPos).length() > 0 || this.getYRot() != this.yRotO));
+        if (!this.level().isClientSide()) {
+            this.previousServerTickEndPosition = this.position();
+            this.previousServerTickEndDimension = this.level().dimension();
+        }
     }
 
     public void positionTrackingTick() {
