@@ -17,7 +17,9 @@ Momentum adjusts Automobility's acceleration, coasting, braking, steering, drift
 - Optional legacy bar-and-text HUD through the in-game configuration
 - Cruise control with set/cancel, adjustable target speed, and resume; every binding
   is remappable in Minecraft's Controls screen
-- Controlify support through Automobility's controller bindings
+- Native optional Controlify support for all four cruise actions, with a contextual
+  controller guide and radial-menu entries; no physical controller buttons are claimed
+  by default
 - Dedicated multiplayer synchronization for brake, drift, and gameplay configuration
 - Clear read-only server gameplay settings in multiplayer while camera and HUD
   preferences remain personal
@@ -46,6 +48,8 @@ Reloads and preset changes are synchronized immediately with every compatible co
 
 - YetAnotherConfigLib (YACL) enables the in-game options screen.
 - Mod Menu exposes the Momentum options button when YACL is also installed.
+- Controlify `3.0.2` or newer adds native controller bindings, contextual guide hints,
+  and radial-menu actions for cruise control. Momentum remains fully usable without it.
 
 ## Compatibility
 
