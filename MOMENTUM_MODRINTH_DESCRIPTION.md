@@ -33,7 +33,7 @@ Matching Fabric builds are available for Minecraft Java 26.1.x and 26.2. Install
 ## Requirements
 
 - Fabric Loader and Fabric API
-- [Automobility: Unofficial Port](https://modrinth.com/mod/automobility-unofficial-port) on both the client and server
+- [Automobility: Unofficial Port](https://modrinth.com/mod/automobility-unofficial-port) `0.5.0-unofficial.29` or newer on both the client and server
 - Java 25 or newer
 
 Momentum is required on both the client and server in multiplayer. Movement, steering, drift, and cruise settings are controlled by the server; HUD, camera, and key preferences remain local to each client.
