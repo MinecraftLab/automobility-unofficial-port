@@ -1,5 +1,26 @@
 # Changelog
 
+## Momentum 0.1.11-unofficial.8 - 2026-08-31
+
+Driving-tune and multiplayer-options release for the unofficial Minecraft Java
+26.1.x and 26.2 Fabric ports of Momentum for Automobility.
+
+### Added
+- Added Touring, Balanced and Sport driving tunes, plus a Custom tune for manual
+  movement and steering settings.
+- Preserved the player's hand-tuned chassis values while a named tune is active and
+  restored them when Custom is selected again.
+
+### Changed
+- Extended coasting across every named tune while retaining progressively firmer
+  behavior from Touring through Sport.
+- Kept drift, camera, HUD, sound, key bindings and cruise-control preferences
+  independent from driving-tune changes.
+- Made server-controlled gameplay settings display the server's real values as
+  read-only in multiplayer while camera and HUD options remain personal.
+- Added a one-time migration that adopts Balanced without overwriting later manual
+  choices or unrelated settings.
+
 ## 0.5.0-unofficial.30 - 2026-08-28
 
 ### Fixed

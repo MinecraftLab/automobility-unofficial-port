@@ -1,4 +1,4 @@
-# Modrinth Release - Momentum 0.1.11-unofficial.7 for 26.1.x
+# Modrinth Release - Momentum 0.1.11-unofficial.8 for 26.1.x
 
 Use this file for the 26.1.x upload after the release candidate passes the in-game smoke test.
 
@@ -13,7 +13,7 @@ Use this file for the 26.1.x upload after the release candidate passes the in-ga
 ## Version Form
 
 - Version type: `beta`
-- Version number: `0.1.11-unofficial.7+26.1.2`
+- Version number: `0.1.11-unofficial.8+26.1.2`
 - Version subtitle: `for Minecraft 26.1.x`
 - Loaders: `Fabric`
 - Game versions: `26.1`, `26.1.1`, `26.1.2`
@@ -30,25 +30,25 @@ YACL enables the in-game options screen. Mod Menu exposes that screen in its mod
 
 ## Upload File
 
-- Local JAR: `momentum\build\libs\momentum-0.1.11-unofficial.7+26.1.2-fabric.jar`
-- Size: `178424` bytes
-- SHA-256: `D6A97C0CB89CF1D5C8E7F6420312CE61105B3475388B01E205A52C35776D6845`
+- Local JAR: `momentum\build\libs\momentum-0.1.11-unofficial.8+26.1.2-fabric.jar`
+- Size: `186453` bytes
+- SHA-256: `282ADBDB8358D83C682A26618E344DD459AFD0BAC4A6729A1E065CCD3E109C2E`
 
 ## Version Changelog
 
 ```markdown
-Dashboard and localization release for the unofficial Minecraft Java 26.1.x Fabric port of Momentum for Automobility.
+Driving-tune and multiplayer-options release for the unofficial Minecraft Java 26.1.x Fabric port of Momentum for Automobility.
 
-### Added
-- Localized the full options screen, notifications and debug HUD in the same 17
-  languages as the Automobility port.
-- Added strict automated locale validation for key parity, non-empty values and
-  formatting placeholders.
-
-### Changed
-- Moved the complete compact driving cluster to the bottom-left by default while
-  retaining custom coordinates and the configurable right-edge anchor.
-- Kept the Fuel System reflection contract and narrow-screen clearance intact.
+- Added Touring, Balanced and Sport driving tunes, plus a Custom tune that preserves
+  and restores hand-tuned movement and steering values.
+- Extended coasting across every named tune while keeping Touring the most relaxed
+  and Sport the firmest.
+- Kept drift, camera, HUD, sound, key bindings and cruise control independent from
+  driving-tune changes.
+- Displayed the server's real gameplay tune and settings as read-only in multiplayer,
+  while camera and HUD options remain personal.
+- Added a one-time migration to Balanced that does not overwrite later manual choices
+  or unrelated preferences.
 ```
 
 ## Before Upload

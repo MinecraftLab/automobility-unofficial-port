@@ -7,6 +7,8 @@ Momentum adjusts Automobility's acceleration, coasting, braking, steering, drift
 ## Features
 
 - Smoother acceleration, coasting, and braking
+- Touring, Balanced, Sport, and Custom driving tunes, with hand-tuned chassis values
+  preserved when switching between them
 - Separate brake and handbrake/drift inputs
 - Multiple drift profiles and drift skid sounds
 - Camera response for steering, braking, reversing, and drifting
@@ -16,6 +18,8 @@ Momentum adjusts Automobility's acceleration, coasting, braking, steering, drift
 - Cruise control on the `C` key while driving
 - Controlify support through Automobility's controller bindings
 - Dedicated multiplayer synchronization for brake, drift, and gameplay configuration
+- Clear read-only server gameplay settings in multiplayer while camera and HUD
+  preferences remain personal
 - Complete localized options, notifications and debug HUD in the same 17 languages
   as the Automobility port
 
