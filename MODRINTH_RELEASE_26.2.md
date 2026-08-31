@@ -62,10 +62,6 @@ Dedicated-server stability update for the unofficial Minecraft Java 26.2 Fabric 
   release record. The tested world must load and exit through Save & Quit without an
   Automobility, mixin or collision failure.
 - Push the `port/26.2` branch and create the matching GitHub release.
-- Apply the current structured content disclosures accurately: AI-generated code,
-  AI-generated text and derivative content are applicable. The JAR has no
-  generative-AI runtime functionality, and no AI-generated image may be used as
-  project media.
 - Upload exactly the JAR and metadata listed above.
 - Keep the version as beta while the port still has limited public testing.
 
