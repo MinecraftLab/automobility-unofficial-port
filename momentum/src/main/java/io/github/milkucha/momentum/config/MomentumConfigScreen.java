@@ -25,13 +25,15 @@ public class MomentumConfigScreen {
     public static Screen create(Screen parent) {
         MomentumConfig cfg = MomentumConfig.get();
         MomentumConfig def = new MomentumConfig();
+        boolean serverControlled = MomentumConfig.hasServerGameplayConfig();
+        MomentumConfig drivingCfg = serverControlled ? MomentumConfig.gameplay() : cfg;
 
         return YetAnotherConfigLib.createBuilder()
                 .title(text("title"))
-                .category(general(cfg, def, parent))
-                .category(drift(cfg, def, parent))
-                .category(movement(cfg, def))
-                .category(steering(cfg, def))
+                .category(general(cfg, drivingCfg, def, parent, serverControlled))
+                .category(drift(drivingCfg, def, parent, serverControlled))
+                .category(movement(drivingCfg, def, serverControlled))
+                .category(steering(drivingCfg, def, serverControlled))
                 .category(camera(cfg, def))
                 .category(hud(cfg, def))
                 .save(cfg::save)
@@ -41,49 +43,58 @@ public class MomentumConfigScreen {
 
     // ── Movement ─────────────────────────────────────────────────────────────
 
-    private static ConfigCategory movement(MomentumConfig cfg, MomentumConfig def) {
+    private static ConfigCategory movement(MomentumConfig cfg, MomentumConfig def, boolean serverControlled) {
         return ConfigCategory.createBuilder()
                 .name(text("category.movement"))
-                .option(floatOpt("movement.coast_decay",
+                .option(available(floatOpt("movement.coast_decay",
                         def.movement.coastDecay,
-                        () -> cfg.movement.coastDecay, v -> cfg.movement.coastDecay = v,
-                        0.001f, 0.05f, 0.001f))
-                .option(floatOpt("movement.acceleration_scale",
+                        () -> cfg.movement.coastDecay,
+                        v -> setDrivingValue(cfg, cfg.movement.coastDecay, v, n -> cfg.movement.coastDecay = n),
+                        0.001f, 0.05f, 0.001f), !serverControlled))
+                .option(available(floatOpt("movement.acceleration_scale",
                         def.movement.accelerationScale,
-                        () -> cfg.movement.accelerationScale, v -> cfg.movement.accelerationScale = v,
-                        1.0f, 10.0f, 0.1f))
-                .option(floatOpt("movement.brake_decay",
+                        () -> cfg.movement.accelerationScale,
+                        v -> setDrivingValue(cfg, cfg.movement.accelerationScale, v, n -> cfg.movement.accelerationScale = n),
+                        1.0f, 10.0f, 0.1f), !serverControlled))
+                .option(available(floatOpt("movement.brake_decay",
                         def.movement.brakeDecay,
-                        () -> cfg.movement.brakeDecay, v -> cfg.movement.brakeDecay = v,
-                        0.001f, 0.1f, 0.001f))
-                .option(floatOpt("movement.comfortable_speed_multiplier",
+                        () -> cfg.movement.brakeDecay,
+                        v -> setDrivingValue(cfg, cfg.movement.brakeDecay, v, n -> cfg.movement.brakeDecay = n),
+                        0.001f, 0.1f, 0.001f), !serverControlled))
+                .option(available(floatOpt("movement.comfortable_speed_multiplier",
                         def.movement.comfortableSpeedMultiplier,
-                        () -> cfg.movement.comfortableSpeedMultiplier, v -> cfg.movement.comfortableSpeedMultiplier = v,
-                        0.5f, 5.0f, 0.05f))
+                        () -> cfg.movement.comfortableSpeedMultiplier,
+                        v -> setDrivingValue(cfg, cfg.movement.comfortableSpeedMultiplier, v,
+                                n -> cfg.movement.comfortableSpeedMultiplier = n),
+                        0.5f, 5.0f, 0.05f), !serverControlled))
                 .build();
     }
 
     // ── Steering ─────────────────────────────────────────────────────────────
 
-    private static ConfigCategory steering(MomentumConfig cfg, MomentumConfig def) {
+    private static ConfigCategory steering(MomentumConfig cfg, MomentumConfig def, boolean serverControlled) {
         return ConfigCategory.createBuilder()
                 .name(text("category.steering"))
-                .option(floatOpt("steering.ramp_rate",
+                .option(available(floatOpt("steering.ramp_rate",
                         def.steering.rampRate,
-                        () -> cfg.steering.rampRate, v -> cfg.steering.rampRate = v,
-                        0.01f, 1.0f, 0.01f))
-                .option(floatOpt("steering.center_rate",
+                        () -> cfg.steering.rampRate,
+                        v -> setDrivingValue(cfg, cfg.steering.rampRate, v, n -> cfg.steering.rampRate = n),
+                        0.01f, 1.0f, 0.01f), !serverControlled))
+                .option(available(floatOpt("steering.center_rate",
                         def.steering.centerRate,
-                        () -> cfg.steering.centerRate, v -> cfg.steering.centerRate = v,
-                        0.01f, 1.0f, 0.01f))
-                .option(floatOpt("steering.understeer",
+                        () -> cfg.steering.centerRate,
+                        v -> setDrivingValue(cfg, cfg.steering.centerRate, v, n -> cfg.steering.centerRate = n),
+                        0.01f, 1.0f, 0.01f), !serverControlled))
+                .option(available(floatOpt("steering.understeer",
                         def.steering.understeer,
-                        () -> cfg.steering.understeer, v -> cfg.steering.understeer = v,
-                        0.0f, 10.0f, 0.1f))
-                .option(floatOpt("steering.understeer_curve",
+                        () -> cfg.steering.understeer,
+                        v -> setDrivingValue(cfg, cfg.steering.understeer, v, n -> cfg.steering.understeer = n),
+                        0.0f, 10.0f, 0.1f), !serverControlled))
+                .option(available(floatOpt("steering.understeer_curve",
                         def.steering.understeerCurve,
-                        () -> cfg.steering.understeerCurve, v -> cfg.steering.understeerCurve = v,
-                        0.5f, 5.0f, 0.1f))
+                        () -> cfg.steering.understeerCurve,
+                        v -> setDrivingValue(cfg, cfg.steering.understeerCurve, v, n -> cfg.steering.understeerCurve = n),
+                        0.5f, 5.0f, 0.1f), !serverControlled))
                 .build();
     }
 
@@ -215,7 +226,30 @@ public class MomentumConfigScreen {
 
     // ── General ───────────────────────────────────────────────────────────────
 
-    private static ConfigCategory general(MomentumConfig cfg, MomentumConfig def, Screen parent) {
+    private static ConfigCategory general(MomentumConfig localCfg, MomentumConfig drivingCfg,
+                                          MomentumConfig def, Screen parent, boolean serverControlled) {
+
+        Option<MomentumConfig.DrivingPreset> drivingPresetOpt =
+                Option.<MomentumConfig.DrivingPreset>createBuilder()
+                        .name(text("option.general.driving_preset.name"))
+                        .description(OptionDescription.of(text(
+                                "option.general.driving_preset.description",
+                                text("driving_preset." + def.drivingPreset.name().toLowerCase(java.util.Locale.ROOT)))))
+                        .binding(def.drivingPreset,
+                                () -> drivingCfg.drivingPreset,
+                                v -> drivingCfg.drivingPreset = v)
+                        .controller(opt -> EnumControllerBuilder.create(opt)
+                                .enumClass(MomentumConfig.DrivingPreset.class)
+                                .formatValue(v -> text("driving_preset." + v.name().toLowerCase(java.util.Locale.ROOT))))
+                        .listener((opt, val) -> {
+                            if (serverControlled || val == drivingCfg.drivingPreset) return;
+                            drivingCfg.applyDrivingPreset(val);
+                            drivingCfg.save();
+                            Minecraft mc = Minecraft.getInstance();
+                            mc.execute(() -> mc.gui.setScreen(MomentumConfigScreen.create(parent)));
+                        })
+                        .build();
+        drivingPresetOpt.setAvailable(!serverControlled);
 
         // Profile selector - applies immediately to config and rebuilds screen
         Option<MomentumConfig.ODrift.Profile> profileOpt =
@@ -225,63 +259,74 @@ public class MomentumConfigScreen {
                                 "option.general.drift_profile.description",
                                 text("profile." + def.oDrift.profile.name().toLowerCase(java.util.Locale.ROOT)))))
                         .binding(def.oDrift.profile,
-                                () -> cfg.oDrift.profile,
-                                v  -> cfg.oDrift.profile = v)
+                                () -> drivingCfg.oDrift.profile,
+                                v  -> drivingCfg.oDrift.profile = v)
                         .controller(opt -> EnumControllerBuilder.create(opt)
                                 .enumClass(MomentumConfig.ODrift.Profile.class)
                                 .formatValue(v -> text("profile." + v.name().toLowerCase(java.util.Locale.ROOT))))
                         .listener((opt, val) -> {
-                            if (val == cfg.oDrift.profile) return;
-                            cfg.oDrift.profile = val;
-                            cfg.save();
+                            if (val == drivingCfg.oDrift.profile) return;
+                            drivingCfg.oDrift.profile = val;
+                            drivingCfg.save();
                             Minecraft mc = Minecraft.getInstance();
                             mc.execute(() -> mc.gui.setScreen(MomentumConfigScreen.create(parent)));
                         })
                         .build();
+        profileOpt.setAvailable(!serverControlled);
 
         // Build feature toggles individually so we can attach immediate-write listeners.
         // YACL only calls the binding setter on Save, so without these listeners a
-        // profile switch (which calls cfg.save() + screen rebuild before Save is pressed)
+        // profile switch (which saves + rebuilds before Save is pressed)
         // would lose any pending toggle changes.
         Option<Boolean> movOpt = boolOpt("general.movement",
                 def.movement.enabled,
-                () -> cfg.movement.enabled, v -> cfg.movement.enabled = v);
-        movOpt.addListener((opt, val) -> cfg.movement.enabled = val);
+                () -> drivingCfg.movement.enabled, v -> drivingCfg.movement.enabled = v);
+        movOpt.addListener((opt, val) -> drivingCfg.movement.enabled = val);
+        movOpt.setAvailable(!serverControlled);
 
         Option<Boolean> steerOpt = boolOpt("general.steering",
                 def.steering.enabled,
-                () -> cfg.steering.enabled, v -> cfg.steering.enabled = v);
-        steerOpt.addListener((opt, val) -> cfg.steering.enabled = val);
+                () -> drivingCfg.steering.enabled, v -> drivingCfg.steering.enabled = v);
+        steerOpt.addListener((opt, val) -> drivingCfg.steering.enabled = val);
+        steerOpt.setAvailable(!serverControlled);
 
         Option<Boolean> camOpt = boolOpt("general.camera",
                 def.camera.enabled,
-                () -> cfg.camera.enabled, v -> cfg.camera.enabled = v);
-        camOpt.addListener((opt, val) -> cfg.camera.enabled = val);
+                () -> localCfg.camera.enabled, v -> localCfg.camera.enabled = v);
+        camOpt.addListener((opt, val) -> localCfg.camera.enabled = val);
 
         Option<Boolean> hudOpt = boolOpt("general.hud",
                 def.barHud.enabled,
-                () -> cfg.barHud.enabled, v -> cfg.barHud.enabled = v);
-        hudOpt.addListener((opt, val) -> cfg.barHud.enabled = val);
+                () -> localCfg.barHud.enabled, v -> localCfg.barHud.enabled = v);
+        hudOpt.addListener((opt, val) -> localCfg.barHud.enabled = val);
+
+        Option<Boolean> enabledOpt = boolOpt("general.enabled",
+                def.enabled,
+                () -> drivingCfg.enabled, v -> drivingCfg.enabled = v);
+        enabledOpt.setAvailable(!serverControlled);
+
+        OptionGroup.Builder features = OptionGroup.createBuilder()
+                .name(text("group.features"));
+        if (serverControlled) {
+            features.option(LabelOption.create(text("server_controlled")));
+        }
+        features.option(drivingPresetOpt)
+                .option(profileOpt)
+                .option(movOpt)
+                .option(steerOpt)
+                .option(camOpt)
+                .option(hudOpt);
 
         return ConfigCategory.createBuilder()
                 .name(text("category.general"))
-                .option(boolOpt("general.enabled",
-                        def.enabled,
-                        () -> cfg.enabled, v -> cfg.enabled = v))
-                .group(OptionGroup.createBuilder()
-                        .name(text("group.features"))
-                        .option(profileOpt)
-                        .option(movOpt)
-                        .option(steerOpt)
-                        .option(camOpt)
-                        .option(hudOpt)
-                        .build())
+                .option(enabledOpt)
+                .group(features.build())
                 .group(OptionGroup.createBuilder()
                         .name(text("group.key_bindings"))
                         .option(LabelOption.create(text("key_binding.brake",
-                                InputConstants.Type.KEYSYM.getOrCreate(cfg.brakeKey).getDisplayName())))
+                                InputConstants.Type.KEYSYM.getOrCreate(localCfg.brakeKey).getDisplayName())))
                         .option(LabelOption.create(text("key_binding.handbrake",
-                                InputConstants.Type.KEYSYM.getOrCreate(cfg.driftKey).getDisplayName())))
+                                InputConstants.Type.KEYSYM.getOrCreate(localCfg.driftKey).getDisplayName())))
                         .option(LabelOption.create(text("key_binding.remap_hint")))
                         .build())
                 .build();
@@ -289,27 +334,41 @@ public class MomentumConfigScreen {
 
     // ── Drift ─────────────────────────────────────────────────────────────────
 
-    private static ConfigCategory drift(MomentumConfig cfg, MomentumConfig def, Screen parent) {
+    private static ConfigCategory drift(MomentumConfig cfg, MomentumConfig def, Screen parent,
+                                        boolean serverControlled) {
 
         ConfigCategory.Builder b = ConfigCategory.createBuilder()
                 .name(text("category.drift"));
 
         switch (cfg.oDrift.profile) {
             case ARCADE -> {
+                List<Option<?>> slip = arcadeDriftSlipOptions(cfg, def);
+                List<Option<?>> trigger = arcadeDriftTriggerOptions(cfg, def);
                 BoostGroup  kg = arcadeDriftBoostGroup(cfg, def);
                 CameraGroup kc = arcadeDriftCameraGroup(cfg, def);
-                b.group(buildGroupFromList("slip",    arcadeDriftSlipOptions(cfg, def)));
-                b.group(buildGroupFromList("trigger", arcadeDriftTriggerOptions(cfg, def)));
+                setAvailable(slip, !serverControlled);
+                setAvailable(trigger, !serverControlled);
+                setAvailable(kg.all(), !serverControlled);
+                setAvailable(kc.all(), !serverControlled);
+                b.group(buildGroupFromList("slip", slip));
+                b.group(buildGroupFromList("trigger", trigger));
                 b.group(buildGroupFromList("boost",   kg.all()));
                 b.group(buildGroupFromList("camera",  kc.all()));
             }
             case RESPONSIVE -> {
                 List<Option<?>> mSlip = responsiveDriftSlipOptions(cfg, def);
+                List<Option<?>> steering = responsiveDriftSteeringOptions(cfg, def);
+                List<Option<?>> trigger = responsiveDriftTriggerOptions(cfg, def);
                 BoostGroup      mg    = responsiveDriftBoostGroup(cfg, def);
                 CameraGroup     mc2   = responsiveDriftCameraGroup(cfg, def);
+                setAvailable(mSlip, !serverControlled);
+                setAvailable(steering, !serverControlled);
+                setAvailable(trigger, !serverControlled);
+                setAvailable(mg.all(), !serverControlled);
+                setAvailable(mc2.all(), !serverControlled);
                 b.group(buildGroupFromList("slip",     mSlip));
-                b.group(buildGroupFromList("steering", responsiveDriftSteeringOptions(cfg, def)));
-                b.group(buildGroupFromList("trigger",  responsiveDriftTriggerOptions(cfg, def)));
+                b.group(buildGroupFromList("steering", steering));
+                b.group(buildGroupFromList("trigger",  trigger));
                 b.group(buildGroupFromList("boost",    mg.all()));
                 b.group(buildGroupFromList("camera",   mc2.all()));
             }
@@ -564,6 +623,22 @@ public class MomentumConfigScreen {
     private static Component optionDescription(String key, Object defaultValue) {
         return text("option.with_default",
                 text("option." + key + ".description"), defaultValue);
+    }
+
+    private static <T> Option<T> available(Option<T> option, boolean value) {
+        option.setAvailable(value);
+        return option;
+    }
+
+    private static void setAvailable(List<Option<?>> options, boolean value) {
+        options.forEach(option -> option.setAvailable(value));
+    }
+
+    private static void setDrivingValue(MomentumConfig config, float current, float value,
+                                        java.util.function.Consumer<Float> setter) {
+        if (Float.compare(current, value) == 0) return;
+        setter.accept(value);
+        config.markDrivingSettingsCustom();
     }
 
     private static Option<Float> floatOpt(String key, float def,

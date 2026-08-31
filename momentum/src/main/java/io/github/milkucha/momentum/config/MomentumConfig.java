@@ -22,6 +22,14 @@ public class MomentumConfig {
 
     public boolean enabled   = true;
 
+    /**
+     * A high-level chassis tune. Drift, camera, HUD, sound, keys and cruise control are deliberately
+     * independent so choosing a driving preset never rewrites unrelated player preferences.
+     */
+    public DrivingPreset drivingPreset = DrivingPreset.BALANCED;
+    /** Last hand-tuned chassis values, retained while a named preset is active. */
+    public DrivingSettings customDrivingSettings;
+
     /** GLFW key code for the brake action. Default: S (83). Edit in momentum.json to remap. */
     public int brakeKey = GLFW.GLFW_KEY_S;
     /** GLFW key code for the handbrake/drift action. Default: Space (32). Edit in momentum.json to remap. */
@@ -38,6 +46,100 @@ public class MomentumConfig {
     public Sound   sound    = new Sound();
 
     // ── Groups ────────────────────────────────────────────────────────────────
+
+    public enum DrivingPreset {
+        TOURING(0.006f, 6.5f, 0.024f, 1.10f, 0.08f, 0.28f, 0.75f, 2.5f),
+        BALANCED(0.009f, 5.5f, 0.030f, 1.25f, 0.12f, 0.42f, 0.50f, 3.0f),
+        SPORT(0.012f, 4.2f, 0.040f, 1.50f, 0.20f, 0.58f, 0.25f, 3.5f),
+        CUSTOM;
+
+        private final DrivingSettings settings;
+
+        DrivingPreset(float coastDecay, float accelerationScale, float brakeDecay,
+                      float comfortableSpeedMultiplier, float rampRate, float centerRate,
+                      float understeer, float understeerCurve) {
+            settings = new DrivingSettings(coastDecay, accelerationScale, brakeDecay,
+                    comfortableSpeedMultiplier, rampRate, centerRate, understeer, understeerCurve);
+        }
+
+        DrivingPreset() {
+            settings = null;
+        }
+
+        boolean isNamed() {
+            return settings != null;
+        }
+
+        void applyTo(MomentumConfig config) {
+            if (settings != null) settings.applyTo(config);
+        }
+
+        boolean matches(MomentumConfig config) {
+            return settings != null && settings.matches(config);
+        }
+    }
+
+    /** Only the eight values owned by a chassis preset; feature toggles stay untouched. */
+    public static class DrivingSettings {
+        public float coastDecay;
+        public float accelerationScale;
+        public float brakeDecay;
+        public float comfortableSpeedMultiplier;
+        public float rampRate;
+        public float centerRate;
+        public float understeer;
+        public float understeerCurve;
+
+        public DrivingSettings() {
+        }
+
+        private DrivingSettings(float coastDecay, float accelerationScale, float brakeDecay,
+                                float comfortableSpeedMultiplier, float rampRate, float centerRate,
+                                float understeer, float understeerCurve) {
+            this.coastDecay = coastDecay;
+            this.accelerationScale = accelerationScale;
+            this.brakeDecay = brakeDecay;
+            this.comfortableSpeedMultiplier = comfortableSpeedMultiplier;
+            this.rampRate = rampRate;
+            this.centerRate = centerRate;
+            this.understeer = understeer;
+            this.understeerCurve = understeerCurve;
+        }
+
+        static DrivingSettings capture(MomentumConfig config) {
+            return new DrivingSettings(
+                    config.movement.coastDecay,
+                    config.movement.accelerationScale,
+                    config.movement.brakeDecay,
+                    config.movement.comfortableSpeedMultiplier,
+                    config.steering.rampRate,
+                    config.steering.centerRate,
+                    config.steering.understeer,
+                    config.steering.understeerCurve);
+        }
+
+        void applyTo(MomentumConfig config) {
+            config.movement.coastDecay = coastDecay;
+            config.movement.accelerationScale = accelerationScale;
+            config.movement.brakeDecay = brakeDecay;
+            config.movement.comfortableSpeedMultiplier = comfortableSpeedMultiplier;
+            config.steering.rampRate = rampRate;
+            config.steering.centerRate = centerRate;
+            config.steering.understeer = understeer;
+            config.steering.understeerCurve = understeerCurve;
+        }
+
+        boolean matches(MomentumConfig config) {
+            return same(coastDecay, config.movement.coastDecay)
+                    && same(accelerationScale, config.movement.accelerationScale)
+                    && same(brakeDecay, config.movement.brakeDecay)
+                    && same(comfortableSpeedMultiplier, config.movement.comfortableSpeedMultiplier)
+                    && same(rampRate, config.steering.rampRate)
+                    && same(centerRate, config.steering.centerRate)
+                    && same(understeer, config.steering.understeer)
+                    && same(understeerCurve, config.steering.understeerCurve);
+        }
+    }
 
     public static class Movement {
         public boolean enabled                = true;
@@ -210,6 +312,10 @@ public class MomentumConfig {
         return serverConfig != null ? serverConfig : get();
     }
 
+    public static boolean hasServerGameplayConfig() {
+        return serverGameplayConfig != null;
+    }
+
     public static void reload() {
         instance = load();
     }
@@ -283,6 +389,38 @@ public class MomentumConfig {
         }
     }
 
+    /**
+     * Applies one coherent chassis tune. Moving away from Custom snapshots the current hand-tuned
+     * values; returning to Custom restores them exactly.
+     */
+    public void applyDrivingPreset(DrivingPreset preset) {
+        sanitize();
+        DrivingPreset requested = preset != null ? preset : DrivingPreset.BALANCED;
+
+        if (drivingPreset == DrivingPreset.CUSTOM) {
+            customDrivingSettings = DrivingSettings.capture(this);
+        }
+
+        if (requested == DrivingPreset.CUSTOM) {
+            if (customDrivingSettings != null) {
+                customDrivingSettings.applyTo(this);
+            } else {
+                customDrivingSettings = DrivingSettings.capture(this);
+            }
+        } else {
+            requested.applyTo(this);
+        }
+
+        drivingPreset = requested;
+        sanitize();
+    }
+
+    /** Marks direct slider or JSON-style chassis edits as a restorable Custom tune. */
+    public void markDrivingSettingsCustom() {
+        drivingPreset = DrivingPreset.CUSTOM;
+        customDrivingSettings = DrivingSettings.capture(this);
+    }
+
     void sanitize() {
         var defaults = new MomentumConfig();
 
@@ -309,6 +447,8 @@ public class MomentumConfig {
         steering.centerRate = finite(steering.centerRate, 0f, 1f, defaults.steering.centerRate);
         steering.understeer = finite(steering.understeer, 0f, 100f, defaults.steering.understeer);
         steering.understeerCurve = finite(steering.understeerCurve, 0.01f, 20f, defaults.steering.understeerCurve);
+
+        sanitizeDrivingPreset();
 
         camera.pitch = finite(camera.pitch, -90f, 90f, defaults.camera.pitch);
         camera.steeringTilt = finite(camera.steeringTilt, -180f, 180f, defaults.camera.steeringTilt);
@@ -347,6 +487,29 @@ public class MomentumConfig {
         sanitizeArcade(defaults.arcadeDrift);
         sanitizeResponsive(defaults.responsiveDrift);
         sound.enginePitchCeiling = finite(sound.enginePitchCeiling, 1f, 10_000f, defaults.sound.enginePitchCeiling);
+    }
+
+    private void sanitizeDrivingPreset() {
+        if (drivingPreset == null) {
+            drivingPreset = DrivingPreset.BALANCED;
+        }
+
+        if (customDrivingSettings != null) {
+            customDrivingSettings.coastDecay = finite(customDrivingSettings.coastDecay, 0f, 1f, movement.coastDecay);
+            customDrivingSettings.accelerationScale = finite(customDrivingSettings.accelerationScale, 0.01f, 100f, movement.accelerationScale);
+            customDrivingSettings.brakeDecay = finite(customDrivingSettings.brakeDecay, 0f, 1f, movement.brakeDecay);
+            customDrivingSettings.comfortableSpeedMultiplier = finite(customDrivingSettings.comfortableSpeedMultiplier, 0.1f, 10f, movement.comfortableSpeedMultiplier);
+            customDrivingSettings.rampRate = finite(customDrivingSettings.rampRate, 0f, 1f, steering.rampRate);
+            customDrivingSettings.centerRate = finite(customDrivingSettings.centerRate, 0f, 1f, steering.centerRate);
+            customDrivingSettings.understeer = finite(customDrivingSettings.understeer, 0f, 100f, steering.understeer);
+            customDrivingSettings.understeerCurve = finite(customDrivingSettings.understeerCurve, 0.01f, 20f, steering.understeerCurve);
+        }
+
+        // A named preset describes exact values; it never overwrites a hand edit during load/save.
+        if (!drivingPreset.isNamed() || !drivingPreset.matches(this)) {
+            drivingPreset = DrivingPreset.CUSTOM;
+            customDrivingSettings = DrivingSettings.capture(this);
+        }
     }
 
     private void migrateRosenvikCompactPreset() {
@@ -422,6 +585,10 @@ public class MomentumConfig {
 
     private static int bounded(int value, int min, int max) {
         return Math.clamp(value, min, max);
+    }
+
+    private static boolean same(float left, float right) {
+        return Float.compare(left, right) == 0;
     }
 
     private static void backupMalformedConfig() {
