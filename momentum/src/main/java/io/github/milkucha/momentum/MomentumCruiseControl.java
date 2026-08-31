@@ -169,6 +169,10 @@ public final class MomentumCruiseControl {
         return active && auto != null && entityId == auto.getId();
     }
 
+    public static boolean canResumeFor(AutomobileEntity auto) {
+        return !active && auto != null && entityId == auto.getId() && TARGET.hasStoredTarget();
+    }
+
     public static float getTargetKmh() {
         return TARGET.targetKmh();
     }

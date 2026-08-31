@@ -20,6 +20,9 @@
     "client": [
       "io.github.milkucha.momentum.MomentumClient"
     ],
+    "controlify": [
+      "io.github.milkucha.momentum.controlify.MomentumControlifyCompat"
+    ],
     "modmenu": [
       "io.github.milkucha.momentum.modmenu.MomentumModMenuImpl"
     ]
@@ -35,6 +38,7 @@
     "automobility": ">=${automobility_version}"
   },
   "suggests": {
+    "controlify": ">=3.0.2",
     "modmenu": "*",
     "yet_another_config_lib_v3": "*"
   }

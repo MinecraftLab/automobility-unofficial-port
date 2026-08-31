@@ -14,6 +14,7 @@ Momentum changes Automobility vehicle movement feel and adds a compact driving d
 ## Optional
 - YACL 3.x for the in-game options screen
 - Mod Menu exposes Momentum's options button when YACL is also installed
+- Controlify 3.0.2+ for native controller bindings, contextual button guides, and radial-menu actions
 
 ## Port Status
 - Vehicle acceleration, coasting, braking, steering, and drift profiles are ported.
@@ -25,6 +26,9 @@ Momentum changes Automobility vehicle movement feel and adds a compact driving d
 - The original bar-and-text speed HUD remains selectable as a legacy layout.
 - Cruise control uses `C` to set or cancel, `Page Up` / `Page Down` to adjust the
   target, and `R` to resume the last set speed. All four bindings are remappable.
+- With Controlify installed, all cruise actions appear in the Driving controller category and can
+  be placed on the radial menu. Momentum intentionally leaves physical buttons unassigned by
+  default so it never overrides a player's existing gamepad layout.
 - Brake and drift key state sync works on dedicated servers.
 - Dedicated servers are authoritative for gameplay physics; the options screen makes those controls
   read-only while keeping camera and HUD settings personal to each player.

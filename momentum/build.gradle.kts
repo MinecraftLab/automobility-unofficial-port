@@ -26,6 +26,9 @@ dependencies {
 
     compileOnly("dev.isxander:yet-another-config-lib:${rootProject.providers.gradleProperty("yacl_version").get()}")
     compileOnly("com.terraformersmc:modmenu:${rootProject.providers.gradleProperty("modmenu_version").get()}")
+    compileOnly("dev.isxander:controlify:${rootProject.providers.gradleProperty("controlify_version").get()}-fabric") {
+        isTransitive = false
+    }
     testImplementation("net.fabricmc:fabric-loader-junit:${rootProject.providers.gradleProperty("fabric_version").get()}")
 }
 

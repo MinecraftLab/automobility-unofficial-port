@@ -187,10 +187,11 @@ public class MomentumClient implements ClientModInitializer {
         // ── Per-tick effects ──────────────────────────────────────────────────
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            boolean cruisePressed = cruiseKey.consumeClick();
-            boolean cruiseIncreasePressed = cruiseIncreaseKey.consumeClick();
-            boolean cruiseDecreasePressed = cruiseDecreaseKey.consumeClick();
-            boolean cruiseResumePressed = cruiseResumeKey.consumeClick();
+            MomentumControllerInput.ActionSnapshot controllerActions = MomentumControllerInput.poll();
+            boolean cruisePressed = cruiseKey.consumeClick() || controllerActions.cruiseToggle();
+            boolean cruiseIncreasePressed = cruiseIncreaseKey.consumeClick() || controllerActions.cruiseIncrease();
+            boolean cruiseDecreasePressed = cruiseDecreaseKey.consumeClick() || controllerActions.cruiseDecrease();
+            boolean cruiseResumePressed = cruiseResumeKey.consumeClick() || controllerActions.cruiseResume();
             if (cruisePressed && client.screen == null && client.player != null) {
                 if (client.player.getVehicle() instanceof AutomobileEntity auto && auto.isDriving(client.player)) {
                     handleCruiseResult(client, MomentumCruiseControl.toggle(auto), 1.20f);
