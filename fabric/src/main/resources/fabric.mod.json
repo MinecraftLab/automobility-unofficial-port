@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "id": "automobility",
   "version": "${version}",
-  "name": "Automobility",
+  "name": "Automobility: Unofficial Port",
   "description": "Unofficial Automobility Fabric port for Minecraft 26.1.x, built and tested on 26.1.2.",
   "authors": [
     "FoundationGames"
   ],
   "contact": {
-    "homepage": "https://modrinth.com/project/automobility-unofficial-port",
+    "homepage": "https://modrinth.com/mod/automobility-unofficial-port",
     "sources": "https://github.com/nickynicolaus/automobility-unofficial-port",
     "issues": "https://github.com/nickynicolaus/automobility-unofficial-port/issues"
   },

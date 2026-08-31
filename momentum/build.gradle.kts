@@ -64,7 +64,7 @@ tasks {
     processResources {
         val loaderVersion = rootProject.providers.gradleProperty("fabric_version").get()
         val fabricApiVersion = rootProject.providers.gradleProperty("fabric_api_version").get()
-        val automobilityVersion = rootProject.providers.gradleProperty("mod_version").get()
+        val automobilityVersion = rootProject.providers.gradleProperty("momentum_automobility_min_version").get()
         inputs.property("version", version)
         inputs.property("fabric_loader_version", loaderVersion)
         inputs.property("fabric_api_version", fabricApiVersion)

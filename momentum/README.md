@@ -1,4 +1,4 @@
-# Momentum for Automobility - Unofficial 26.1.x Port
+# Momentum for Automobility: Unofficial Port
 
 This subproject is an unofficial Fabric port of [Momentum for Automobility](https://modrinth.com/mod/momentum-for-automobility) by milkucha for Minecraft Java 26.1.x. Current builds are built and smoke-tested on Minecraft Java 26.1.2.
 
@@ -13,7 +13,7 @@ Momentum changes Automobility vehicle movement feel and adds a compact driving d
 
 ## Optional
 - YACL 3.x for the in-game options screen
-- ModMenu is suggested, but direct ModMenu integration is not included in this port build
+- Mod Menu exposes Momentum's options button when YACL is also installed
 
 ## Port Status
 - Vehicle acceleration, coasting, braking, steering, and drift profiles are ported.
