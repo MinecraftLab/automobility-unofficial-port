@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MomentumConfigTest {
@@ -177,5 +178,112 @@ class MomentumConfigTest {
 
         assertEquals(7.25f, MomentumConfig.gameplay().movement.accelerationScale);
         assertEquals(MomentumConfig.ODrift.Profile.ARCADE, MomentumConfig.gameplay().oDrift.profile);
+        assertTrue(MomentumConfig.hasServerGameplayConfig());
+    }
+
+    @Test
+    void defaultsAreTheBalancedDrivingPreset() {
+        var config = new MomentumConfig();
+
+        config.sanitize();
+
+        assertEquals(MomentumConfig.DrivingPreset.BALANCED, config.drivingPreset);
+        assertEquals(0.009f, config.movement.coastDecay);
+        assertEquals(5.5f, config.movement.accelerationScale);
+        assertEquals(0.12f, config.steering.rampRate);
+        assertEquals(0.5f, config.steering.understeer);
+    }
+
+    @Test
+    void namedDrivingPresetChangesOnlyItsEightChassisValues() {
+        var config = new MomentumConfig();
+        config.movement.enabled = false;
+        config.steering.enabled = false;
+        config.oDrift.profile = MomentumConfig.ODrift.Profile.ARCADE;
+        config.camera.pitch = 23f;
+        config.barHud.maxSpeedKmh = 275f;
+        config.sound.enginePitchCeiling = 155f;
+
+        config.applyDrivingPreset(MomentumConfig.DrivingPreset.SPORT);
+
+        assertEquals(MomentumConfig.DrivingPreset.SPORT, config.drivingPreset);
+        assertEquals(0.012f, config.movement.coastDecay);
+        assertEquals(4.2f, config.movement.accelerationScale);
+        assertEquals(0.040f, config.movement.brakeDecay);
+        assertEquals(1.50f, config.movement.comfortableSpeedMultiplier);
+        assertEquals(0.20f, config.steering.rampRate);
+        assertEquals(0.58f, config.steering.centerRate);
+        assertEquals(0.25f, config.steering.understeer);
+        assertEquals(3.5f, config.steering.understeerCurve);
+        assertFalse(config.movement.enabled);
+        assertFalse(config.steering.enabled);
+        assertEquals(MomentumConfig.ODrift.Profile.ARCADE, config.oDrift.profile);
+        assertEquals(23f, config.camera.pitch);
+        assertEquals(275f, config.barHud.maxSpeedKmh);
+        assertEquals(155f, config.sound.enginePitchCeiling);
+    }
+
+    @Test
+    void customDrivingTuneSurvivesAVisitToNamedPresets() {
+        var config = new MomentumConfig();
+        config.movement.coastDecay = 0.007f;
+        config.movement.accelerationScale = 6.2f;
+        config.movement.brakeDecay = 0.027f;
+        config.movement.comfortableSpeedMultiplier = 1.37f;
+        config.steering.rampRate = 0.15f;
+        config.steering.centerRate = 0.35f;
+        config.steering.understeer = 0.65f;
+        config.steering.understeerCurve = 2.8f;
+        config.sanitize();
+
+        assertEquals(MomentumConfig.DrivingPreset.CUSTOM, config.drivingPreset);
+        config.applyDrivingPreset(MomentumConfig.DrivingPreset.TOURING);
+        assertEquals(MomentumConfig.DrivingPreset.TOURING, config.drivingPreset);
+
+        config.applyDrivingPreset(MomentumConfig.DrivingPreset.CUSTOM);
+
+        assertEquals(MomentumConfig.DrivingPreset.CUSTOM, config.drivingPreset);
+        assertEquals(0.007f, config.movement.coastDecay);
+        assertEquals(6.2f, config.movement.accelerationScale);
+        assertEquals(0.027f, config.movement.brakeDecay);
+        assertEquals(1.37f, config.movement.comfortableSpeedMultiplier);
+        assertEquals(0.15f, config.steering.rampRate);
+        assertEquals(0.35f, config.steering.centerRate);
+        assertEquals(0.65f, config.steering.understeer);
+        assertEquals(2.8f, config.steering.understeerCurve);
+    }
+
+    @Test
+    void legacyOrManuallyEditedValuesBecomeCustomWithoutBeingOverwritten() {
+        var config = new Gson().fromJson("""
+                {
+                  "drivingPreset": "BALANCED",
+                  "movement": {
+                    "coastDecay": 0.011,
+                    "accelerationScale": 5.9,
+                    "brakeDecay": 0.031,
+                    "comfortableSpeedMultiplier": 1.3
+                  },
+                  "steering": {
+                    "rampRate": 0.14,
+                    "centerRate": 0.4,
+                    "understeer": 0.6,
+                    "understeerCurve": 2.9
+                  }
+                }
+                """, MomentumConfig.class);
+
+        config.sanitize();
+
+        assertEquals(MomentumConfig.DrivingPreset.CUSTOM, config.drivingPreset);
+        assertEquals(0.011f, config.movement.coastDecay);
+        assertEquals(5.9f, config.movement.accelerationScale);
+        assertEquals(0.14f, config.steering.rampRate);
+        assertEquals(0.6f, config.steering.understeer);
+
+        config.applyDrivingPreset(MomentumConfig.DrivingPreset.SPORT);
+        config.applyDrivingPreset(MomentumConfig.DrivingPreset.CUSTOM);
+        assertEquals(0.011f, config.movement.coastDecay);
+        assertEquals(0.14f, config.steering.rampRate);
     }
 }

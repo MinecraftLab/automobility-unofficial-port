@@ -17,11 +17,16 @@ Momentum changes Automobility vehicle movement feel and adds a compact driving d
 
 ## Port Status
 - Vehicle acceleration, coasting, braking, steering, and drift profiles are ported.
+- Touring, Balanced, Sport, and Custom driving tunes coordinate movement and steering without
+  changing drift, camera, HUD, sound, key, or cruise-control preferences. Custom tunes are retained
+  while a named preset is active and restored when selected again.
 - The compact dashboard shows exact speed, a graphical km/h unit, speed and boost segments,
   plus the selected cruise speed without drawing outside its configured panel.
 - The original bar-and-text speed HUD remains selectable as a legacy layout.
 - Cruise control is available on the `C` key while driving.
 - Brake and drift key state sync works on dedicated servers.
+- Dedicated servers are authoritative for gameplay physics; the options screen makes those controls
+  read-only while keeping camera and HUD settings personal to each player.
 - The YACL options screen can be opened with the Momentum options key when YACL is installed.
 
 This is an unofficial fork/port. Bugs specific to this port should be reported to this fork, not to the upstream Momentum project.
