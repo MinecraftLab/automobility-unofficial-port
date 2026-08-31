@@ -31,8 +31,8 @@ YACL enables the in-game options screen. Mod Menu exposes that screen in its mod
 ## Upload File
 
 - Local JAR: `momentum\build\libs\momentum-0.1.11-unofficial.7+26.1.2-fabric.jar`
-- Size: `178424` bytes
-- SHA-256: `D6A97C0CB89CF1D5C8E7F6420312CE61105B3475388B01E205A52C35776D6845`
+- Size: `176621` bytes
+- SHA-256: `44984AA6A56731071CEB463520CD7365110A146A9A760960CA4D6AA2A53F9EDB`
 
 ## Version Changelog
 
