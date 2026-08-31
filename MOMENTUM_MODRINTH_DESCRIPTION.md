@@ -15,7 +15,8 @@ Momentum adjusts Automobility's acceleration, coasting, braking, steering, drift
 - Compact pixel dashboard with exact speed, graphical km/h unit, speed/boost segments,
   and a persistent cruise-control target marker
 - Optional legacy bar-and-text HUD through the in-game configuration
-- Cruise control on the `C` key while driving
+- Cruise control with set/cancel, adjustable target speed, and resume; every binding
+  is remappable in Minecraft's Controls screen
 - Controlify support through Automobility's controller bindings
 - Dedicated multiplayer synchronization for brake, drift, and gameplay configuration
 - Clear read-only server gameplay settings in multiplayer while camera and HUD
@@ -23,7 +24,7 @@ Momentum adjusts Automobility's acceleration, coasting, braking, steering, drift
 - Complete localized options, notifications and debug HUD in the same 17 languages
   as the Automobility port
 
-Cruise control disengages when braking, drifting, reversing, leaving the driver seat, or hitting a wall or vehicle hard enough to count as an impact.
+Cruise control disengages when braking, drifting, reversing, leaving the driver seat, or hitting a wall or vehicle hard enough to count as an impact. Its last target remains available to Resume until the driver leaves the vehicle.
 
 ## Supported Versions
 
@@ -36,6 +37,10 @@ Matching Fabric builds are available for Minecraft Java 26.1.x and 26.2. Install
 - Java 25 or newer
 
 Momentum is required on both the client and server in multiplayer. Movement, steering, drift, and cruise settings are controlled by the server; HUD, camera, and key preferences remain local to each client.
+
+Server operators can inspect and update Momentum without a restart using `/momentum status`,
+`/momentum reload`, `/momentum sync`, and `/momentum preset touring|balanced|sport`.
+Reloads and preset changes are synchronized immediately with every compatible connected client.
 
 ## Optional
 

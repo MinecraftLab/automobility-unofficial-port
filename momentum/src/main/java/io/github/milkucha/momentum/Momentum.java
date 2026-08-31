@@ -1,7 +1,9 @@
 package io.github.milkucha.momentum;
 
+import io.github.milkucha.momentum.command.MomentumCommands;
 import io.github.milkucha.momentum.network.KeyStatePacket;
 import io.github.milkucha.momentum.network.GameplayConfigPacket;
+import io.github.milkucha.momentum.network.GameplayConfigSync;
 import io.github.milkucha.momentum.network.VehicleInputPacket;
 import io.github.milkucha.momentum.network.ServerKeyState;
 import net.fabricmc.api.ModInitializer;
@@ -30,6 +32,7 @@ public class Momentum implements ModInitializer {
         PayloadTypeRegistry.serverboundPlay().register(KeyStatePacket.TYPE, KeyStatePacket.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(GameplayConfigPacket.TYPE, GameplayConfigPacket.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VehicleInputPacket.TYPE, VehicleInputPacket.CODEC);
+        MomentumCommands.register();
 
         // Receive key state from client and store it per-player.
         // Runs on the Netty network thread - ServerKeyState uses ConcurrentHashMap.
@@ -40,10 +43,7 @@ public class Momentum implements ModInitializer {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
             ServerKeyState.remove(handler.player.getUUID()));
 
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            if (ServerPlayNetworking.canSend(handler.player, GameplayConfigPacket.TYPE)) {
-                ServerPlayNetworking.send(handler.player, GameplayConfigPacket.current());
-            }
-        });
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
+                GameplayConfigSync.sendTo(handler.player));
     }
 }
