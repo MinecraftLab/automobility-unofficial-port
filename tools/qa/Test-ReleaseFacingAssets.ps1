@@ -186,8 +186,13 @@ Assert-True ($momentumManifest.name -eq 'Momentum for Automobility: Unofficial P
 Assert-True ($automobilityManifest.description -match '(?i)unofficial') 'Automobility description must identify the unofficial port.'
 Assert-True ($momentumManifest.description -match '(?i)unofficial') 'Momentum description must identify the unofficial port.'
 Assert-True ($automobilityManifest.license -eq 'MIT' -and $momentumManifest.license -eq 'MIT') 'Both Fabric manifests must use the repository MIT license.'
-Assert-True ($automobilityManifest.depends.minecraft -eq $properties.minecraft_version) 'Automobility Minecraft dependency does not match gradle.properties.'
-Assert-True ($momentumManifest.depends.minecraft -eq $properties.minecraft_version) 'Momentum Minecraft dependency does not match gradle.properties.'
+$expectedMinecraftDependency = if ($properties.minecraft_version -eq '26.1.2') {
+    '26.1.x'
+} else {
+    $properties.minecraft_version
+}
+Assert-True ($automobilityManifest.depends.minecraft -eq $expectedMinecraftDependency) 'Automobility Minecraft dependency does not match the release target.'
+Assert-True ($momentumManifest.depends.minecraft -eq $expectedMinecraftDependency) 'Momentum Minecraft dependency does not match the release target.'
 Assert-True ($momentumManifest.depends.automobility -eq '>=${automobility_version}') 'Momentum manifest must retain its expanded minimum-version placeholder.'
 Assert-True ($automobilityManifest.authors -contains 'FoundationGames') 'Automobility must retain upstream author credit.'
 Assert-True ($momentumManifest.authors -contains 'milkucha') 'Momentum must retain upstream author credit.'
