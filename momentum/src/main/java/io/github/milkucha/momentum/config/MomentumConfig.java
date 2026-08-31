@@ -225,6 +225,7 @@ public class MomentumConfig {
 
     public static class Cruise {
         public boolean enabled = true;
+        public float targetStepKmh = 5.0f;
         public float minActivationKmh = 8.0f;
         public float maxTargetKmh = 150.0f;
         public float resumeThrottleBelowTargetKmh = 1.5f;
@@ -477,6 +478,7 @@ public class MomentumConfig {
         barHud.debugY = bounded(barHud.debugY, 0, 1_000_000);
         barHud.debugXFraction = finite(barHud.debugXFraction, 0f, 1f, defaults.barHud.debugXFraction);
 
+        cruise.targetStepKmh = finite(cruise.targetStepKmh, 1f, 25f, defaults.cruise.targetStepKmh);
         cruise.minActivationKmh = finite(cruise.minActivationKmh, 0f, 10_000f, defaults.cruise.minActivationKmh);
         cruise.maxTargetKmh = finite(cruise.maxTargetKmh, cruise.minActivationKmh, 10_000f, defaults.cruise.maxTargetKmh);
         cruise.resumeThrottleBelowTargetKmh = finite(cruise.resumeThrottleBelowTargetKmh, 0f, 1000f, defaults.cruise.resumeThrottleBelowTargetKmh);

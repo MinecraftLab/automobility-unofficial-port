@@ -22,6 +22,7 @@ class MomentumConfigTest {
         config.barHud.barWidth = 0;
         config.responsiveDrift.slipConvergeRate = Float.POSITIVE_INFINITY;
         config.sound.enginePitchCeiling = 0f;
+        config.cruise.targetStepKmh = Float.NaN;
 
         config.sanitize();
 
@@ -30,6 +31,17 @@ class MomentumConfigTest {
         assertEquals(1, config.barHud.barWidth);
         assertTrue(Float.isFinite(config.responsiveDrift.slipConvergeRate));
         assertTrue(config.sound.enginePitchCeiling > 0f);
+        assertEquals(5f, config.cruise.targetStepKmh);
+    }
+
+    @Test
+    void cruiseTargetStepIsBoundedForSafeLiveSync() {
+        var config = new MomentumConfig();
+        config.cruise.targetStepKmh = 100f;
+
+        config.sanitize();
+
+        assertEquals(25f, config.cruise.targetStepKmh);
     }
 
     @Test

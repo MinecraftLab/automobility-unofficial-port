@@ -30,6 +30,8 @@ Momentum is an optional Automobility addon that changes vehicle movement feel an
 - Multiplayer vehicle visual displacement is synced so remote cars keep correct height and tilt when changing elevation.
 - Vehicle state packets are validated, rate-limited, and sent only to clients that are actually tracking the automobile.
 - Momentum synchronizes server-authoritative gameplay settings and remote brake/drift state while keeping HUD, camera, and key settings client-side.
+- Momentum cruise control supports target adjustment and resume, while server operators can reload,
+  sync, or switch driving tunes live without restarting players.
 
 ### Supports Data Packs and Resource Packs
 - Add your own custom vehicle types with data packs and resource packs! 

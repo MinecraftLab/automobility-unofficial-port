@@ -305,6 +305,19 @@ public class MomentumConfigScreen {
                 () -> drivingCfg.enabled, v -> drivingCfg.enabled = v);
         enabledOpt.setAvailable(!serverControlled);
 
+        Option<Boolean> cruiseOpt = boolOpt("general.cruise_control",
+                def.cruise.enabled,
+                () -> drivingCfg.cruise.enabled, v -> drivingCfg.cruise.enabled = v);
+        cruiseOpt.addListener((opt, val) -> drivingCfg.cruise.enabled = val);
+        cruiseOpt.setAvailable(!serverControlled);
+
+        Option<Float> cruiseStepOpt = floatOpt("general.cruise_target_step",
+                def.cruise.targetStepKmh,
+                () -> drivingCfg.cruise.targetStepKmh, v -> drivingCfg.cruise.targetStepKmh = v,
+                1.0f, 25.0f, 1.0f);
+        cruiseStepOpt.addListener((opt, val) -> drivingCfg.cruise.targetStepKmh = val);
+        cruiseStepOpt.setAvailable(!serverControlled);
+
         OptionGroup.Builder features = OptionGroup.createBuilder()
                 .name(text("group.features"));
         if (serverControlled) {
@@ -321,6 +334,11 @@ public class MomentumConfigScreen {
                 .name(text("category.general"))
                 .option(enabledOpt)
                 .group(features.build())
+                .group(OptionGroup.createBuilder()
+                        .name(text("group.cruise_control"))
+                        .option(cruiseOpt)
+                        .option(cruiseStepOpt)
+                        .build())
                 .group(OptionGroup.createBuilder()
                         .name(text("group.key_bindings"))
                         .option(LabelOption.create(text("key_binding.brake",

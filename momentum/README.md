@@ -23,10 +23,14 @@ Momentum changes Automobility vehicle movement feel and adds a compact driving d
 - The compact dashboard shows exact speed, a graphical km/h unit, speed and boost segments,
   plus the selected cruise speed without drawing outside its configured panel.
 - The original bar-and-text speed HUD remains selectable as a legacy layout.
-- Cruise control is available on the `C` key while driving.
+- Cruise control uses `C` to set or cancel, `Page Up` / `Page Down` to adjust the
+  target, and `R` to resume the last set speed. All four bindings are remappable.
 - Brake and drift key state sync works on dedicated servers.
 - Dedicated servers are authoritative for gameplay physics; the options screen makes those controls
   read-only while keeping camera and HUD settings personal to each player.
+- Server operators can inspect and update live settings with `/momentum status`,
+  `/momentum reload`, `/momentum sync`, and `/momentum preset touring|balanced|sport`.
+  Reloads and preset changes are broadcast immediately to compatible connected clients.
 - The YACL options screen can be opened with the Momentum options key when YACL is installed.
 
 This is an unofficial fork/port. Bugs specific to this port should be reported to this fork, not to the upstream Momentum project.
