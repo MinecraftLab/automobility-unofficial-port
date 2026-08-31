@@ -246,7 +246,7 @@ public class MomentumConfigScreen {
                             drivingCfg.applyDrivingPreset(val);
                             drivingCfg.save();
                             Minecraft mc = Minecraft.getInstance();
-                            mc.execute(() -> mc.gui.setScreen(MomentumConfigScreen.create(parent)));
+                            mc.execute(() -> mc.setScreen(MomentumConfigScreen.create(parent)));
                         })
                         .build();
         drivingPresetOpt.setAvailable(!serverControlled);
