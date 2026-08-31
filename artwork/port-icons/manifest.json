@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "png": {
+    "bit_depth": 8,
+    "color_type": 6,
+    "interlace": 0,
+    "required_chunks": ["IHDR", "sRGB", "gAMA", "pHYs", "IDAT", "IEND"],
+    "forbidden_chunks": ["iCCP", "tIME"],
+    "srgb_intent": 0,
+    "gamma": 45455,
+    "pixels_per_meter": [3779, 3779, 1]
+  },
+  "icons": [
+    {
+      "id": "automobility",
+      "master": "artwork/port-icons/masters/automobility.png",
+      "targets": ["common/src/main/resources/automobility.png"],
+      "generated_from": {
+        "base": "artwork/port-icons/sources/automobility-base.png",
+        "base_sha256": "D6DF2089B26CF632DEC2AA9C3956E395DBA03A3DF1AF60496B94551E49AC0324",
+        "overlay": "artwork/port-icons/sources/automobility-upgrade-badge.png",
+        "overlay_sha256": "040E9F2D74BF32D6AB0DCF83E1F4515F766828772226A6867A44317EF045AC3E"
+      },
+      "diff_from_base": {
+        "changed_pixels": 604,
+        "bbox": [96, 4, 121, 29]
+      },
+      "sha256": "3D1AE2B64ABD4969B8682D623F1C5D5DC45B9FF602D6AEE386CD7686B5E32C35",
+      "width": 128,
+      "height": 128,
+      "badge_region": {
+        "x": 96,
+        "y": 4,
+        "width": 26,
+        "height": 26,
+        "rgba_sha256": "C8719558421E6BFA70BBD295CE97BC9758DAE55648DD113C07C5CB13F3EB7011"
+      }
+    },
+    {
+      "id": "momentum",
+      "master": "artwork/port-icons/masters/momentum.png",
+      "targets": ["momentum/src/main/resources/momentum_icon.png"],
+      "sha256": "432265047DBA28F9C67F6F06330AD05D3741CA413006BEDBDDA716859FC4AA02",
+      "width": 128,
+      "height": 128,
+      "badge_region": {
+        "x": 96,
+        "y": 4,
+        "width": 26,
+        "height": 26,
+        "rgba_sha256": "FC64A4FC91CF06A7D938BD68EC7A6BDFA1BAC9CE081128A200173AC14FB64CC1"
+      }
+    }
+  ]
+}
