@@ -1,6 +1,6 @@
 ![Automobility](./md/banner.png)
 
-# Automobility - Unofficial 26.x Port
+# Automobility: Unofficial Port
 
 This repository is an unofficial Fabric port/fork of [Automobility](https://modrinth.com/mod/automobility) by [FoundationGames](https://github.com/FoundationGames/Automobility) for current Minecraft Java 26.x releases. The `main` branch targets 26.1.x and is built and smoke-tested on 26.1.2; the `port/26.2` branch targets 26.2. It is not affiliated with or endorsed by FoundationGames unless stated otherwise by the upstream maintainers.
 

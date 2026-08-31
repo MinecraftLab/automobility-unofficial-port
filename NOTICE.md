@@ -6,7 +6,7 @@ This fork is based on Automobility by FoundationGames.
 - Original source repository: https://github.com/FoundationGames/Automobility
 - Original license: MIT, retained in `LICENSE`
 
-The 26.1.2 port work in this repository is unofficial and is not affiliated with or endorsed by FoundationGames unless stated otherwise by the upstream maintainers.
+The 26.x port work in this repository is unofficial and is not affiliated with or endorsed by FoundationGames unless stated otherwise by the upstream maintainers.
 
 This repository also contains an unofficial port of Momentum for Automobility by milkucha.
 
