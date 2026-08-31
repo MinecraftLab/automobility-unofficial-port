@@ -188,10 +188,24 @@ class MomentumConfigTest {
         config.sanitize();
 
         assertEquals(MomentumConfig.DrivingPreset.BALANCED, config.drivingPreset);
-        assertEquals(0.009f, config.movement.coastDecay);
+        assertEquals(0.007f, config.movement.coastDecay);
         assertEquals(5.5f, config.movement.accelerationScale);
         assertEquals(0.12f, config.steering.rampRate);
         assertEquals(0.5f, config.steering.understeer);
+    }
+
+    @Test
+    void namedDrivingPresetsKeepProgressivelyFirmerCoasting() {
+        var config = new MomentumConfig();
+
+        config.applyDrivingPreset(MomentumConfig.DrivingPreset.TOURING);
+        assertEquals(0.005f, config.movement.coastDecay);
+
+        config.applyDrivingPreset(MomentumConfig.DrivingPreset.BALANCED);
+        assertEquals(0.007f, config.movement.coastDecay);
+
+        config.applyDrivingPreset(MomentumConfig.DrivingPreset.SPORT);
+        assertEquals(0.009f, config.movement.coastDecay);
     }
 
     @Test
@@ -207,7 +221,7 @@ class MomentumConfigTest {
         config.applyDrivingPreset(MomentumConfig.DrivingPreset.SPORT);
 
         assertEquals(MomentumConfig.DrivingPreset.SPORT, config.drivingPreset);
-        assertEquals(0.012f, config.movement.coastDecay);
+        assertEquals(0.009f, config.movement.coastDecay);
         assertEquals(4.2f, config.movement.accelerationScale);
         assertEquals(0.040f, config.movement.brakeDecay);
         assertEquals(1.50f, config.movement.comfortableSpeedMultiplier);

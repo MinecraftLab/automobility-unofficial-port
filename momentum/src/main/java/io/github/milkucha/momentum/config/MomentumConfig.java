@@ -48,9 +48,9 @@ public class MomentumConfig {
     // ── Groups ────────────────────────────────────────────────────────────────
 
     public enum DrivingPreset {
-        TOURING(0.006f, 6.5f, 0.024f, 1.10f, 0.08f, 0.28f, 0.75f, 2.5f),
-        BALANCED(0.009f, 5.5f, 0.030f, 1.25f, 0.12f, 0.42f, 0.50f, 3.0f),
-        SPORT(0.012f, 4.2f, 0.040f, 1.50f, 0.20f, 0.58f, 0.25f, 3.5f),
+        TOURING(0.005f, 6.5f, 0.024f, 1.10f, 0.08f, 0.28f, 0.75f, 2.5f),
+        BALANCED(0.007f, 5.5f, 0.030f, 1.25f, 0.12f, 0.42f, 0.50f, 3.0f),
+        SPORT(0.009f, 4.2f, 0.040f, 1.50f, 0.20f, 0.58f, 0.25f, 3.5f),
         CUSTOM;
 
         private final DrivingSettings settings;
@@ -143,7 +143,7 @@ public class MomentumConfig {
 
     public static class Movement {
         public boolean enabled                = true;
-        public float coastDecay               = 0.009f;
+        public float coastDecay               = 0.007f;
         public float accelerationScale        = 5.5f;
         public float brakeDecay               = 0.03f;
         public float comfortableSpeedMultiplier = 1.25f;
