@@ -2164,11 +2164,9 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
         var pos = new BlockPos.MutableBlockPos();
         double maxDismountHeight = this.getBoundingBox().maxY + 0.75;
-        Vec3 fallbackDismountPos = null;
         float preferredSide = passenger.getMainArm() == HumanoidArm.RIGHT ? 90 : -90;
-        float[] sideOffsets = new float[] { preferredSide, -preferredSide };
 
-        for (float sideOffset : sideOffsets) {
+        for (float sideOffset : DismountSearchPolicy.yawOffsets(preferredSide)) {
             float yaw = this.getYRot() + sideOffset;
             var dir = Entity.getCollisionHorizontalEscapeVector(maxWidth + 0.75, passenger.getBbWidth(), yaw);
 
@@ -2176,20 +2174,6 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
                     dir.x() + getX(),
                     dir.y() + this.displacement.getVertical(1),
                     dir.z() + getZ());
-
-            pos.set(scanPos.x(), scanPos.y(), scanPos.z());
-            while (true) {
-                double height = this.level().getBlockFloorHeight(pos);
-                if (pos.getY() + height > maxDismountHeight) break;
-
-                if (DismountHelper.isBlockFloorValid(height) && fallbackDismountPos == null) {
-                    fallbackDismountPos = new Vec3(scanPos.x(), (double)pos.getY() + height, scanPos.z());
-                    break;
-                }
-
-                pos.move(Direction.UP);
-                if (pos.getY() > maxDismountHeight) break;
-            }
 
             for (var pose : passenger.getDismountPoses()) {
                 pos.set(scanPos.x(), scanPos.y(), scanPos.z());
@@ -2213,13 +2197,19 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             }
         }
 
-        if (fallbackDismountPos != null) {
-            return fallbackDismountPos;
+        var fallback = new Vec3(
+                this.getX(),
+                Math.max(this.getBoundingBox().maxY, this.getY() + maxHeight),
+                this.getZ()
+        );
+        for (var pose : passenger.getDismountPoses()) {
+            var bounds = passenger.getLocalBoundsForPose(pose);
+            if (DismountHelper.canDismountTo(this.level(), passenger, bounds.move(fallback))) {
+                passenger.setPose(pose);
+                return fallback;
+            }
         }
-
-        float yaw = this.getYRot() + preferredSide;
-        var dir = Entity.getCollisionHorizontalEscapeVector(maxWidth + 1.0, passenger.getBbWidth(), yaw);
-        return new Vec3(this.getX() + dir.x(), this.getY() + maxHeight, this.getZ() + dir.z());
+        return fallback;
     }
 
     private boolean canCollideWithAutomobile(Entity entity) {
