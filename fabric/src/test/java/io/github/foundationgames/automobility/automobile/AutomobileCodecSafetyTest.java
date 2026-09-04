@@ -4,6 +4,9 @@ import com.google.gson.JsonPrimitive;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.SharedConstants;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.sounds.SoundEvents;
 import org.junit.jupiter.api.BeforeAll;
@@ -72,6 +75,14 @@ final class AutomobileCodecSafetyTest {
         );
 
         assertTrue(AutomobileFrame.DIRECT_CODEC.encodeStart(JsonOps.INSTANCE, invalid).isError());
+    }
+
+    @Test
+    void defaultStatsStartWithOperationalHandling() {
+        var stats = new AutomobileStats();
+
+        assertTrue(stats.getHandling() >= AutomobileStats.MIN_HANDLING);
+        assertTrue(Float.isFinite(2 / stats.getHandling()));
     }
 
     @Test
@@ -150,6 +161,21 @@ final class AutomobileCodecSafetyTest {
                             var stats = new AutomobileStats();
                             stats.from(frame(weight), wheel(size, grip), engine(torque, speed));
                             assertStatsFinite(stats);
+                            assertTrue(stats.getAcceleration() >= AutomobileStats.MIN_ACCELERATION);
+                            assertTrue(stats.getHandling() >= AutomobileStats.MIN_HANDLING);
+                            assertTrue(stats.getComfortableSpeed() >= 0);
+                            float accelerationNumerator = 0.9f * ((stats.getAcceleration() + 1) / 2);
+                            float accelerationDenominatorAtRest = 18.5f - (stats.getAcceleration() * 5.3f);
+                            float accelerationStepAtRest = accelerationNumerator / accelerationDenominatorAtRest;
+                            assertTrue(accelerationNumerator >= 0);
+                            assertTrue(accelerationDenominatorAtRest > 0);
+                            assertTrue(Float.isFinite(accelerationStepAtRest));
+                            assertTrue(accelerationStepAtRest >= 0);
+                            assertTrue(Float.isFinite(2 / stats.getHandling()));
+                            float surfaceGrip = stats.calculateSurfaceGrip(1);
+                            assertTrue(Float.isFinite(surfaceGrip));
+                            assertTrue(surfaceGrip >= 0);
+                            assertTrue(surfaceGrip <= 1);
                         }
                     }
                 }
@@ -164,6 +190,42 @@ final class AutomobileCodecSafetyTest {
         );
         float accelerationDenominatorAtRest = 18.5f - (maximumAccelerationStats.getAcceleration() * 5.3f);
         assertTrue(accelerationDenominatorAtRest > 0);
+    }
+
+    @Test
+    void riaUnofficialSixPhysicsValuesRoundTripThroughDirectCodecs() {
+        var registryOps = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY)
+                .createSerializationContext(NbtOps.INSTANCE);
+        for (float weight : new float[]{0.6f, 0.8f, 0.95f, 1.05f, 1.11f, 1.2f, 1.6f, 1.9f, 2.1f, 2.22f, 1.5f, 0.98f}) {
+            var original = frame(weight);
+            var encoded = AutomobileFrame.DIRECT_CODEC.encodeStart(registryOps, original).getOrThrow();
+            var decoded = AutomobileFrame.DIRECT_CODEC.parse(registryOps, encoded).getOrThrow();
+            assertEquals(weight, decoded.weight());
+        }
+
+        String[] wheelNames = {"dmc12", "standard_formula"};
+        float[][] wheelDimensions = {{8.12f, 8.05f}, {10.9f, 12.2f}};
+        for (int i = 0; i < wheelNames.length; i++) {
+            var original = new AutomobileWheel(
+                    false,
+                    1.1f,
+                    0.8f,
+                    new AutomobileWheel.WheelModel(
+                            wheelDimensions[i][0],
+                            wheelDimensions[i][1],
+                            net.minecraft.resources.Identifier.fromNamespaceAndPath(
+                                    "riautomobility", "textures/entity/automobile/wheel/" + wheelNames[i] + ".png"),
+                            net.minecraft.resources.Identifier.fromNamespaceAndPath(
+                                    "riautomobility", "wheel/" + wheelNames[i])
+                    )
+            );
+            var encoded = AutomobileWheel.DIRECT_CODEC.encodeStart(registryOps, original).getOrThrow();
+            var decoded = AutomobileWheel.DIRECT_CODEC.parse(registryOps, encoded).getOrThrow();
+            assertEquals(original.size(), decoded.size());
+            assertEquals(original.grip(), decoded.grip());
+            assertEquals(wheelDimensions[i][0], decoded.model().radius());
+            assertEquals(wheelDimensions[i][1], decoded.model().width());
+        }
     }
 
     @Test
@@ -190,9 +252,8 @@ final class AutomobileCodecSafetyTest {
                 AutomobileEngine.EMPTY
         );
 
-        for (float normalizedSurfaceFriction : new float[]{0f, 0.25f, 0.5f, 0.75f, 1f}) {
-            float movementBlend = 1 - (normalizedSurfaceFriction * (1 - stats.getGrip() * 0.8f));
-            movementBlend *= movementBlend;
+        for (float normalizedSurfaceFriction : new float[]{-1f, 0f, 0.25f, 0.5f, 0.75f, 1f, 2f}) {
+            float movementBlend = stats.calculateSurfaceGrip(normalizedSurfaceFriction);
             assertTrue(Float.isFinite(movementBlend));
             assertTrue(movementBlend >= 0);
             assertTrue(movementBlend <= 1);
