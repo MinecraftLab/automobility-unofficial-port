@@ -44,6 +44,7 @@ public class BannerPostRearAttachment extends RearAttachment {
             return AttachmentMenuValidity.isValid(
                     BannerPostRearAttachment.this.wasRemoved(),
                     BannerPostRearAttachment.this.automobile().isAlive(),
+                    player.level() == BannerPostRearAttachment.this.automobile().level(),
                     BannerPostRearAttachment.this.automobile().getRearAttachment() == BannerPostRearAttachment.this,
                     player.distanceToSqr(BannerPostRearAttachment.this.automobile())
             );

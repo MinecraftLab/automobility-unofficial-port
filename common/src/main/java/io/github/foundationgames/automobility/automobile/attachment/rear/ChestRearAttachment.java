@@ -87,6 +87,7 @@ public class ChestRearAttachment extends BaseChestRearAttachment implements Cont
         return AttachmentMenuValidity.isValid(
                 this.wasRemoved(),
                 this.automobile().isAlive(),
+                player.level() == this.automobile().level(),
                 this.automobile().getRearAttachment() == this,
                 player.distanceToSqr(this.automobile())
         );

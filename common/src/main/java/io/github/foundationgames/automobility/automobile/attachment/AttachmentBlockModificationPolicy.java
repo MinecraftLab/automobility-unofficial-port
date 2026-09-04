@@ -11,4 +11,12 @@ final class AttachmentBlockModificationPolicy {
     static boolean protectedFromAllAttachmentActions(boolean mayInteract, boolean spawnProtected) {
         return !mayInteract || spawnProtected;
     }
+
+    static boolean automationIsSpawnProtected(boolean spawnDimension, boolean operatorsConfigured,
+                                               int protectionRadius, long distanceX, long distanceZ) {
+        return spawnDimension
+                && operatorsConfigured
+                && protectionRadius > 0
+                && Math.max(Math.abs(distanceX), Math.abs(distanceZ)) <= protectionRadius;
+    }
 }

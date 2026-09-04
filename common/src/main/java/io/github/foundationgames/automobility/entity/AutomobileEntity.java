@@ -120,6 +120,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private @Nullable Identifier unresolvedFrameId;
     private @Nullable Identifier unresolvedWheelId;
     private @Nullable Identifier unresolvedEngineId;
+    private @Nullable CompoundTag unresolvedRearAttachmentData;
+    private @Nullable CompoundTag unresolvedFrontAttachmentData;
 
     private final AutomobileStats stats = new AutomobileStats();
 
@@ -378,12 +380,24 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         this.unresolvedEngineId = engineId != null && engineEntry.isEmpty() ? engineId : null;
 
         var rAtt = nbt.read("rearAttachment", CompoundTag.CODEC).orElseGet(CompoundTag::new);
-        setRearAttachment(RearAttachment.fromNbt(rAtt));
-        rearAttachment.readNbt(rAtt, this.level().registryAccess());
+        var rearType = RearAttachment.fromNbt(rAtt);
+        if (rearType != null) {
+            setRearAttachment(rearType);
+            rearAttachment.readNbt(rAtt, this.level().registryAccess());
+        } else {
+            setRearAttachment(RearAttachmentType.EMPTY);
+            this.unresolvedRearAttachmentData = AutomobileComponentPersistence.unresolvedAttachmentData(rAtt, false);
+        }
 
         var fAtt = nbt.read("frontAttachment", CompoundTag.CODEC).orElseGet(CompoundTag::new);
-        setFrontAttachment(FrontAttachment.fromNbt(fAtt));
-        frontAttachment.readNbt(fAtt, this.level().registryAccess());
+        var frontType = FrontAttachment.fromNbt(fAtt);
+        if (frontType != null) {
+            setFrontAttachment(frontType);
+            frontAttachment.readNbt(fAtt, this.level().registryAccess());
+        } else {
+            setFrontAttachment(FrontAttachmentType.EMPTY);
+            this.unresolvedFrontAttachmentData = AutomobileComponentPersistence.unresolvedAttachmentData(fAtt, false);
+        }
 
         engineSpeed = nbt.getFloatOr("engineSpeed", engineSpeed);
         boostSpeed = nbt.getFloatOr("boostSpeed", boostSpeed);
@@ -421,8 +435,10 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (frameId != null) nbt.putString("frame", frameId.toString());
         if (wheelId != null) nbt.putString("wheels", wheelId.toString());
         if (engineId != null) nbt.putString("engine", engineId.toString());
-        nbt.store("rearAttachment", CompoundTag.CODEC, rearAttachment.toNbt());
-        nbt.store("frontAttachment", CompoundTag.CODEC, frontAttachment.toNbt());
+        nbt.store("rearAttachment", CompoundTag.CODEC, AutomobileComponentPersistence.attachmentDataToSave(
+                rearAttachment.toNbt(), this.unresolvedRearAttachmentData));
+        nbt.store("frontAttachment", CompoundTag.CODEC, AutomobileComponentPersistence.attachmentDataToSave(
+                frontAttachment.toNbt(), this.unresolvedFrontAttachmentData));
         nbt.putFloat("engineSpeed", engineSpeed);
         nbt.putFloat("boostSpeed", boostSpeed);
         nbt.putInt("boostTimer", boostTimer);
@@ -654,6 +670,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (rearAttachment == null) {
             return;
         }
+        this.unresolvedRearAttachmentData = null;
         if (this.rearAttachment == null || this.rearAttachment.type != rearAttachment) {
             if (this.rearAttachment != null) {
                 this.rearAttachment.onRemoved();
@@ -674,6 +691,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (frontAttachment == null) {
             return;
         }
+        this.unresolvedFrontAttachmentData = null;
         if (this.frontAttachment == null || this.frontAttachment.type != frontAttachment) {
             if (this.frontAttachment != null) {
                 this.frontAttachment.onRemoved();
