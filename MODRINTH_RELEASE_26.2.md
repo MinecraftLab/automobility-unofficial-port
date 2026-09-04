@@ -1,4 +1,4 @@
-# Modrinth Release - Automobility 0.5.0-unofficial.30 for 26.2
+# Modrinth Release - Automobility 0.5.0-unofficial.31 for 26.2
 
 Use this file for the 26.2 upload after the release candidate passes the in-game smoke test.
 
@@ -10,7 +10,7 @@ Use this file for the 26.2 upload after the release candidate passes the in-game
 ## Version Form
 
 - Version type: `beta`
-- Version number: `0.5.0-unofficial.30+26.2`
+- Version number: `0.5.0-unofficial.31+26.2`
 - Version subtitle: `for Minecraft 26.2`
 - Loaders: `Fabric`
 - Game versions: `26.2`
@@ -26,45 +26,64 @@ Do not add Fabric Loader as a project dependency. The JAR metadata already requi
 
 ## Upload File
 
-- Local JAR: `dist\release-candidate-0.5.0-unofficial.30\automobility-0.5.0-unofficial.30+26.2-fabric.jar`
-- Size: `1372366` bytes
-- SHA-256: `C06D293D70A2746CB664C94A1058D75FFD5F764B4479794F2DDEBD999E748DD5`
-- SHA-512: `D6336787B66C00F358F8D755512C68B970C491093ED937FCB89E78B5E6B3B9FD3B7899C5B1CF8231CAAF66E1994A88B62CCE5DC309CAF6F22FC7E40EA203CE68`
+- Local JAR: `dist\release-candidate-0.5.0-unofficial.31\automobility-0.5.0-unofficial.31+26.2-fabric.jar`
+- Size: `1390305` bytes
+- SHA-256: `375EB2200BFB94C773F418398BF79B1F14660462AAA90F4B625C2B71CF05DD79`
+- SHA-512: `600DF0B8AEA39C88E1165885D1B9D25424EBCDFFB771415CE7FC97C24B4E011AD5A346928FED19EB91118F7E73572E9896721872DD8B38FA3D5A4D68AC5CCD78`
 
 ## Version Changelog
 
 Use this exact changelog:
 
 ```markdown
-Attachment, inventory-name and packaging reliability update for the unofficial
+Security, data-safety and release-verification update for the unofficial
 Minecraft Java 26.2 Fabric port.
+
+### Security
+
+- The legacy vehicle-state packet keeps its existing layout for ecosystem compatibility,
+  but the server now accepts only bounded driving input and computes gameplay speed and
+  collision impact itself.
+- Attachment detail requests now require an exact payload, a tracked nearby automobile,
+  and a bounded per-player request budget.
+- Player-driven harvester and plow actions now respect the world border and vanilla spawn
+  protection while preserving Automobility's explicit allow-block behavior elsewhere.
 
 ### Fixed
 
-- Rear attachments now realign after large same-dimension teleports without changing
-  normal towing, reverse articulation, vertical motion or high-speed Momentum travel.
-- Automobility's six registered block items now use their existing localized block
-  names instead of displaying raw `item.automobility.*` translation keys.
-- Removed stale mixin refmap declarations that referenced an unbundled file.
+- Removed the unconditional forced velocity update previously sent for every automobile tick.
+- Raw automobile items without custom component data now place a playable default car.
+- Removing a chest, ender-chest or banner attachment now invalidates its open menu and
+  safely transfers any dropped item stacks on the server.
+- Data packs now reject non-finite or non-positive frame weights and wheel radii.
+- Temporarily missing add-on frame, wheel and engine IDs survive save/reload instead of
+  being silently replaced by Automobility's empty fallback.
+- Dismounting checks more positions and poses for collision before using the above-car fallback.
+
+### Changed
+
+- Added one-command clean build, test, JAR-content and release-hash verification.
+- Bundled project notices and the MIT license notice for the embedded Obj 0.4.0 library.
 ```
 
 ## Verification Record
 
-- Java 25 clean Fabric build: passed on 2026-08-29.
-- Fabric test suite: 20 passed, 0 failed, 0 skipped.
-- The rebuilt JAR matched the immutable r8 QA snapshot byte-for-byte.
-- Exact-artifact dedicated-server and physical-client testing passed in the complete
-  Pumps & Pistons Roadworks stack, including large teleport recovery, driving,
-  attachment collision, persistence, restart and clean shutdown.
-- No Automobility, mixin, attachment or collision exception occurred.
+- Java 25 clean merged-source build: passed on 2026-09-04.
+- Fabric and Momentum unit suites: 77 passed, 0 failed, 0 skipped.
+- Exact `.31` JAR metadata, license and release-record hash gate: passed on 2026-09-04.
+- Exact-artifact dedicated-server startup and two-client ecosystem smoke: **NOT RUN**.
+- Publication remains blocked until every pending item above passes.
 
 ## Before Upload
 
-- Confirm the exact JAR hash above still matches the packaged release candidate.
-- Keep the successful 26.2 exact-artifact singleplayer smoke-test evidence with the
-  release record. The tested world must load and exit through Save & Quit without an
-  Automobility, mixin or collision failure.
-- Push the `port/26.2` branch and create the matching GitHub release.
+- Run `tools\qa\Test-Automobility.ps1 -Rebuild` and confirm the final gate matches the
+  exact size and hashes above.
+- Test the exact JAR on a dedicated server and with two clients in the Automobility,
+  Momentum, RIA, Autoradio and Pumps & Pistons Roadworks stack. Cover driving, observer
+  tracking, run-over damage, attachment menu removal, item drops, dismounting, persistence,
+  reconnect, restart and clean shutdown.
+- Confirm the canonical source and issue URLs are publicly reachable before upload; do not
+  replace the flagged account with a duplicate repository or account.
 - Upload exactly the JAR and metadata listed above.
 - Keep the version as beta while the port still has limited public testing.
 
@@ -72,6 +91,6 @@ Minecraft Java 26.2 Fabric port.
 
 - Download the public Modrinth file and compare its SHA-256 with the value above.
 - Confirm the anonymous Modrinth API, CDN download and Maven coordinate all return
-  the `.30` artifact before publishing dependants that require it.
+  the `.31` artifact before publishing dependants that require it.
 - Confirm Modrinth shows Fabric and only Minecraft 26.2 for this file.
 - Confirm Fabric API is required and both Controlify and Momentum are optional.
