@@ -73,7 +73,8 @@ Minecraft Java 26.2 Fabric port.
 ## Verification Record
 
 - Java 25 clean merged-source build: passed on 2026-09-04.
-- Fabric and Momentum unit suites: 83 passed, 0 failed, 0 skipped.
+- Fabric and Momentum unit suites: 89 passed, 0 failed, 0 skipped
+  (Fabric 55; Momentum 34).
 - Exact `.31` JAR metadata, license and release-record hash gate: passed on 2026-09-04.
 - Exact `.31` JAR dedicated-server startup and clean shutdown: passed on 2026-09-04.
   The Windows host emitted an OSHI/Perflib system-information diagnostic, but there was
