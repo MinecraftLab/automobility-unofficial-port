@@ -8,11 +8,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.PlayerEnderChestContainer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestLidController;
@@ -68,6 +70,36 @@ public class BaseChestRearAttachment extends BlockRearAttachment {
     public void close(Player player) {
         if (!player.isSpectator()) {
             this.viewerManager.decrementOpeners(player, this.world(), this.automobile.blockPosition(), Blocks.AIR.defaultBlockState());
+        }
+    }
+
+    public boolean isMenuValid(Player player) {
+        return AttachmentMenuValidity.isValid(
+                this.wasRemoved(),
+                this.automobile().isAlive(),
+                this.automobile().getRearAttachment() == this,
+                player.distanceToSqr(this.automobile())
+        );
+    }
+
+    @Override
+    public void onRemoved() {
+        super.onRemoved();
+
+        if (!this.world().isClientSide()) {
+            for (var player : this.world().players()) {
+                if (!(player.containerMenu instanceof ChestMenu menu)) {
+                    continue;
+                }
+
+                var container = menu.getContainer();
+                boolean ownsMenu = container == this
+                        || (container instanceof PlayerEnderChestContainer enderChest
+                        && EnderChestContainerDuck.of(enderChest).automobility$isActiveAttachment(this));
+                if (ownsMenu && player instanceof ServerPlayer serverPlayer) {
+                    serverPlayer.closeContainer();
+                }
+            }
         }
     }
 

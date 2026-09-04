@@ -39,8 +39,12 @@ public class ChestRearAttachment extends BaseChestRearAttachment implements Cont
     public void onRemoved() {
         super.onRemoved();
 
-        var pos = this.pos();
-        this.inventory.forEach(s -> Containers.dropItemStack(this.world(), pos.x, pos.y, pos.z, s));
+        if (!this.world().isClientSide()) {
+            var pos = this.pos();
+            for (int slot = 0; slot < this.inventory.size(); slot++) {
+                Containers.dropItemStack(this.world(), pos.x, pos.y, pos.z, this.removeItemNoUpdate(slot));
+            }
+        }
     }
 
     @Override
@@ -80,7 +84,12 @@ public class ChestRearAttachment extends BaseChestRearAttachment implements Cont
 
     @Override
     public boolean stillValid(Player player) {
-        return true;
+        return AttachmentMenuValidity.isValid(
+                this.wasRemoved(),
+                this.automobile().isAlive(),
+                this.automobile().getRearAttachment() == this,
+                player.distanceToSqr(this.automobile())
+        );
     }
 
     @Override
