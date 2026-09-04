@@ -251,22 +251,58 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void readSyncStateData(FriendlyByteBuf buf) {
-        boostTimer = buf.readInt();
-        steering = buf.readFloat();
-        wheelAngle = buf.readFloat();
-        turboCharge = buf.readInt();
-        engineSpeed = buf.readFloat();
-        boostSpeed = buf.readFloat();
+        int syncedBoostTimer = buf.readInt();
+        float syncedSteering = buf.readFloat();
+        float syncedWheelAngle = buf.readFloat();
+        int syncedTurboCharge = buf.readInt();
+        float syncedEngineSpeed = buf.readFloat();
+        float syncedBoostSpeed = buf.readFloat();
         double syncedX = buf.readDouble();
         double syncedY = buf.readDouble();
         double syncedZ = buf.readDouble();
         float syncedYaw = buf.readFloat();
-        input.readPacket(buf);
+        var syncedInput = new Input();
+        syncedInput.readPacket(buf);
 
-        setDrifting(buf.readBoolean());
-        setBurningOut(buf.readBoolean());
+        boolean syncedDrifting = buf.readBoolean();
+        boolean syncedBurningOut = buf.readBoolean();
 
-        this.displacement.readSyncData(buf, !this.level().isClientSide());
+        // Serverbound legacy packets are input envelopes, not authoritative snapshots. Keep this
+        // guard even though CommonPackets now calls applyClientInputState directly, so another mod
+        // cannot accidentally reintroduce client-authored physics through this public method.
+        if (!this.level().isClientSide()) {
+            buf.skipBytes(Double.BYTES + (4 * Float.BYTES));
+            applyClientInputState(
+                    syncedInput.accelerating,
+                    syncedInput.braking,
+                    syncedInput.steering,
+                    syncedInput.holdingDrift,
+                    syncedInput.holdingHorn
+            );
+            return;
+        }
+
+        boostTimer = syncedBoostTimer;
+        steering = syncedSteering;
+        wheelAngle = syncedWheelAngle;
+        turboCharge = syncedTurboCharge;
+        engineSpeed = syncedEngineSpeed;
+        boostSpeed = syncedBoostSpeed;
+
+        if (!(this.getControllingPassenger() instanceof Player player && player.isLocalPlayer())) {
+            input.setInputs(
+                    syncedInput.accelerating,
+                    syncedInput.braking,
+                    syncedInput.steering,
+                    syncedInput.holdingDrift,
+                    syncedInput.holdingHorn
+            );
+        }
+
+        setDrifting(syncedDrifting);
+        setBurningOut(syncedBurningOut);
+
+        this.displacement.readSyncData(buf, false);
 
         if (this.level().isClientSide()) {
             boolean stoppedSync = boostTimer == 0 && Math.abs(engineSpeed) < 1.0E-4f && Math.abs(boostSpeed) < 1.0E-4f && !input.accelerating && !input.braking;
@@ -294,6 +330,21 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
 
         this.dataLerpTicks = CLIENT_SYNC_INTERVAL;
+    }
+
+    public boolean applyClientInputState(boolean accelerating, boolean braking, float inputSteering,
+                                         boolean holdingDrift, boolean holdingHorn) {
+        if (this.level().isClientSide() || !Float.isFinite(inputSteering)) {
+            return false;
+        }
+
+        return this.input.setInputs(
+                accelerating,
+                braking,
+                Mth.clamp(inputSteering, -1, 1),
+                holdingDrift,
+                holdingHorn
+        );
     }
 
     @Override
@@ -998,7 +1049,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void updateEngineSpeed(float speed) {
-         if (!this.isLocalInstanceAuthoritative()) {
+         if (!this.simulatesPhysicsState()) {
              return;
          }
 
@@ -1006,11 +1057,21 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void updateBoostSpeed(float speed) {
-        if (!this.isLocalInstanceAuthoritative()) {
+        if (!this.simulatesPhysicsState()) {
             return;
         }
 
         this.boostSpeed = speed;
+    }
+
+    /**
+     * The server owns gameplay-relevant speed state even while vanilla's validated vehicle move
+     * packet remains the spatial authority for .31. Fully server-authoritative positioning needs
+     * a correction/prediction protocol and is intentionally deferred until it can be tested with
+     * two real clients without changing driving feel.
+     */
+    private boolean simulatesPhysicsState() {
+        return !this.level().isClientSide() || this.isLocalInstanceAuthoritative();
     }
 
     public void movementTick() {
@@ -1157,18 +1218,20 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (this.isLocalInstanceAuthoritative()) {
             this.setDeltaMovement(cumulative);
         }
-        this.markHurt();
-        this.hurtMarked = true;
-
         lastVelocity = cumulative;
 
         // Damage and launch entities that are hit by a moving automobile
-        if (Math.abs(hSpeed) > 0.2) {
+        if (!this.level().isClientSide() && cumulative.horizontalDistanceSqr() > 0.04) {
             runOverEntities(cumulative);
         }
     }
 
     public void runOverEntities(Vec3 velocity) {
+        float impactSpeed = AutomobileImpactPolicy.speedForDamage(velocity);
+        if (impactSpeed == 0) {
+            return;
+        }
+
         var entitiesToHit = new HashSet<LivingEntity>();
         var velAdd = velocity.add(0, 0.1, 0).scale(3);
 
@@ -1184,7 +1247,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
 
         entitiesToHit.forEach(e -> {
-            AutomobilityEntities.automobileDamageSource(level()).ifPresent(dmg -> e.hurt(dmg, hSpeed * 10));
+            AutomobilityEntities.automobileDamageSource(level()).ifPresent(dmg -> e.hurt(dmg, impactSpeed * 10));
             e.push(velAdd.x, velAdd.y, velAdd.z);
         });
     }
@@ -1496,7 +1559,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             boostTimer = time;
             boostPower = power;
         }
-        if (this.isLocalInstanceAuthoritative()) {
+        if (this.simulatesPhysicsState()) {
             this.updateEngineSpeed(Math.max(this.engineSpeed, this.stats.getComfortableSpeed() * 0.5f));
         }
 
