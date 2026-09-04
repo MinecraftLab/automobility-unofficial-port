@@ -167,10 +167,12 @@ function Assert-JarEntryMatchesFile {
 function Read-ReleaseArtifactRecord {
     param(
         [Parameter(Mandatory)] [string] $Path,
-        [switch] $RequireSha512
+        [switch] $RequireSha512,
+        [switch] $RequireLocalJar
     )
 
     $content = Get-Content -LiteralPath $Path -Raw
+    $localJarMatches = [regex]::Matches($content, '(?im)^\s*-\s*Local JAR:\s*`(?<path>[^`\r\n]+)`\s*$')
     $sizeMatches = [regex]::Matches($content, '(?im)^\s*-\s*Size:\s*`(?<size>\d+)`\s*bytes\s*$')
     $shaMatches = [regex]::Matches($content, '(?im)^\s*-\s*SHA-256:\s*`(?<sha>[0-9a-f]{64})`\s*$')
     $sha512Matches = [regex]::Matches($content, '(?im)^\s*-\s*SHA-512:\s*`(?<sha>[0-9a-f]{128})`\s*$')
@@ -180,12 +182,61 @@ function Read-ReleaseArtifactRecord {
     if ($RequireSha512) {
         Assert-True ($sha512Matches.Count -eq 1) "Release record must contain exactly one 128-digit SHA-512 entry: $Path"
     }
+    Assert-True ($localJarMatches.Count -le 1) "Release record must not contain more than one Local JAR entry: $Path"
+    if ($RequireLocalJar) {
+        Assert-True ($localJarMatches.Count -eq 1) "Release record must contain exactly one Local JAR entry: $Path"
+    }
 
     return [pscustomobject] @{
         Path = $Path
+        LocalJar = if ($localJarMatches.Count -eq 1) { $localJarMatches[0].Groups['path'].Value } else { $null }
         Size = [long] $sizeMatches[0].Groups['size'].Value
         Sha256 = $shaMatches[0].Groups['sha'].Value.ToUpperInvariant()
         Sha512 = if ($sha512Matches.Count -eq 1) { $sha512Matches[0].Groups['sha'].Value.ToUpperInvariant() } else { $null }
+    }
+}
+
+function Resolve-ReleaseLocalJarPath {
+    param(
+        [Parameter(Mandatory)] [string] $Root,
+        [Parameter(Mandatory)] $Record
+    )
+
+    Assert-True (-not [string]::IsNullOrWhiteSpace($Record.LocalJar)) "Release record has no Local JAR path: $($Record.Path)"
+    $recordedPath = [string] $Record.LocalJar
+    Assert-True `
+        -Condition ($recordedPath -notmatch '^(?:[\\/]|[A-Za-z]:[\\/])') `
+        -Message "Local JAR must be a repository-relative path: $recordedPath"
+
+    $separator = [System.IO.Path]::DirectorySeparatorChar
+    $portablePath = $recordedPath -replace '[\\/]', [string] $separator
+    $rootFullPath = [System.IO.Path]::GetFullPath($Root).TrimEnd(
+        [System.IO.Path]::DirectorySeparatorChar,
+        [System.IO.Path]::AltDirectorySeparatorChar
+    )
+    $rootPrefix = $rootFullPath + $separator
+    $resolvedPath = [System.IO.Path]::GetFullPath((Join-Path $rootFullPath $portablePath))
+    $comparison = if ($env:OS -eq 'Windows_NT') {
+        [System.StringComparison]::OrdinalIgnoreCase
+    } else {
+        [System.StringComparison]::Ordinal
+    }
+    Assert-True `
+        -Condition $resolvedPath.StartsWith($rootPrefix, $comparison) `
+        -Message "Local JAR path escapes the repository: $recordedPath"
+    Assert-True (Test-Path -LiteralPath $resolvedPath -PathType Leaf) "Release-candidate Local JAR does not exist: $resolvedPath"
+    return $resolvedPath
+}
+
+function Get-FileArtifactIdentity {
+    param([Parameter(Mandatory)] [string] $Path)
+
+    return [pscustomobject] @{
+        Name = Split-Path -Leaf $Path
+        Path = $Path
+        Size = (Get-Item -LiteralPath $Path).Length
+        Sha256 = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+        Sha512 = (Get-FileHash -LiteralPath $Path -Algorithm SHA512).Hash
     }
 }
 
@@ -206,6 +257,21 @@ function Assert-ArtifactMatchesReleaseRecord {
     Assert-True `
         -Condition $matches `
         -Message "$($Artifact.Name) does not match $($Record.Path). Built: $builtDescription. Recorded: $recordedDescription. Do not replace a published version; bump its version. For a new unpublished version, run -PrepareReleaseRecord, update the record, then rerun the final gate."
+}
+
+function Assert-ArtifactsMatch {
+    param(
+        [Parameter(Mandatory)] $BuiltArtifact,
+        [Parameter(Mandatory)] $LocalArtifact
+    )
+
+    Assert-True `
+        -Condition (
+            $BuiltArtifact.Size -eq $LocalArtifact.Size -and
+            $BuiltArtifact.Sha256 -eq $LocalArtifact.Sha256 -and
+            $BuiltArtifact.Sha512 -eq $LocalArtifact.Sha512
+        ) `
+        -Message "Release-candidate Local JAR '$($LocalArtifact.Path)' is not byte-identical to the build artifact '$($BuiltArtifact.Name)'. Copy the current build artifact to the exact Local JAR path recorded for the release, then rerun the default gate."
 }
 
 function Assert-FabricJar {
@@ -447,10 +513,14 @@ try {
     if ($PrepareReleaseRecord) {
         Write-Warning 'NON-FINAL MODE: the Automobility and Momentum release-record sizes and hashes were not verified.'
     } else {
-        $automobilityReleaseRecord = Read-ReleaseArtifactRecord -Path $automobilityReleaseRecordPath -RequireSha512
+        $automobilityReleaseRecord = Read-ReleaseArtifactRecord -Path $automobilityReleaseRecordPath -RequireSha512 -RequireLocalJar
         $momentumReleaseRecord = Read-ReleaseArtifactRecord -Path $momentumReleaseRecordPath
         Assert-ArtifactMatchesReleaseRecord -Artifact $automobilityArtifact -Record $automobilityReleaseRecord
         Assert-ArtifactMatchesReleaseRecord -Artifact $momentumArtifact -Record $momentumReleaseRecord
+        $automobilityLocalJarPath = Resolve-ReleaseLocalJarPath -Root $root -Record $automobilityReleaseRecord
+        $automobilityLocalArtifact = Get-FileArtifactIdentity -Path $automobilityLocalJarPath
+        Assert-ArtifactMatchesReleaseRecord -Artifact $automobilityLocalArtifact -Record $automobilityReleaseRecord
+        Assert-ArtifactsMatch -BuiltArtifact $automobilityArtifact -LocalArtifact $automobilityLocalArtifact
     }
 
     if ($PrepareReleaseRecord) {
@@ -458,6 +528,7 @@ try {
     } else {
         Write-Host "`nQA passed."
         Write-Host "  Automobility release record: size, SHA-256 and SHA-512 verified against $automobilityReleaseRecordPath"
+        Write-Host "  Automobility Local JAR: exact path, size, SHA-256 and SHA-512 verified against the record and build artifact"
         Write-Host "  Momentum release record: size and SHA-256 verified against $momentumReleaseRecordPath"
     }
     Write-Host "  Unit tests: $($testSummary.Tests - $testSummary.Skipped) passed, $($testSummary.Failures + $testSummary.Errors) failed, $($testSummary.Skipped) skipped"
