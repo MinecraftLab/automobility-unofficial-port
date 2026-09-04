@@ -1118,8 +1118,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
         // Get block below's friction
         var blockBelow = BlockPos.containing(getX(), getY() - 0.05, getZ());
-        this.grip = 1 - ((Mth.clamp((level().getBlockState(blockBelow).getBlock().getFriction() - 0.6f) / 0.4f, 0, 1) * (1 - stats.getGrip() * 0.8f)));
-        this.grip *= this.grip;
+        this.grip = stats.calculateSurfaceGrip(
+                (level().getBlockState(blockBelow).getBlock().getFriction() - 0.6f) / 0.4f);
 
         // Bounce on gel
         if (this.automobileOnGround && this.jumpCooldown <= 0 && level().getBlockState(this.blockPosition()).getBlock() instanceof LaunchGelBlock) {

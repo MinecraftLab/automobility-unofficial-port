@@ -4,10 +4,10 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 
 final class AutomobileCodecs {
-    // These bounds leave substantial headroom over bundled parts while preserving the
-    // finite acceleration, traction and wheel-rendering invariants used by the simulation.
+    // These bounds leave headroom over bundled parts and the supported RIAutomobility
+    // components while preventing unbounded data-pack values from reaching the simulation.
     static final float FRAME_WEIGHT_MIN = 0.01f;
-    static final float FRAME_WEIGHT_MAX = 1.5f;
+    static final float FRAME_WEIGHT_MAX = 2.5f;
     static final float ENGINE_TORQUE_MIN = 0f;
     static final float ENGINE_TORQUE_MAX = 3f;
     static final float ENGINE_SPEED_MIN = 0f;

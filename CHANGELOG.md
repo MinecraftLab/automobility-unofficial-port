@@ -23,8 +23,10 @@ Minecraft Java 26.1.x and 26.2 Fabric ports.
   removed, with server-only inventory drops that consume the original stacks safely.
 - Bounded data-pack frame weights, engine torque and speed, wheel size and grip,
   wheel radius, and per-wheel display scale to finite ranges that keep vehicle physics safe.
-  Accepted ranges are respectively `0.01-1.5`, `0-3`, `0-4`, `0-4`, `0-1`,
+  Accepted ranges are respectively `0.01-2.5`, `0-3`, `0-4`, `0-4`, `0-1`,
   `0.25-64` pixels and `0.01-2`.
+- Preserved supported RIAutomobility `.6` component sync and kept extreme data-pack
+  combinations from producing reversed acceleration, reversed steering or velocity gain.
 - Preserved unresolved frame, wheel and engine registry IDs across saves so temporarily
   missing add-on data is not silently replaced by Automobility's empty fallback.
 - Expanded dismount searches and collision-checks before using the above-car fallback.
