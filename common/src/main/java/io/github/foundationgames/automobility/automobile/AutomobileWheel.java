@@ -114,7 +114,7 @@ public record AutomobileWheel(
         Identifier modelId
     ) {
         public static final Codec<WheelModel> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-                Codec.FLOAT.fieldOf("radius").forGetter(WheelModel::radius),
+                AutomobileCodecs.POSITIVE_FINITE_FLOAT.fieldOf("radius").forGetter(WheelModel::radius),
                 Codec.FLOAT.fieldOf("width").forGetter(WheelModel::width),
                 Identifier.CODEC.fieldOf("texture").forGetter(WheelModel::texture),
                 Identifier.CODEC.fieldOf("model").forGetter(WheelModel::modelId)

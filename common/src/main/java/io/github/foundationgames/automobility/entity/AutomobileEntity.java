@@ -117,6 +117,9 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     private RearAttachment rearAttachment;
     private FrontAttachment frontAttachment;
+    private @Nullable Identifier unresolvedFrameId;
+    private @Nullable Identifier unresolvedWheelId;
+    private @Nullable Identifier unresolvedEngineId;
 
     private final AutomobileStats stats = new AutomobileStats();
 
@@ -353,14 +356,23 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         var frameId = Identifier.tryParse(nbt.getStringOr("frame", ""));
         var wheelId = Identifier.tryParse(nbt.getStringOr("wheels", ""));
         var engineId = Identifier.tryParse(nbt.getStringOr("engine", ""));
+        var frameEntry = frameId != null
+                ? reg.lookupOrThrow(AutomobileFrame.REGISTRY).get(ResourceKey.create(AutomobileFrame.REGISTRY, frameId))
+                : Optional.<Holder.Reference<AutomobileFrame>>empty();
+        var wheelEntry = wheelId != null
+                ? reg.lookupOrThrow(AutomobileWheel.REGISTRY).get(ResourceKey.create(AutomobileWheel.REGISTRY, wheelId))
+                : Optional.<Holder.Reference<AutomobileWheel>>empty();
+        var engineEntry = engineId != null
+                ? reg.lookupOrThrow(AutomobileEngine.REGISTRY).get(ResourceKey.create(AutomobileEngine.REGISTRY, engineId))
+                : Optional.<Holder.Reference<AutomobileEngine>>empty();
         setComponents(
-                frameId != null ? reg.lookupOrThrow(AutomobileFrame.REGISTRY).get(ResourceKey.create(AutomobileFrame.REGISTRY, frameId))
-                        .map(r -> (Holder<AutomobileFrame>)r).orElseGet(() -> Holder.direct(AutomobileFrame.EMPTY)) : Holder.direct(AutomobileFrame.EMPTY),
-                wheelId != null ? reg.lookupOrThrow(AutomobileWheel.REGISTRY).get(ResourceKey.create(AutomobileWheel.REGISTRY, wheelId))
-                        .map(r -> (Holder<AutomobileWheel>)r).orElseGet(() -> Holder.direct(AutomobileWheel.EMPTY)) : Holder.direct(AutomobileWheel.EMPTY),
-                engineId != null ? reg.lookupOrThrow(AutomobileEngine.REGISTRY).get(ResourceKey.create(AutomobileEngine.REGISTRY, engineId))
-                        .map(r -> (Holder<AutomobileEngine>)r).orElseGet(() -> Holder.direct(AutomobileEngine.EMPTY)) : Holder.direct(AutomobileEngine.EMPTY)
+                frameEntry.<Holder<AutomobileFrame>>map(r -> r).orElseGet(() -> Holder.direct(AutomobileFrame.EMPTY)),
+                wheelEntry.<Holder<AutomobileWheel>>map(r -> r).orElseGet(() -> Holder.direct(AutomobileWheel.EMPTY)),
+                engineEntry.<Holder<AutomobileEngine>>map(r -> r).orElseGet(() -> Holder.direct(AutomobileEngine.EMPTY))
         );
+        this.unresolvedFrameId = frameId != null && frameEntry.isEmpty() ? frameId : null;
+        this.unresolvedWheelId = wheelId != null && wheelEntry.isEmpty() ? wheelId : null;
+        this.unresolvedEngineId = engineId != null && engineEntry.isEmpty() ? engineId : null;
 
         var rAtt = nbt.read("rearAttachment", CompoundTag.CODEC).orElseGet(CompoundTag::new);
         setRearAttachment(RearAttachment.fromNbt(rAtt));
@@ -400,9 +412,12 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     @Override
     public void addAdditionalSaveData(ValueOutput nbt) {
-        this.entityData.get(FRAME_TYPE).unwrapKey().ifPresent(k -> nbt.putString("frame", k.identifier().toString()));
-        this.entityData.get(WHEEL_TYPE).unwrapKey().ifPresent(k -> nbt.putString("wheels", k.identifier().toString()));
-        this.entityData.get(ENGINE_TYPE).unwrapKey().ifPresent(k -> nbt.putString("engine", k.identifier().toString()));
+        var frameId = AutomobileComponentPersistence.idToSave(this.entityData.get(FRAME_TYPE), this.unresolvedFrameId);
+        var wheelId = AutomobileComponentPersistence.idToSave(this.entityData.get(WHEEL_TYPE), this.unresolvedWheelId);
+        var engineId = AutomobileComponentPersistence.idToSave(this.entityData.get(ENGINE_TYPE), this.unresolvedEngineId);
+        if (frameId != null) nbt.putString("frame", frameId.toString());
+        if (wheelId != null) nbt.putString("wheels", wheelId.toString());
+        if (engineId != null) nbt.putString("engine", engineId.toString());
         nbt.store("rearAttachment", CompoundTag.CODEC, rearAttachment.toNbt());
         nbt.store("frontAttachment", CompoundTag.CODEC, frontAttachment.toNbt());
         nbt.putFloat("engineSpeed", engineSpeed);
@@ -667,6 +682,9 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void setComponents(Holder<AutomobileFrame> frame, Holder<AutomobileWheel> wheel, Holder<AutomobileEngine> engine) {
+        this.unresolvedFrameId = null;
+        this.unresolvedWheelId = null;
+        this.unresolvedEngineId = null;
         this.entityData.set(FRAME_TYPE, frame);
         this.entityData.set(WHEEL_TYPE, wheel);
         this.entityData.set(ENGINE_TYPE, engine);
