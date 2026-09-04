@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import org.jetbrains.annotations.Nullable;
 
 public class AutomobileItem extends Item implements CustomCreativeOutput {
     public static final List<AutomobileData> PREFABS = new ArrayList<>();
@@ -32,7 +33,7 @@ public class AutomobileItem extends Item implements CustomCreativeOutput {
     public InteractionResult useOn(UseOnContext context) {
         if (!context.getLevel().isClientSide()) {
             var stack = context.getItemInHand();
-            var data = stack.get(AutomobilityItems.COMPONENT_AUTOMOBILE_DATA.require());
+            var data = resolveData(stack.get(AutomobilityItems.COMPONENT_AUTOMOBILE_DATA.require()));
             var e = new AutomobileEntity(AutomobilityEntities.AUTOMOBILE.require(), context.getLevel());
             var pos = context.getClickLocation();
             e.setPos(pos);
@@ -56,6 +57,10 @@ public class AutomobileItem extends Item implements CustomCreativeOutput {
 
     public static void addPrefabs(AutomobileData ... prefabs) {
         PREFABS.addAll(Arrays.asList(prefabs));
+    }
+
+    static AutomobileData resolveData(@Nullable AutomobileData data) {
+        return data != null ? data : AutomobileData.DEFAULT;
     }
 
     @Override

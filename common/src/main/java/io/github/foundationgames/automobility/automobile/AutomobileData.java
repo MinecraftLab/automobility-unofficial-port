@@ -23,6 +23,13 @@ public record AutomobileData(Optional<Identifier> prefabName,
                              ResourceKey<AutomobileFrame> frame,
                              ResourceKey<AutomobileWheel> wheel,
                              ResourceKey<AutomobileEngine> engine) implements TooltipProvider {
+    public static final AutomobileData DEFAULT = new AutomobileData(
+            Optional.empty(),
+            AutomobileFrame.STANDARD_WHITE,
+            AutomobileWheel.STANDARD,
+            AutomobileEngine.IRON
+    );
+
     public static final Codec<AutomobileData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Identifier.CODEC.optionalFieldOf("prefab_id").forGetter(AutomobileData::prefabName),
             AutomobileFrame.CODEC.fieldOf("frame").forGetter(AutomobileData::frame),
