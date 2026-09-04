@@ -33,8 +33,8 @@ Controlify adds Momentum's native cruise-control bindings, contextual controller
 ## Upload File
 
 - Local JAR: `momentum\build\libs\momentum-0.1.11-unofficial.10+26.1.2-fabric.jar`
-- Size: `213962` bytes
-- SHA-256: `4BC9FAE42DB483C8402D3A1334244B30B23074CA4A793AA112E16DE97279DC31`
+- Size: `214524` bytes
+- SHA-256: `91B60E21F324A361AA4FC3AA382650A8358CCDE3143D8E8CEC5352BB547EDA46`
 
 ## Version Changelog
 

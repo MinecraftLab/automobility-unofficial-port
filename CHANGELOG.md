@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.5.0-unofficial.31 - 2026-09-04
+
+Security, data-safety and release-verification update for the unofficial
+Minecraft Java 26.1.x and 26.2 Fabric ports.
+
+### Security
+- Stopped accepting client-authored physics, position and collision-damage values
+  from Automobility's legacy vehicle-state packet. The wire layout remains compatible,
+  while the server now consumes only bounded driving input and computes gameplay speed.
+- Restricted attachment-component detail requests to valid payloads, tracked nearby
+  automobiles and a bounded per-player request budget.
+- Applied world-border and vanilla spawn-protection checks to player-driven harvester
+  and plow block changes while retaining Automobility's explicit allow-block behavior.
+
+### Fixed
+- Removed the unconditional per-tick forced velocity update for every automobile.
+- Made raw automobile items without custom component data place a playable default car.
+- Invalidated and closed chest, ender-chest and banner menus when their attachment is
+  removed, with server-only inventory drops that consume the original stacks safely.
+- Rejected non-finite or non-positive frame weights and wheel radii from data packs.
+- Preserved unresolved frame, wheel and engine registry IDs across saves so temporarily
+  missing add-on data is not silently replaced by Automobility's empty fallback.
+- Expanded dismount searches and collision-checks before using the above-car fallback.
+
+### Changed
+- Added one-command local/CI QA for clean tests, final JAR metadata and hash verification.
+- Bundled project notices and the MIT license notice for the embedded Obj 0.4.0 library.
+
 ## Momentum 0.1.11-unofficial.8 - 2026-08-31
 
 Driving-tune and multiplayer-options release for the unofficial Minecraft Java
