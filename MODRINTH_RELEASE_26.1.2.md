@@ -1,5 +1,9 @@
 # Modrinth Release - Automobility 0.5.0-unofficial.31 for 26.1.x
 
+> **Target-scoped release record:** Use this file only when its filename target matches
+> `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
+> files in this branch are retained only as historical snapshots.
+
 Use this file for the 26.1.x upload after the release candidate passes the in-game smoke test.
 
 ## Project
@@ -59,8 +63,10 @@ Minecraft Java 26.1.x Fabric port.
   safely transfers any dropped item stacks on the server.
 - Data-pack frame weights, engine torque and speed, wheel size and grip, wheel radius,
   and per-wheel display scale now use bounded finite ranges that keep vehicle physics safe.
-  Accepted ranges are respectively `0.01-1.5`, `0-3`, `0-4`, `0-4`, `0-1`,
+  Accepted ranges are respectively `0.01-2.5`, `0-3`, `0-4`, `0-4`, `0-1`,
   `0.25-64` pixels and `0.01-2`.
+- Supported RIAutomobility `.6` components remain registry-sync compatible, while extreme
+  data-pack combinations can no longer reverse acceleration/steering or amplify velocity.
 - Temporarily missing add-on frame, wheel and engine IDs survive save/reload instead of
   being silently replaced by Automobility's empty fallback.
 - Dismounting checks more positions and poses for collision before using the above-car fallback.
