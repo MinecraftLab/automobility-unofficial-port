@@ -21,7 +21,10 @@ Minecraft Java 26.1.x and 26.2 Fabric ports.
 - Made raw automobile items without custom component data place a playable default car.
 - Invalidated and closed chest, ender-chest and banner menus when their attachment is
   removed, with server-only inventory drops that consume the original stacks safely.
-- Rejected non-finite or non-positive frame weights and wheel radii from data packs.
+- Bounded data-pack frame weights, engine torque and speed, wheel size and grip,
+  wheel radius, and per-wheel display scale to finite ranges that keep vehicle physics safe.
+  Accepted ranges are respectively `0.01-1.5`, `0-3`, `0-4`, `0-4`, `0-1`,
+  `0.25-64` pixels and `0.01-2`.
 - Preserved unresolved frame, wheel and engine registry IDs across saves so temporarily
   missing add-on data is not silently replaced by Automobility's empty fallback.
 - Expanded dismount searches and collision-checks before using the above-car fallback.

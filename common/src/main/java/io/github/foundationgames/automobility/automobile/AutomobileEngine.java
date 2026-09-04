@@ -37,8 +37,8 @@ public record AutomobileEngine(
 
     public static final Codec<AutomobileEngine> DIRECT_CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.BOOL.optionalFieldOf("_empty", false).forGetter(AutomobileEngine::empty),
-            Codec.FLOAT.fieldOf("torque").forGetter(AutomobileEngine::torque),
-            Codec.FLOAT.fieldOf("speed").forGetter(AutomobileEngine::speed),
+            AutomobileCodecs.ENGINE_TORQUE.fieldOf("torque").forGetter(AutomobileEngine::torque),
+            AutomobileCodecs.ENGINE_SPEED.fieldOf("speed").forGetter(AutomobileEngine::speed),
             SoundEvent.DIRECT_CODEC.fieldOf("sound").forGetter(e -> e.sound().get()),
             EngineModel.CODEC.fieldOf("display").forGetter(AutomobileEngine::model)
     ).apply(inst, AutomobileEngine::create));

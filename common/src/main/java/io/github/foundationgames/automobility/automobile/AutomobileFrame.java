@@ -36,7 +36,7 @@ public record AutomobileFrame(
 
     public static final Codec<AutomobileFrame> DIRECT_CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.BOOL.optionalFieldOf("_empty", false).forGetter(AutomobileFrame::empty),
-            AutomobileCodecs.POSITIVE_FINITE_FLOAT.fieldOf("weight").forGetter(AutomobileFrame::weight),
+            AutomobileCodecs.FRAME_WEIGHT.fieldOf("weight").forGetter(AutomobileFrame::weight),
             Codec.FLOAT.optionalFieldOf("width", 1f).forGetter(AutomobileFrame::width),
             Codec.list(Hitbox.CODEC).optionalFieldOf("hitboxes", List.of()).forGetter(AutomobileFrame::hitboxes),
             HornSoundDefinition.CODEC.optionalFieldOf("horn", HornSoundDefinition.DEFAULT).forGetter(AutomobileFrame::horn),
