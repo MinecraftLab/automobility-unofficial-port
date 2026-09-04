@@ -145,9 +145,11 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private static final int CLIENT_SYNC_INTERVAL = 4;
     private static final int SERVER_SYNC_INTERVAL = 4;
     private static final int MAX_CLIENT_SYNCS_PER_TICK = 2;
+    private static final int CLIENT_INPUT_TIMEOUT_TICKS = 20;
     private int clientSyncTicks = CLIENT_SYNC_INTERVAL;
     private int serverSyncTicks = 0;
     private long lastClientSyncTick = Long.MIN_VALUE;
+    private long lastAcceptedClientInputTick = Long.MIN_VALUE;
     private int clientSyncsThisTick = 0;
 
     public final List<HitboxEntity> hitboxes = new ArrayList<>();
@@ -341,6 +343,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             return false;
         }
 
+        this.lastAcceptedClientInputTick = this.level().getGameTime();
         return this.input.setInputs(
                 accelerating,
                 braking,
@@ -894,6 +897,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (!(this.isVehicle() || this.isDriving(this.getFirstPassenger()) || fAttDriving)) {
             input.clearInputs();
         }
+        expireStaleClientInput();
 
         if (this.jumpCooldown > 0) {
             this.jumpCooldown--;
@@ -1093,6 +1097,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void movementTick() {
+        Vec3 serverObservedMovement = this.level().isClientSide() ? Vec3.ZERO : this.getMeasuredMovement();
+
         // Handles boosting
         lastBoostSpeed = boostSpeed;
         if (boostTimer > 0) {
@@ -1239,8 +1245,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         lastVelocity = cumulative;
 
         // Damage and launch entities that are hit by a moving automobile
-        if (!this.level().isClientSide() && cumulative.horizontalDistanceSqr() > 0.04) {
-            runOverEntities(cumulative);
+        if (!this.level().isClientSide()) {
+            runOverEntities(AutomobileImpactPolicy.boundedVelocityForDamage(cumulative, serverObservedMovement));
         }
     }
 
@@ -1268,6 +1274,24 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             AutomobilityEntities.automobileDamageSource(level()).ifPresent(dmg -> e.hurt(dmg, impactSpeed * 10));
             e.push(velAdd.x, velAdd.y, velAdd.z);
         });
+    }
+
+    private void expireStaleClientInput() {
+        if (this.level().isClientSide()
+                || !(this.getFirstPassenger() instanceof Player player)
+                || !this.isDriving(player)
+                || AutomobileClientInputPolicy.isFresh(
+                        this.lastAcceptedClientInputTick,
+                        this.level().getGameTime(),
+                        CLIENT_INPUT_TIMEOUT_TICKS)) {
+            return;
+        }
+
+        if (this.input.accelerating || this.input.braking || this.input.steering != 0
+                || this.input.holdingDrift || this.input.holdingHorn) {
+            this.input.clearInputs();
+            this.markDirty();
+        }
     }
 
     public void receiveVehicleCollisions() {
