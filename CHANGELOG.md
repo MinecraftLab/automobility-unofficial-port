@@ -13,14 +13,16 @@ Minecraft Java 26.1.x and 26.2 Fabric ports.
   speed to that movement, preventing stale input from damaging entities around a stationary car.
 - Restricted attachment-component detail requests to valid payloads, tracked nearby
   automobiles and a bounded per-player request budget.
-- Applied world-border and vanilla spawn-protection checks to player-driven harvester
-  and plow block changes while retaining Automobility's explicit allow-block behavior.
+- Applied world-border and vanilla spawn-protection checks to harvester and plow block
+  changes, including autopilot and mob-controlled vehicles, while retaining
+  Automobility's explicit allow-block behavior outside protected areas.
 
 ### Fixed
 - Removed the unconditional per-tick forced velocity update for every automobile.
 - Made raw automobile items without custom component data place a playable default car.
-- Invalidated and closed chest, ender-chest and banner menus when their attachment is
-  removed, with server-only inventory drops that consume the original stacks safely.
+- Invalidated attachment menus when their attachment is removed or replaced, the car is
+  gone, the player changes dimension or leaves range. Chest and banner inventories close
+  safely and drop or transfer their original stacks only on the server.
 - Bounded data-pack frame weights, engine torque and speed, wheel size and grip,
   wheel radius, and per-wheel display scale to finite ranges that keep vehicle physics safe.
   Accepted ranges are respectively `0.01-2.5`, `0-3`, `0-4`, `0-4`, `0-1`,
@@ -29,6 +31,8 @@ Minecraft Java 26.1.x and 26.2 Fabric ports.
   combinations from producing reversed acceleration, reversed steering or velocity gain.
 - Preserved unresolved frame, wheel and engine registry IDs across saves so temporarily
   missing add-on data is not silently replaced by Automobility's empty fallback.
+- Preserved opaque front/rear attachment NBT, including nested inventory data, while its
+  add-on registry type is temporarily unavailable; an explicit replacement still clears it.
 - Expanded dismount searches and collision-checks before using the above-car fallback.
 
 ### Changed

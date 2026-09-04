@@ -1,14 +1,16 @@
 package io.github.foundationgames.automobility.automobile.attachment.rear;
 
-final class AttachmentMenuValidity {
-    static final double MAX_DISTANCE_SQUARED = 64.0;
+public final class AttachmentMenuValidity {
+    private static final double MAX_DISTANCE_SQUARED = 64.0;
 
     private AttachmentMenuValidity() {
     }
 
-    static boolean isValid(boolean removed, boolean automobileAlive, boolean currentAttachment, double distanceSquared) {
+    public static boolean isValid(boolean removed, boolean automobileAlive, boolean sameLevel,
+                                  boolean currentAttachment, double distanceSquared) {
         return !removed
                 && automobileAlive
+                && sameLevel
                 && currentAttachment
                 && Double.isFinite(distanceSquared)
                 && distanceSquared <= MAX_DISTANCE_SQUARED;

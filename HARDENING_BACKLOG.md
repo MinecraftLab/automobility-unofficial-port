@@ -28,12 +28,18 @@ Automobility `.31` files.
 - Give Momentum's brake/drift packet a heartbeat and server-side expiry so a
   frozen client cannot leave either state latched until disconnect.
 - Extend numeric validation to programmatic component registration, stream
-  codecs and remaining display/geometry values (widths, model positions,
-  hitboxes and angles) without silently changing valid addon tuning.
-- Preserve unresolved addon component IDs when an automobile drops its parts,
-  matching the save/load preservation already implemented in `.31`.
+  codecs and remaining display/geometry values without silently changing valid
+  addon tuning. Bound wheelbase cardinality and finite wheel positions/angles,
+  validate stream enum ordinals, and cap geometry feeding collision scans.
+- Sanitize non-finite persisted and synchronized automobile motion/input state
+  at its trust boundaries.
+- Preserve unresolved addon component IDs and opaque attachment data when an automobile
+  drops its parts, matching the save/load preservation already implemented in `.31`.
 - Add entity-level integration tests for tick-driven input expiry, dirty-state
-  synchronization and mob/autopilot inputs in addition to the policy tests.
+  synchronization, mob/autopilot inputs, corrupt/non-finite state and the
+  reverse-to-forward transition. Assert that acceleration and movement stay finite.
+- Pin and automate the released RIA `.6` 13-frame/2-wheel registry-codec contract
+  that was exercised externally for `.31`.
 - Design a versioned server-authoritative spatial protocol before removing the
   legacy client position fields. Avoid double simulation and visible jitter for
   remote passengers during migration.
