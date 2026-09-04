@@ -470,7 +470,7 @@ try {
         Write-Host "    SHA-512 $($artifact.Sha512)"
     }
     Write-Host '  JAR checks: metadata, referenced resources/entrypoints, exact project and Obj licenses + NOTICE.md, duplicate/unsafe/development files'
-    Write-Host '  Runtime: not automated; dedicated-server and two-client driving/persistence tests remain release-candidate gates'
+    Write-Host '  Runtime: not automated; full-stack dedicated-server and two-client driving/persistence tests remain release-candidate gates'
 } finally {
     if ($null -eq $originalJavaHome) {
         Remove-Item Env:JAVA_HOME -ErrorAction SilentlyContinue

@@ -72,14 +72,16 @@ Minecraft Java 26.1.x Fabric port.
 - Java 25 clean merged-source build: passed on 2026-09-04.
 - Fabric and Momentum unit suites: 77 passed, 0 failed, 0 skipped.
 - Exact `.31` JAR metadata, license and release-record hash gate: passed on 2026-09-04.
-- Exact-artifact dedicated-server startup and two-client ecosystem smoke: **NOT RUN**.
+- Exact `.31` JAR dedicated-server startup and clean shutdown: passed on 2026-09-04;
+  the server reached `Done` with no errors, exceptions or crash report.
+- Exact-artifact two-client ecosystem smoke: **NOT RUN**.
 - Publication remains blocked until every pending item above passes.
 
 ## Before Upload
 
 - Run `tools\qa\Test-Automobility.ps1 -Rebuild` and confirm the final gate matches the
   exact size and hashes above.
-- Test the exact JAR on a dedicated server and with two clients in the Automobility,
+- Complete the exact-JAR two-client smoke on a dedicated server with the Automobility,
   Momentum, RIA, Autoradio and Pumps & Pistons Roadworks stack. Cover driving, observer
   tracking, run-over damage, attachment menu removal, item drops, dismounting, persistence,
   reconnect, restart and clean shutdown.
