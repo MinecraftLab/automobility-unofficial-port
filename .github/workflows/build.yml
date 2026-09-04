@@ -17,13 +17,9 @@ jobs:
           distribution: temurin
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
-      - name: Validate release-facing metadata and artwork
+      - name: Run repository QA gate
         shell: pwsh
-        run: ./tools/qa/Test-ReleaseFacingAssets.ps1
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
-      - name: Build and test
-        run: ./gradlew build --warning-mode all
+        run: ./tools/qa/Test-Automobility.ps1
       - name: Upload build reports
         if: failure()
         uses: actions/upload-artifact@v4

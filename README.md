@@ -18,6 +18,25 @@ Automobility adds customizable and functional vehicles, automobile parts, attach
 
 This port currently publishes a Fabric build only. The upstream project is maintained separately; use this fork's issue tracker for bugs specific to this port.
 
+## Contributor QA
+
+Run the same local/CI gate from PowerShell before handing a build to testers:
+
+```powershell
+.\tools\qa\Test-Automobility.ps1
+```
+
+The script finds the repository's local Temurin JDK 25 fallback, or accepts an explicit
+JDK with `-JavaHome C:\path\to\jdk-25`. It validates release-facing files, runs a clean
+unit-test/build pass, and checks the final Automobility and Momentum JAR names, Fabric
+metadata, referenced resources and entrypoints, embedded `LICENSE`/`NOTICE.md`, ZIP
+paths, duplicates, and development-file leaks. Use `-Rebuild` to disable Gradle's build
+cache and force every task for a release-candidate pass. It never publishes or uploads.
+
+Dedicated-server startup plus two-client driving, tracking, attachment, persistence,
+restart, and disconnect tests are still manual release-candidate gates; this repository
+does not yet have a safe automated multiplayer runtime harness.
+
 ## Momentum Addon
 This repository also contains an unofficial 26.x Fabric port of [Momentum for Automobility](https://modrinth.com/mod/momentum-for-automobility) in the `momentum` subproject.
 

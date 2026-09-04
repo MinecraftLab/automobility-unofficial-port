@@ -1,0 +1,373 @@
+[CmdletBinding()]
+param(
+    [string] $RepositoryRoot = (Resolve-Path (Join-Path (Join-Path $PSScriptRoot '..') '..')).Path,
+    [string] $JavaHome,
+    [switch] $Rebuild
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+function Assert-True {
+    param(
+        [Parameter(Mandatory)] [bool] $Condition,
+        [Parameter(Mandatory)] [string] $Message
+    )
+
+    if (-not $Condition) {
+        throw $Message
+    }
+}
+
+function Read-GradleProperties {
+    param([Parameter(Mandatory)] [string] $Path)
+
+    $properties = @{}
+    foreach ($line in Get-Content -LiteralPath $Path) {
+        if ($line -match '^\s*([^#!\s][^=]*?)\s*=\s*(.*?)\s*$') {
+            $properties[$Matches[1].Trim()] = $Matches[2].Trim()
+        }
+    }
+    return $properties
+}
+
+function Get-JavaMajorVersion {
+    param([Parameter(Mandatory)] [string] $JdkHome)
+
+    $executableName = if ($env:OS -eq 'Windows_NT') { 'java.exe' } else { 'java' }
+    $java = Join-Path (Join-Path $JdkHome 'bin') $executableName
+    if (-not (Test-Path -LiteralPath $java -PathType Leaf)) {
+        return $null
+    }
+
+    $versionOutput = (& $java -version 2>&1 | Out-String)
+    if ($LASTEXITCODE -ne 0 -or $versionOutput -notmatch 'version\s+"(?<version>[^"]+)"') {
+        return $null
+    }
+
+    $version = $Matches.version
+    if ($version -match '^1\.(?<major>\d+)') {
+        return [int] $Matches.major
+    }
+    if ($version -match '^(?<major>\d+)') {
+        return [int] $Matches.major
+    }
+    return $null
+}
+
+function Resolve-Java25Home {
+    param([string] $RequestedHome)
+
+    if (-not [string]::IsNullOrWhiteSpace($RequestedHome)) {
+        $requested = [System.IO.Path]::GetFullPath($RequestedHome)
+        $requestedMajor = Get-JavaMajorVersion -JdkHome $requested
+        Assert-True ($requestedMajor -eq 25) "-JavaHome must point to JDK 25; found major version '$requestedMajor' at $requested."
+        return $requested
+    }
+
+    $candidates = [System.Collections.Generic.List[string]]::new()
+    if (-not [string]::IsNullOrWhiteSpace($env:JAVA_HOME)) {
+        $candidates.Add($env:JAVA_HOME)
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
+        $knownFallback = Join-Path $env:USERPROFILE '.jdks/temurin-25-20260619175454/jdk-25.0.3+9'
+        $candidates.Add($knownFallback)
+
+        $jdksRoot = Join-Path $env:USERPROFILE '.jdks'
+        if (Test-Path -LiteralPath $jdksRoot -PathType Container) {
+            $javaExecutables = Get-ChildItem -LiteralPath $jdksRoot -File -Recurse -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -in @('java', 'java.exe') -and $_.Directory.Name -eq 'bin' }
+            foreach ($javaExecutable in $javaExecutables) {
+                $candidates.Add($javaExecutable.Directory.Parent.FullName)
+            }
+        }
+    }
+
+    $pathJava = Get-Command java -ErrorAction SilentlyContinue
+    if ($null -ne $pathJava -and -not [string]::IsNullOrWhiteSpace($pathJava.Source)) {
+        $candidates.Add((Split-Path -Parent (Split-Path -Parent $pathJava.Source)))
+    }
+
+    foreach ($candidate in @($candidates | Select-Object -Unique)) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) {
+            continue
+        }
+        $fullCandidate = [System.IO.Path]::GetFullPath($candidate)
+        if ((Get-JavaMajorVersion -JdkHome $fullCandidate) -eq 25) {
+            return $fullCandidate
+        }
+    }
+
+    throw 'JDK 25 was not found. Pass it explicitly, for example: -JavaHome C:\path\to\jdk-25.'
+}
+
+function Invoke-Gradle {
+    param(
+        [Parameter(Mandatory)] [string] $Root,
+        [Parameter(Mandatory)] [string[]] $Arguments
+    )
+
+    Push-Location $Root
+    try {
+        if ($env:OS -eq 'Windows_NT') {
+            & (Join-Path $Root 'gradlew.bat') @Arguments
+        } else {
+            & bash (Join-Path $Root 'gradlew') @Arguments
+        }
+        if ($LASTEXITCODE -ne 0) {
+            throw "Gradle failed with exit code $LASTEXITCODE."
+        }
+    } finally {
+        Pop-Location
+    }
+}
+
+function Get-ZipEntryBytes {
+    param([Parameter(Mandatory)] [System.IO.Compression.ZipArchiveEntry] $Entry)
+
+    $stream = $Entry.Open()
+    $memory = [System.IO.MemoryStream]::new()
+    try {
+        $stream.CopyTo($memory)
+        return $memory.ToArray()
+    } finally {
+        $memory.Dispose()
+        $stream.Dispose()
+    }
+}
+
+function Get-BytesSha256 {
+    param([Parameter(Mandatory)] [byte[]] $Bytes)
+
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return [System.BitConverter]::ToString($sha256.ComputeHash($Bytes)).Replace('-', '')
+    } finally {
+        $sha256.Dispose()
+    }
+}
+
+function Assert-JarEntryMatchesFile {
+    param(
+        [Parameter(Mandatory)] [System.IO.Compression.ZipArchive] $Archive,
+        [Parameter(Mandatory)] [string] $EntryName,
+        [Parameter(Mandatory)] [string] $FilePath,
+        [Parameter(Mandatory)] [string] $ArtifactName
+    )
+
+    $entries = @($Archive.Entries | Where-Object { $_.FullName -ceq $EntryName })
+    Assert-True ($entries.Count -eq 1) "$ArtifactName must contain exactly one $EntryName entry."
+    $entryHash = Get-BytesSha256 -Bytes (Get-ZipEntryBytes -Entry $entries[0])
+    $fileHash = (Get-FileHash -LiteralPath $FilePath -Algorithm SHA256).Hash
+    Assert-True ($entryHash -eq $fileHash) "$ArtifactName contains a modified $EntryName; it must match $FilePath byte-for-byte."
+}
+
+function Assert-FabricJar {
+    param(
+        [Parameter(Mandatory)] [string] $Path,
+        [Parameter(Mandatory)] [string] $ExpectedId,
+        [Parameter(Mandatory)] [string] $ExpectedVersion,
+        [Parameter(Mandatory)] [string] $ExpectedMinecraftVersion,
+        [Parameter(Mandatory)] [hashtable] $Properties,
+        [Parameter(Mandatory)] [string] $Root
+    )
+
+    Assert-True (Test-Path -LiteralPath $Path -PathType Leaf) "Missing production artifact: $Path"
+    $artifactName = Split-Path -Leaf $Path
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($Path)
+    try {
+        $entryNames = @($archive.Entries | ForEach-Object { $_.FullName })
+        $duplicates = @($entryNames | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { $_.Name })
+        Assert-True ($duplicates.Count -eq 0) "$artifactName contains duplicate ZIP entries: $($duplicates -join ', ')"
+
+        $unsafeEntries = @($entryNames | Where-Object {
+            $_ -match '\\' -or
+            $_ -match '^(?:/|[A-Za-z]:)' -or
+            $_ -match '(^|/)\.\.(/|$)'
+        })
+        Assert-True ($unsafeEntries.Count -eq 0) "$artifactName contains unsafe ZIP paths: $($unsafeEntries -join ', ')"
+
+        $forbiddenEntries = @($entryNames | Where-Object {
+            $_ -match '(?i)(^|/)(\.git|\.github|gradle|build|run|dist)(/|$)' -or
+            $_ -match '(?i)\.(java|kt|kts|ps1|bat|cmd|gradle)$' -or
+            $_ -match '(?i)(^|/)(gradle\.properties|gradlew)$'
+        })
+        Assert-True ($forbiddenEntries.Count -eq 0) "$artifactName contains development-only files: $($forbiddenEntries -join ', ')"
+
+        $manifestEntries = @($archive.Entries | Where-Object { $_.FullName -ceq 'fabric.mod.json' })
+        Assert-True ($manifestEntries.Count -eq 1) "$artifactName must contain exactly one fabric.mod.json."
+        $manifestBytes = Get-ZipEntryBytes -Entry $manifestEntries[0]
+        $manifestText = [System.Text.Encoding]::UTF8.GetString($manifestBytes)
+        Assert-True ($manifestText -notmatch '\$\{[^}]+\}') "$artifactName contains an unexpanded placeholder in fabric.mod.json."
+        $manifest = $manifestText | ConvertFrom-Json
+
+        Assert-True ($manifest.id -eq $ExpectedId) "$artifactName has unexpected mod id '$($manifest.id)'."
+        Assert-True ($manifest.version -eq $ExpectedVersion) "$artifactName has version '$($manifest.version)', expected '$ExpectedVersion'."
+        Assert-True ($manifest.license -eq 'MIT') "$artifactName must declare the MIT license."
+        Assert-True ($manifest.environment -eq '*') "$artifactName must load on both client and server."
+        Assert-True ($manifest.depends.minecraft -eq $ExpectedMinecraftVersion) "$artifactName targets Minecraft '$($manifest.depends.minecraft)', expected '$ExpectedMinecraftVersion'."
+        Assert-True ($manifest.depends.java -eq '>=25') "$artifactName must require Java 25 or newer."
+        Assert-True ($manifest.depends.fabricloader -eq ">=$($Properties.fabric_version)") "$artifactName has an unexpected Fabric Loader dependency."
+        Assert-True ($manifest.depends.'fabric-api' -eq ">=$($Properties.fabric_api_version)") "$artifactName has an unexpected Fabric API dependency."
+
+        if ($ExpectedId -eq 'automobility') {
+            Assert-True ($manifest.name -eq 'Automobility: Unofficial Port') "$artifactName has an unexpected display name."
+            Assert-True ($manifest.icon -eq 'automobility.png') "$artifactName has an unexpected icon path."
+        } else {
+            Assert-True ($manifest.name -eq 'Momentum for Automobility: Unofficial Port') "$artifactName has an unexpected display name."
+            Assert-True ($manifest.icon -eq 'momentum_icon.png') "$artifactName has an unexpected icon path."
+            Assert-True ($manifest.depends.automobility -eq ">=$($Properties.momentum_automobility_min_version)") "$artifactName has an unexpected Automobility dependency."
+        }
+
+        $requiredResources = [System.Collections.Generic.List[string]]::new()
+        $requiredResources.Add([string] $manifest.icon)
+        foreach ($mixin in @($manifest.mixins)) {
+            if ($mixin -is [string]) {
+                $requiredResources.Add($mixin)
+            }
+        }
+        if ($null -ne $manifest.PSObject.Properties['accessWidener']) {
+            $requiredResources.Add([string] $manifest.accessWidener)
+        }
+        if ($null -ne $manifest.PSObject.Properties['jars']) {
+            foreach ($nestedJar in @($manifest.jars)) {
+                if ($null -ne $nestedJar -and $null -ne $nestedJar.PSObject.Properties['file']) {
+                    $requiredResources.Add([string] $nestedJar.file)
+                }
+            }
+        }
+        foreach ($resource in $requiredResources) {
+            Assert-True ($entryNames -ccontains $resource) "$artifactName references missing JAR resource '$resource'."
+        }
+
+        foreach ($entrypointGroup in $manifest.entrypoints.PSObject.Properties) {
+            foreach ($entrypoint in @($entrypointGroup.Value)) {
+                if ($entrypoint -isnot [string]) {
+                    continue
+                }
+                $classEntry = $entrypoint.Replace('.', '/') + '.class'
+                Assert-True ($entryNames -ccontains $classEntry) "$artifactName references missing entrypoint class '$entrypoint'."
+            }
+        }
+
+        Assert-JarEntryMatchesFile -Archive $archive -EntryName 'LICENSE' -FilePath (Join-Path $Root 'LICENSE') -ArtifactName $artifactName
+        Assert-JarEntryMatchesFile -Archive $archive -EntryName 'NOTICE.md' -FilePath (Join-Path $Root 'NOTICE.md') -ArtifactName $artifactName
+    } finally {
+        $archive.Dispose()
+    }
+
+    return [pscustomobject] @{
+        Name = $artifactName
+        Size = (Get-Item -LiteralPath $Path).Length
+        Sha256 = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+    }
+}
+
+function Get-TestSummary {
+    param([Parameter(Mandatory)] [string] $Root)
+
+    $summary = [ordered] @{
+        Tests = 0
+        Failures = 0
+        Errors = 0
+        Skipped = 0
+    }
+    $results = @(
+        Get-ChildItem -LiteralPath (Join-Path $Root 'fabric/build/test-results/test') -Filter 'TEST-*.xml' -File -ErrorAction SilentlyContinue
+        Get-ChildItem -LiteralPath (Join-Path $Root 'momentum/build/test-results/test') -Filter 'TEST-*.xml' -File -ErrorAction SilentlyContinue
+    )
+    foreach ($result in $results) {
+        [xml] $xml = Get-Content -LiteralPath $result.FullName -Raw
+        $summary.Tests += [int] $xml.testsuite.tests
+        $summary.Failures += [int] $xml.testsuite.failures
+        $summary.Errors += [int] $xml.testsuite.errors
+        $summary.Skipped += [int] $xml.testsuite.skipped
+    }
+    Assert-True ($summary.Tests -gt 0) 'Gradle completed but produced no Fabric or Momentum unit-test results.'
+    Assert-True (($summary.Failures + $summary.Errors) -eq 0) 'The generated unit-test reports contain failures or errors.'
+    return [pscustomobject] $summary
+}
+
+$root = [System.IO.Path]::GetFullPath($RepositoryRoot)
+Assert-True (Test-Path -LiteralPath (Join-Path $root 'settings.gradle.kts') -PathType Leaf) "Not an Automobility repository root: $root"
+Assert-True (Test-Path -LiteralPath (Join-Path $root 'tools/qa/Test-ReleaseFacingAssets.ps1') -PathType Leaf) 'Missing release-facing QA script.'
+
+$properties = Read-GradleProperties -Path (Join-Path $root 'gradle.properties')
+foreach ($requiredProperty in @('minecraft_version', 'fabric_version', 'fabric_api_version', 'mod_version', 'momentum_version', 'momentum_automobility_min_version', 'archives_base_name')) {
+    Assert-True ($properties.ContainsKey($requiredProperty)) "Missing Gradle property: $requiredProperty"
+}
+
+$resolvedJavaHome = Resolve-Java25Home -RequestedHome $JavaHome
+$javaExecutableName = if ($env:OS -eq 'Windows_NT') { 'java.exe' } else { 'java' }
+$javaExecutable = Join-Path (Join-Path $resolvedJavaHome 'bin') $javaExecutableName
+$originalJavaHome = $env:JAVA_HOME
+$originalPath = $env:PATH
+
+try {
+    $env:JAVA_HOME = $resolvedJavaHome
+    $env:PATH = (Join-Path $resolvedJavaHome 'bin') + [System.IO.Path]::PathSeparator + $originalPath
+
+    Write-Host 'Automobility QA gate'
+    Write-Host "  Repository: $root"
+    Write-Host "  JDK: $resolvedJavaHome"
+    Write-Host "  Java: $(& $javaExecutable -version 2>&1 | Select-Object -First 1)"
+    Write-Host '  Publishing: disabled (this script has no publish or upload step)'
+
+    Write-Host "`n[1/3] Release-facing metadata and artwork"
+    & (Join-Path $root 'tools/qa/Test-ReleaseFacingAssets.ps1') -RepositoryRoot $root
+
+    Write-Host "`n[2/3] Clean unit tests and production build"
+    $gradleArguments = @('clean', 'test', 'build', '--warning-mode', 'all')
+    if ($Rebuild) {
+        $gradleArguments += @('--no-build-cache', '--rerun-tasks')
+    }
+    Invoke-Gradle -Root $root -Arguments $gradleArguments
+    $testSummary = Get-TestSummary -Root $root
+
+    Write-Host "`n[3/3] Production JAR integrity"
+    $minecraftVersion = $properties.minecraft_version
+    $expectedMinecraftDependency = if ($minecraftVersion -eq '26.1.2') { '26.1.x' } else { $minecraftVersion }
+    $automobilityFileName = "$($properties.archives_base_name)-$($properties.mod_version)+$minecraftVersion-fabric.jar"
+    $momentumFileName = "momentum-$($properties.momentum_version)+$minecraftVersion-fabric.jar"
+    $automobilityOutput = Join-Path $root 'fabric/build/libs'
+    $momentumOutput = Join-Path $root 'momentum/build/libs'
+
+    $automobilityJars = @(Get-ChildItem -LiteralPath $automobilityOutput -Filter '*.jar' -File)
+    $momentumJars = @(Get-ChildItem -LiteralPath $momentumOutput -Filter '*.jar' -File)
+    Assert-True ($automobilityJars.Count -eq 1) "Expected exactly one Fabric production JAR, found $($automobilityJars.Count)."
+    Assert-True ($momentumJars.Count -eq 1) "Expected exactly one Momentum production JAR, found $($momentumJars.Count)."
+    Assert-True ($automobilityJars[0].Name -ceq $automobilityFileName) "Unexpected Automobility artifact name '$($automobilityJars[0].Name)'."
+    Assert-True ($momentumJars[0].Name -ceq $momentumFileName) "Unexpected Momentum artifact name '$($momentumJars[0].Name)'."
+
+    $automobilityArtifact = Assert-FabricJar `
+        -Path $automobilityJars[0].FullName `
+        -ExpectedId 'automobility' `
+        -ExpectedVersion $properties.mod_version `
+        -ExpectedMinecraftVersion $expectedMinecraftDependency `
+        -Properties $properties `
+        -Root $root
+    $momentumArtifact = Assert-FabricJar `
+        -Path $momentumJars[0].FullName `
+        -ExpectedId 'momentum' `
+        -ExpectedVersion "$($properties.momentum_version)+$minecraftVersion-fabric" `
+        -ExpectedMinecraftVersion $expectedMinecraftDependency `
+        -Properties $properties `
+        -Root $root
+
+    Write-Host "`nQA passed."
+    Write-Host "  Unit tests: $($testSummary.Tests - $testSummary.Skipped) passed, $($testSummary.Failures + $testSummary.Errors) failed, $($testSummary.Skipped) skipped"
+    foreach ($artifact in @($automobilityArtifact, $momentumArtifact)) {
+        Write-Host "  $($artifact.Name): $($artifact.Size) bytes"
+        Write-Host "    SHA-256 $($artifact.Sha256)"
+    }
+    Write-Host '  JAR checks: metadata, referenced resources/entrypoints, exact LICENSE + NOTICE.md, duplicate/unsafe/development files'
+    Write-Host '  Runtime: not automated; dedicated-server and two-client driving/persistence tests remain release-candidate gates'
+} finally {
+    if ($null -eq $originalJavaHome) {
+        Remove-Item Env:JAVA_HOME -ErrorAction SilentlyContinue
+    } else {
+        $env:JAVA_HOME = $originalJavaHome
+    }
+    $env:PATH = $originalPath
+}

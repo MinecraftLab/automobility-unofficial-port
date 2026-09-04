@@ -56,6 +56,7 @@ subprojects {
 			destinationDirectory = rootDir.resolve(project.name).resolve("build").resolve("libs")
 
 			from(rootDir.resolve("LICENSE"))
+			from(rootDir.resolve("NOTICE.md"))
 
 			duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 		}
