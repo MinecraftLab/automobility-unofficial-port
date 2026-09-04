@@ -30,8 +30,18 @@ The script finds the repository's local Temurin JDK 25 fallback, or accepts an e
 JDK with `-JavaHome C:\path\to\jdk-25`. It validates release-facing files, runs a clean
 unit-test/build pass, and checks the final Automobility and Momentum JAR names, Fabric
 metadata, referenced resources and entrypoints, embedded `LICENSE`/`NOTICE.md`, ZIP
-paths, duplicates, and development-file leaks. Use `-Rebuild` to disable Gradle's build
-cache and force every task for a release-candidate pass. It never publishes or uploads.
+paths, duplicates, development-file leaks, the embedded Obj license, and the active
+Automobility and Momentum release records' exact JAR sizes and SHA-256 hashes. The
+Automobility record's SHA-512 is also mandatory and verified. Use `-Rebuild` to disable
+Gradle's build cache and force every task for a release-candidate pass. It never publishes
+or uploads.
+
+When preparing a new, unpublished version, run with `-PrepareReleaseRecord` once to print
+the newly built sizes, SHA-256 and SHA-512 hashes without accepting them as final. Update
+the matching `MODRINTH_RELEASE_<minecraft>.md` and
+`MOMENTUM_MODRINTH_RELEASE_<minecraft>.md`, then rerun without that switch. The default
+command is the final gate used by CI, and preparation mode is disabled there; never update
+a release record to replace an already-published version with different bytes.
 
 Dedicated-server startup plus two-client driving, tracking, attachment, persistence,
 restart, and disconnect tests are still manual release-candidate gates; this repository

@@ -87,6 +87,12 @@ tasks {
         destinationDirectory = rootDir.resolve(project.name).resolve("build").resolve("libs")
     }
 
+    named<Jar>("jar") {
+        from(rootDir.resolve("THIRD_PARTY_LICENSES").resolve("obj-0.4.0-LICENSE.txt")) {
+            into("THIRD_PARTY_LICENSES")
+        }
+    }
+
     javadoc { source(project(":common").sourceSets.main.get().allJava) }
 
     processResources {
