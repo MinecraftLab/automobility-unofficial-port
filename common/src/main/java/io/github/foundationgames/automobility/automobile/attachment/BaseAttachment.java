@@ -7,6 +7,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -17,6 +19,7 @@ public abstract class BaseAttachment<T extends AutomobileComponent<T>> {
     protected final AutomobileEntity automobile;
 
     private float animation;
+    private boolean removed;
 
     public BaseAttachment(T type, AutomobileEntity automobile) {
         this.type = type;
@@ -51,6 +54,11 @@ public abstract class BaseAttachment<T extends AutomobileComponent<T>> {
     }
 
     public void onRemoved() {
+        this.removed = true;
+    }
+
+    public final boolean wasRemoved() {
+        return this.removed;
     }
 
     public abstract void writeNbt(CompoundTag nbt, HolderLookup.Provider registry);
@@ -61,12 +69,27 @@ public abstract class BaseAttachment<T extends AutomobileComponent<T>> {
     }
 
     protected boolean canModify(BlockPos pos) {
-        if (this.automobile.getFirstPassenger() instanceof Player player && player.mayBuild()) {
-            return true;
+        var passenger = this.automobile.getFirstPassenger();
+        Entity actor = passenger != null ? passenger : this.automobile;
+        boolean mayInteract = this.world().mayInteract(actor, pos);
+        boolean spawnProtected = passenger instanceof Player player
+                && this.world() instanceof ServerLevel level
+                && level.getServer().isUnderSpawnProtection(level, pos, player);
+
+        if (passenger instanceof Player player) {
+            if (AttachmentBlockModificationPolicy.playerHasDirectPermission(
+                    player.mayBuild(), mayInteract, spawnProtected)) {
+                return true;
+            }
+            if (AttachmentBlockModificationPolicy.protectedFromAllAttachmentActions(mayInteract, spawnProtected)) {
+                return false;
+            }
+        } else if (!mayInteract) {
+            return false;
         }
 
         var fAtt = this.automobile.getFrontAttachment();
-        if (fAtt != null && fAtt.isProvidingAlternativeInputs(this.automobile, this.automobile.getFirstPassenger())) {
+        if (fAtt != null && fAtt.isProvidingAlternativeInputs(this.automobile, passenger)) {
             return true;
         }
 
