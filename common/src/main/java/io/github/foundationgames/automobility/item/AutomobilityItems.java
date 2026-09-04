@@ -19,17 +19,20 @@ import net.minecraft.world.item.Item;
 import java.util.function.Function;
 
 public enum AutomobilityItems {;
+    public static final Eventual<DataComponentType<AutomobileData>> COMPONENT_AUTOMOBILE_DATA = RegistryQueue.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE, Automobility.rl("automobile_data"),
+            () -> DataComponentType.<AutomobileData>builder().persistent(AutomobileData.CODEC).build());
+
     public static final Eventual<Item> CROWBAR = register("crowbar", key -> new TooltipItem(Component.translatable("tooltip.item.automobility.crowbar").withStyle(ChatFormatting.BLUE), new Item.Properties().stacksTo(1).setId(key)), Automobility.TAB);
-    public static final Eventual<Item> AUTOMOBILE = register("automobile", key -> new AutomobileItem(new Item.Properties().stacksTo(1).setId(key)), Automobility.PREFAB_TAB);
+    public static final Eventual<Item> AUTOMOBILE = register("automobile", key -> new AutomobileItem(new Item.Properties()
+            .stacksTo(1)
+            .component(AutomobilityItems.COMPONENT_AUTOMOBILE_DATA.require(), AutomobileData.DEFAULT)
+            .setId(key)), Automobility.PREFAB_TAB);
     public static final Eventual<AutomobileFrameItem> AUTOMOBILE_FRAME = register("automobile_frame", key -> new AutomobileFrameItem(new Item.Properties().stacksTo(16).setId(key)), Automobility.TAB);
     public static final Eventual<AutomobileWheelItem> AUTOMOBILE_WHEEL = register("automobile_wheel", key -> new AutomobileWheelItem(new Item.Properties().setId(key)), Automobility.TAB);
     public static final Eventual<AutomobileEngineItem> AUTOMOBILE_ENGINE = register("automobile_engine", key -> new AutomobileEngineItem(new Item.Properties().stacksTo(16).setId(key)), Automobility.TAB);
     public static final Eventual<FrontAttachmentItem> FRONT_ATTACHMENT = register("front_attachment", key -> new FrontAttachmentItem(new Item.Properties().stacksTo(1).setId(key)), Automobility.TAB);
     public static final Eventual<RearAttachmentItem> REAR_ATTACHMENT = register("rear_attachment", key -> new RearAttachmentItem(new Item.Properties().stacksTo(1).setId(key)), Automobility.TAB);
-
-    public static final Eventual<DataComponentType<AutomobileData>> COMPONENT_AUTOMOBILE_DATA = RegistryQueue.register(
-            BuiltInRegistries.DATA_COMPONENT_TYPE, Automobility.rl("automobile_data"),
-            () -> DataComponentType.<AutomobileData>builder().persistent(AutomobileData.CODEC).build());
 
     public static final Eventual<DataComponentType<Identifier>> COMPONENT_GENERIC_AUTO_PART = RegistryQueue.register(
             BuiltInRegistries.DATA_COMPONENT_TYPE, Automobility.rl("automobile_part"),
