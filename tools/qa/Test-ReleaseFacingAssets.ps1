@@ -207,6 +207,10 @@ Assert-True ($automobilityRelease.Contains("Version number: ``$expectedAutomobil
 Assert-True ($momentumRelease.Contains("Version number: ``$expectedMomentumVersion``")) 'Current Momentum release record does not match Gradle versions.'
 Assert-True ($automobilityRelease.Contains("automobility-$expectedAutomobilityVersion-fabric.jar")) 'Current Automobility release artifact name does not match Gradle versions.'
 Assert-True ($momentumRelease.Contains("momentum-$expectedMomentumVersion-fabric.jar")) 'Current Momentum release artifact name does not match Gradle versions.'
+$expectedAutomobilityLocalJar = "dist\release-candidate-$($properties.mod_version)\automobility-$expectedAutomobilityVersion-fabric.jar"
+$automobilityLocalJarMatches = [regex]::Matches($automobilityRelease, '(?im)^\s*-\s*Local JAR:\s*`(?<path>[^`\r\n]+)`\s*$')
+Assert-True ($automobilityLocalJarMatches.Count -eq 1) 'Current Automobility release record must contain exactly one Local JAR entry.'
+Assert-True ($automobilityLocalJarMatches[0].Groups['path'].Value -ceq $expectedAutomobilityLocalJar) 'Current Automobility Local JAR path does not match Gradle versions.'
 Assert-True ($momentumRelease.Contains("Automobility Unofficial Port ``$($properties.momentum_automobility_min_version)``: required")) 'Momentum release record does not match its declared minimum Automobility version.'
 $momentumBuildScript = Get-Content -LiteralPath (Join-Path $root 'momentum/build.gradle.kts') -Raw
 Assert-True ($momentumBuildScript.Contains('gradleProperty("momentum_automobility_min_version")')) 'Momentum resource processing must use its explicit minimum Automobility version.'
