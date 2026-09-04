@@ -1,5 +1,9 @@
 # Modrinth Release - Momentum 0.1.11-unofficial.10 for 26.2
 
+> **Target-scoped release record:** Use this file only when its filename target matches
+> `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
+> files in this branch are retained only as historical snapshots.
+
 Use this file for the 26.2 upload after the release candidate passes the in-game smoke test.
 
 ## Project
@@ -29,9 +33,10 @@ Controlify adds Momentum's native cruise-control bindings, contextual controller
 
 ## Upload File
 
-- Local JAR: `momentum\build\libs\momentum-0.1.11-unofficial.10+26.2-fabric.jar`
+- Local JAR: `dist\release-candidate-0.1.11-unofficial.10\momentum-0.1.11-unofficial.10+26.2-fabric.jar`
 - Size: `214657` bytes
 - SHA-256: `810C22307B3F1309342B0E8DE6FAC4D10641677E38EA628552E2AA74D627C939`
+- SHA-512: `B6DBF2E18ACDC9202D3C77AC2BFEB563D1FB66C926DE755C9C45702520BF6C444951CE6F5891867555D07EC3C0C492B9DDDA06B36D35AFCA57FAA15D20311BC5`
 
 ## Version Changelog
 

@@ -19,7 +19,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
       - name: Run repository QA gate
         shell: pwsh
-        run: ./tools/qa/Test-Automobility.ps1
+        run: ./tools/qa/Test-Automobility.ps1 -CiBuildVerification
       - name: Upload build reports
         if: failure()
         uses: actions/upload-artifact@v4

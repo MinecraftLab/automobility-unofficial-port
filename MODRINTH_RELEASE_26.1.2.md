@@ -1,5 +1,9 @@
 # Modrinth Release - Automobility 0.5.0-unofficial.29 for 26.1.x
 
+> **Target-scoped release record:** Use this file only when its filename target matches
+> `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
+> files in this branch are retained only as historical snapshots.
+
 Use this file for the 26.1.x upload after the release candidate passes the in-game smoke test.
 
 ## Project

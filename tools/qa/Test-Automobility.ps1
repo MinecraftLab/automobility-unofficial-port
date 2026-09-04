@@ -3,7 +3,8 @@ param(
     [string] $RepositoryRoot = (Resolve-Path (Join-Path (Join-Path $PSScriptRoot '..') '..')).Path,
     [string] $JavaHome,
     [switch] $Rebuild,
-    [switch] $PrepareReleaseRecord
+    [switch] $PrepareReleaseRecord,
+    [switch] $CiBuildVerification
 )
 
 Set-StrictMode -Version Latest
@@ -199,7 +200,8 @@ function Read-ReleaseArtifactRecord {
 function Resolve-ReleaseLocalJarPath {
     param(
         [Parameter(Mandatory)] [string] $Root,
-        [Parameter(Mandatory)] $Record
+        [Parameter(Mandatory)] $Record,
+        [switch] $AllowMissing
     )
 
     Assert-True (-not [string]::IsNullOrWhiteSpace($Record.LocalJar)) "Release record has no Local JAR path: $($Record.Path)"
@@ -224,7 +226,9 @@ function Resolve-ReleaseLocalJarPath {
     Assert-True `
         -Condition $resolvedPath.StartsWith($rootPrefix, $comparison) `
         -Message "Local JAR path escapes the repository: $recordedPath"
-    Assert-True (Test-Path -LiteralPath $resolvedPath -PathType Leaf) "Release-candidate Local JAR does not exist: $resolvedPath"
+    if (-not $AllowMissing) {
+        Assert-True (Test-Path -LiteralPath $resolvedPath -PathType Leaf) "Release-candidate Local JAR does not exist: $resolvedPath"
+    }
     return $resolvedPath
 }
 
@@ -442,9 +446,13 @@ function Get-TestSummary {
 $root = [System.IO.Path]::GetFullPath($RepositoryRoot)
 Assert-True (Test-Path -LiteralPath (Join-Path $root 'settings.gradle.kts') -PathType Leaf) "Not an Automobility repository root: $root"
 Assert-True (Test-Path -LiteralPath (Join-Path $root 'tools/qa/Test-ReleaseFacingAssets.ps1') -PathType Leaf) 'Missing release-facing QA script.'
+$isCiEnvironment = $env:CI -eq 'true' -or $env:GITHUB_ACTIONS -eq 'true'
 Assert-True `
-    -Condition (-not ($PrepareReleaseRecord -and ($env:CI -eq 'true' -or $env:GITHUB_ACTIONS -eq 'true'))) `
+    -Condition (-not ($PrepareReleaseRecord -and $isCiEnvironment)) `
     -Message '-PrepareReleaseRecord is a local bootstrap mode and is disabled in CI.'
+Assert-True `
+    -Condition (-not $CiBuildVerification -or $isCiEnvironment) `
+    -Message '-CiBuildVerification may only be used in a CI environment.'
 
 $properties = Read-GradleProperties -Path (Join-Path $root 'gradle.properties')
 foreach ($requiredProperty in @('minecraft_version', 'fabric_version', 'fabric_api_version', 'mod_version', 'momentum_version', 'momentum_automobility_min_version', 'archives_base_name')) {
@@ -514,22 +522,33 @@ try {
         Write-Warning 'NON-FINAL MODE: the Automobility and Momentum release-record sizes and hashes were not verified.'
     } else {
         $automobilityReleaseRecord = Read-ReleaseArtifactRecord -Path $automobilityReleaseRecordPath -RequireSha512 -RequireLocalJar
-        $momentumReleaseRecord = Read-ReleaseArtifactRecord -Path $momentumReleaseRecordPath
+        $momentumReleaseRecord = Read-ReleaseArtifactRecord -Path $momentumReleaseRecordPath -RequireSha512 -RequireLocalJar
         Assert-ArtifactMatchesReleaseRecord -Artifact $automobilityArtifact -Record $automobilityReleaseRecord
         Assert-ArtifactMatchesReleaseRecord -Artifact $momentumArtifact -Record $momentumReleaseRecord
-        $automobilityLocalJarPath = Resolve-ReleaseLocalJarPath -Root $root -Record $automobilityReleaseRecord
-        $automobilityLocalArtifact = Get-FileArtifactIdentity -Path $automobilityLocalJarPath
-        Assert-ArtifactMatchesReleaseRecord -Artifact $automobilityLocalArtifact -Record $automobilityReleaseRecord
-        Assert-ArtifactsMatch -BuiltArtifact $automobilityArtifact -LocalArtifact $automobilityLocalArtifact
+        $automobilityLocalJarPath = Resolve-ReleaseLocalJarPath -Root $root -Record $automobilityReleaseRecord -AllowMissing:$CiBuildVerification
+        $momentumLocalJarPath = Resolve-ReleaseLocalJarPath -Root $root -Record $momentumReleaseRecord -AllowMissing:$CiBuildVerification
+        if (-not $CiBuildVerification) {
+            $automobilityLocalArtifact = Get-FileArtifactIdentity -Path $automobilityLocalJarPath
+            $momentumLocalArtifact = Get-FileArtifactIdentity -Path $momentumLocalJarPath
+            Assert-ArtifactMatchesReleaseRecord -Artifact $automobilityLocalArtifact -Record $automobilityReleaseRecord
+            Assert-ArtifactMatchesReleaseRecord -Artifact $momentumLocalArtifact -Record $momentumReleaseRecord
+            Assert-ArtifactsMatch -BuiltArtifact $automobilityArtifact -LocalArtifact $automobilityLocalArtifact
+            Assert-ArtifactsMatch -BuiltArtifact $momentumArtifact -LocalArtifact $momentumLocalArtifact
+        }
     }
 
     if ($PrepareReleaseRecord) {
         Write-Host "`nPreparation checks passed; this build is NOT release-ready until the default gate verifies the release record."
     } else {
-        Write-Host "`nQA passed."
-        Write-Host "  Automobility release record: size, SHA-256 and SHA-512 verified against $automobilityReleaseRecordPath"
-        Write-Host "  Automobility Local JAR: exact path, size, SHA-256 and SHA-512 verified against the record and build artifact"
-        Write-Host "  Momentum release record: size and SHA-256 verified against $momentumReleaseRecordPath"
+        if ($CiBuildVerification) {
+            Write-Host "`nCI build verification passed."
+            Write-Host '  Fresh Automobility and Momentum builds match their committed size, SHA-256 and SHA-512 records.'
+            Write-Host '  Ignored local staging JARs were intentionally not required; run the default gate locally before upload.'
+        } else {
+            Write-Host "`nQA passed."
+            Write-Host '  Automobility release record and Local JAR: exact path, size, SHA-256 and SHA-512 verified against the build'
+            Write-Host '  Momentum release record and Local JAR: exact path, size, SHA-256 and SHA-512 verified against the build'
+        }
     }
     Write-Host "  Unit tests: $($testSummary.Tests - $testSummary.Skipped) passed, $($testSummary.Failures + $testSummary.Errors) failed, $($testSummary.Skipped) skipped"
     foreach ($projectSummary in $testSummary.Projects) {
