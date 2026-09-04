@@ -27,9 +27,9 @@ Do not add Fabric Loader as a project dependency. The JAR metadata already requi
 ## Upload File
 
 - Local JAR: `dist\release-candidate-0.5.0-unofficial.31\automobility-0.5.0-unofficial.31+26.2-fabric.jar`
-- Size: `1390305` bytes
-- SHA-256: `375EB2200BFB94C773F418398BF79B1F14660462AAA90F4B625C2B71CF05DD79`
-- SHA-512: `600DF0B8AEA39C88E1165885D1B9D25424EBCDFFB771415CE7FC97C24B4E011AD5A346928FED19EB91118F7E73572E9896721872DD8B38FA3D5A4D68AC5CCD78`
+- Size: `1391675` bytes
+- SHA-256: `7419A34BED47726B200DD4A3D2059AB59DBC27C1D8A9B2CDFBB6335F3D6E2A87`
+- SHA-512: `86D95F17FBBA6DD415F627E984F437124B6104DC97DAB7F1F897275D0703EF5677F7B977ADF466C3CD0CD0485A839C879C9205CDA44C5CABE58B9BE5CF1C94AA`
 
 ## Version Changelog
 
@@ -42,8 +42,9 @@ Minecraft Java 26.2 Fabric port.
 ### Security
 
 - The legacy vehicle-state packet keeps its existing layout for ecosystem compatibility,
-  but the server now accepts only bounded driving input and computes gameplay speed and
-  collision impact itself.
+  but the server now accepts only bounded, fresh driving input and computes gameplay speed.
+- Run-over damage now requires real server-observed movement and caps collision impact to
+  that movement, so stale acceleration cannot damage entities around a stationary car.
 - Attachment detail requests now require an exact payload, a tracked nearby automobile,
   and a bounded per-player request budget.
 - Player-driven harvester and plow actions now respect the world border and vanilla spawn
@@ -69,11 +70,17 @@ Minecraft Java 26.2 Fabric port.
 ## Verification Record
 
 - Java 25 clean merged-source build: passed on 2026-09-04.
-- Fabric and Momentum unit suites: 77 passed, 0 failed, 0 skipped.
+- Fabric and Momentum unit suites: 83 passed, 0 failed, 0 skipped.
 - Exact `.31` JAR metadata, license and release-record hash gate: passed on 2026-09-04.
 - Exact `.31` JAR dedicated-server startup and clean shutdown: passed on 2026-09-04.
   The Windows host emitted an OSHI/Perflib system-information diagnostic, but there was
   no Automobility exception or crash report and the server reached `Done` normally.
+- Exact `.31` entity save, full server restart and UUID reload: passed on 2026-09-04.
+- Headless addon startup with Momentum `.10`, RIA `.6` and immutable Autoradio `0.1.0`:
+  passed on 2026-09-04. This does not cover client mixins or gameplay.
+- Ecosystem metadata preflight: Momentum `.10`, RIA `.6` and Autoradio `0.1.0` accept
+  Automobility `.31`; current Pumps & Pistons/Roadworks `dev.19` pins exact `.30`, and
+  Fuel System `1.8.0` pins exact `.29`. Pumps & Pistons also declares a Fuel System conflict.
 - Exact-artifact two-client ecosystem smoke: **NOT RUN**.
 - Publication remains blocked until every pending item above passes.
 
@@ -81,8 +88,10 @@ Minecraft Java 26.2 Fabric port.
 
 - Run `tools\qa\Test-Automobility.ps1 -Rebuild` and confirm the final gate matches the
   exact size and hashes above.
-- Complete the exact-JAR two-client smoke on a dedicated server with the Automobility,
-  Momentum, RIA, Autoradio and Pumps & Pistons Roadworks stack. Cover driving, observer
+- First update and verify the Pumps & Pistons/Roadworks Automobility dependency range.
+  Run separate core-addon and Roadworks lanes; do not combine Roadworks with Fuel System.
+- Complete the exact-JAR two-client smoke on a dedicated server with Automobility,
+  Momentum, RIA, Autoradio and the compatible Roadworks build. Cover driving, observer
   tracking, run-over damage, attachment menu removal, item drops, dismounting, persistence,
   reconnect, restart and clean shutdown.
 - Confirm the canonical source and issue URLs are publicly reachable before upload; do not
