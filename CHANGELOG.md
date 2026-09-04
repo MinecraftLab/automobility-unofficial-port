@@ -8,7 +8,9 @@ Minecraft Java 26.1.x and 26.2 Fabric ports.
 ### Security
 - Stopped accepting client-authored physics, position and collision-damage values
   from Automobility's legacy vehicle-state packet. The wire layout remains compatible,
-  while the server now consumes only bounded driving input and computes gameplay speed.
+  while the server now consumes only bounded, fresh driving input and computes gameplay speed.
+- Required real server-observed vehicle movement for run-over damage and capped impact
+  speed to that movement, preventing stale input from damaging entities around a stationary car.
 - Restricted attachment-component detail requests to valid payloads, tracked nearby
   automobiles and a bounded per-player request budget.
 - Applied world-border and vanilla spawn-protection checks to player-driven harvester
