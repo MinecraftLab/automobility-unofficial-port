@@ -317,19 +317,34 @@ function Assert-FabricJar {
     }
 }
 
-function Get-TestSummary {
-    param([Parameter(Mandatory)] [string] $Root)
+function Assert-ProjectTestSummary {
+    param(
+        [Parameter(Mandatory)] [string] $ProjectName,
+        [Parameter(Mandatory)] [int] $ReportCount,
+        [Parameter(Mandatory)] $Summary
+    )
+
+    Assert-True ($ReportCount -gt 0) "$ProjectName produced no unit-test reports."
+    Assert-True (($Summary.Failures + $Summary.Errors) -eq 0) "$ProjectName unit-test reports contain failures or errors."
+    Assert-True (($Summary.Tests - $Summary.Skipped) -gt 0) "$ProjectName produced no non-skipped unit tests."
+}
+
+function Get-ProjectTestSummary {
+    param(
+        [Parameter(Mandatory)] [string] $Root,
+        [Parameter(Mandatory)] [string] $ProjectName,
+        [Parameter(Mandatory)] [string] $ProjectDirectory
+    )
 
     $summary = [ordered] @{
+        Project = $ProjectName
         Tests = 0
         Failures = 0
         Errors = 0
         Skipped = 0
     }
-    $results = @(
-        Get-ChildItem -LiteralPath (Join-Path $Root 'fabric/build/test-results/test') -Filter 'TEST-*.xml' -File -ErrorAction SilentlyContinue
-        Get-ChildItem -LiteralPath (Join-Path $Root 'momentum/build/test-results/test') -Filter 'TEST-*.xml' -File -ErrorAction SilentlyContinue
-    )
+    $resultsPath = Join-Path $Root "$ProjectDirectory/build/test-results/test"
+    $results = @(Get-ChildItem -LiteralPath $resultsPath -Filter 'TEST-*.xml' -File -ErrorAction SilentlyContinue)
     foreach ($result in $results) {
         [xml] $xml = Get-Content -LiteralPath $result.FullName -Raw
         $summary.Tests += [int] $xml.testsuite.tests
@@ -337,9 +352,25 @@ function Get-TestSummary {
         $summary.Errors += [int] $xml.testsuite.errors
         $summary.Skipped += [int] $xml.testsuite.skipped
     }
-    Assert-True ($summary.Tests -gt 0) 'Gradle completed but produced no Fabric or Momentum unit-test results.'
-    Assert-True (($summary.Failures + $summary.Errors) -eq 0) 'The generated unit-test reports contain failures or errors.'
-    return [pscustomobject] $summary
+    $projectSummary = [pscustomobject] $summary
+    Assert-ProjectTestSummary -ProjectName $ProjectName -ReportCount $results.Count -Summary $projectSummary
+    return $projectSummary
+}
+
+function Get-TestSummary {
+    param([Parameter(Mandatory)] [string] $Root)
+
+    $projects = @(
+        Get-ProjectTestSummary -Root $Root -ProjectName 'Fabric' -ProjectDirectory 'fabric'
+        Get-ProjectTestSummary -Root $Root -ProjectName 'Momentum' -ProjectDirectory 'momentum'
+    )
+    return [pscustomobject] @{
+        Projects = $projects
+        Tests = ($projects | Measure-Object -Property Tests -Sum).Sum
+        Failures = ($projects | Measure-Object -Property Failures -Sum).Sum
+        Errors = ($projects | Measure-Object -Property Errors -Sum).Sum
+        Skipped = ($projects | Measure-Object -Property Skipped -Sum).Sum
+    }
 }
 
 $root = [System.IO.Path]::GetFullPath($RepositoryRoot)
@@ -430,6 +461,9 @@ try {
         Write-Host "  Momentum release record: size and SHA-256 verified against $momentumReleaseRecordPath"
     }
     Write-Host "  Unit tests: $($testSummary.Tests - $testSummary.Skipped) passed, $($testSummary.Failures + $testSummary.Errors) failed, $($testSummary.Skipped) skipped"
+    foreach ($projectSummary in $testSummary.Projects) {
+        Write-Host "    $($projectSummary.Project): $($projectSummary.Tests - $projectSummary.Skipped) passed, $($projectSummary.Failures + $projectSummary.Errors) failed, $($projectSummary.Skipped) skipped"
+    }
     foreach ($artifact in @($automobilityArtifact, $momentumArtifact)) {
         Write-Host "  $($artifact.Name): $($artifact.Size) bytes"
         Write-Host "    SHA-256 $($artifact.Sha256)"
