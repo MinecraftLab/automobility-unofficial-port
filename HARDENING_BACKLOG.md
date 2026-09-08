@@ -17,7 +17,7 @@ be uploaded or integrated into a public pack.
   and vertical relocation, dimension transfer, attachment menu removal and drops,
   dismounting, reconnect, save/reload and a full server restart. Preserve both
   client logs and the server log.
-- Update Pumps & Pistons/Roadworks from its exact Automobility `.30` dependency
+- Update Pumps & Pistons/Roadworks from its exact Automobility `.31` dependency
   pin, then test it in a separate lane with `.32`. Do not combine that lane with
   Fuel System while the declared conflict remains.
 - Confirm the canonical source and issue URLs are anonymously reachable again.
