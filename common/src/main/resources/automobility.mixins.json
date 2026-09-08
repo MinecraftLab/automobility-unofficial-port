@@ -13,6 +13,7 @@
     "ShovelItemAccess"
   ],
   "client": [
+    "ClientPacketListenerMixin",
     "LocalPlayerMixin"
   ],
   "injectors": {
