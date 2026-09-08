@@ -4,9 +4,9 @@
 > `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
 > files in this branch are retained only as historical snapshots.
 
-**Status: PRE-RUNTIME - NOT APPROVED FOR UPLOAD.**
+**Status: RUNTIME VERIFICATION IN PROGRESS - NOT APPROVED FOR UPLOAD.**
 
-This is a pre-runtime candidate record. Use it for the 26.2 upload only after the
+This is an unpublished candidate record. Use it for the 26.2 upload only after the
 exact JAR passes every applicable runtime and ecosystem gate below.
 
 ## Project
@@ -100,7 +100,8 @@ Minecraft Java 26.2 Fabric port.
   and staged JARs matched the size, SHA-256 and SHA-512 recorded above.
 - Default exact staged-JAR and committed release-record hash gate: **PENDING**.
 - CI-mode clean rebuild against the committed `.33` release record: **PENDING**.
-- Exact `.33` dedicated-server startup and clean shutdown: **NOT RUN**.
+- Exact `.33` full-stack dedicated-server startup and normal save/shutdown:
+  passed on 2026-09-08.
 - Exact `.33` entity persistence, missing-add-on NBT and autonomous spawn-protection
   regression: **NOT RUN**.
 - Exact `.33` headless addon startup and released RIA `.6` codec contract: **NOT RUN**.
@@ -109,12 +110,21 @@ Minecraft Java 26.2 Fabric port.
 - Exact `.32` 26.2 runtime regression: **FAILED**. Its model remained at the previous
   altitude after an empty parked automobile was teleported upward by 17 blocks. The
   failed candidate is recorded in `FAILED_RELEASE_CANDIDATES.md` and is not releasable.
-- Exact `.33` single-client parked-car teleport regression, first without `/data merge`
-  and then with the observed fuel/addon/shader sequence: **NOT RUN**.
-- Exact `.33` locally driven and remotely observed teleport, small and large relocation,
-  normal driving interpolation, empty-car coasting,
-  horizontal relocation, dimension transfer and reconnect smoke: **NOT RUN**.
-- Exact-artifact two-client ecosystem smoke: **NOT RUN**.
+- Exact `.33` full-stack single-client parked-car vertical relocation: passed on
+  2026-09-08 for `+17Y` absolute sync and a following `+6Y` relative update. The
+  automobile model remained visible at the authoritative destination and its fuel
+  value remained unchanged.
+- Exact `.33` occupied/local-driver `-23Y` relocation: passed on 2026-09-08; the
+  model and rider remained together without rollback or disconnect. A single vanilla
+  moved-too-quickly warning was recorded.
+- Exact `.33` empty-car server-driven coasting: passed on 2026-09-08 for two impulses;
+  the automobile moved, settled and remained visible without changing fuel.
+- Exact `.33` same-client disconnect/reconnect and Autoradio interaction smoke: passed
+  on 2026-09-08; mount state and the radio's Next/progress controls remained usable.
+- Exact `.33` held-key/manual driving continuity: **NOT PROVEN**.
+- Exact `.33` small relocation as seen by a third-party client and the complete
+  exact-artifact two-client ecosystem smoke: **NOT PROVEN**.
+- Exact `.33` horizontal relocation and dimension-transfer smoke: **NOT RUN**.
 - Ecosystem dependency metadata for the `.33` candidate: **PENDING**.
 - Publication remains blocked until every applicable pending item above passes.
 
