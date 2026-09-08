@@ -135,8 +135,15 @@ Minecraft Java 26.1.x Fabric port.
   passed. The server stayed healthy for 13 minutes 44 seconds, beyond the original
   13-minute crash point, produced no new `hs_err`, and then completed `save-all flush`
   and a normal stop with exit code 0. Immutable client evidence
-  `auto33-g1-mitigated-reconnect-exit.log` has SHA-256
-  `B7CFF8A3DC2E2BF14F07B16D4D9FE657F5CC8CBBCF6178CE66D0EFE20CBECBFE`.
+  `creative-ecosystem-1\auto33-g1-mitigated-reconnect-exit.log` has SHA-256
+  `B7CFF8A3DC2E2BF14F07B16D4D9FE657F5CC8CBBCF6178CE66D0EFE20CBECBFE`;
+  immutable server evidence
+  `server-run-creative-1\auto33-g1-mitigated-reconnect-exit.log` has SHA-256
+  `14F02A9C651A6B4574F53CDF55CB7D60B656099B8899E1A347C627C2DAB6385B`.
+  Both are preserved under
+  `C:\Users\david\RosenvikCanary\graphics-fixes-20260908`.
+  The diagnostic flag was applied only to the isolated QA server; Automobility
+  neither requires nor sets JVM flags, and no normal player profile was changed.
 - Exact `.33` held-key/manual driving continuity: **NOT PROVEN**.
 - Exact `.33` small relocation as seen by a third-party client and the complete
   exact-artifact two-client ecosystem smoke: **NOT PROVEN**.
