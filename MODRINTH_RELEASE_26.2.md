@@ -98,7 +98,9 @@ Minecraft Java 26.2 Fabric port.
   passed on 2026-09-08.
 - Candidate preparation clean rebuild and staging: passed on 2026-09-08; the built
   and staged JARs matched the size, SHA-256 and SHA-512 recorded above.
-- Default exact staged-JAR and committed release-record hash gate: **PENDING**.
+- Default exact staged-JAR and committed release-record hash gate: passed on
+  2026-09-08; a clean no-cache rebuild reproduced the recorded size, SHA-256 and
+  SHA-512 for both Automobility and Momentum, with 107 tests passing and none skipped.
 - CI-mode clean rebuild against the committed `.33` release record: **PENDING**.
 - Exact `.33` full-stack dedicated-server startup and normal save/shutdown:
   passed on 2026-09-08.
