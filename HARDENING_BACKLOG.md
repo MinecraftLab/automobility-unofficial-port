@@ -9,7 +9,7 @@ the wrong vanilla packet path and still left a parked automobile's model at its
 old altitude after a large same-dimension teleport. Its 26.1.2 counterpart is
 `SUPERSEDED-UNTESTED`. Their JARs and source bundles are retained only as immutable
 evidence and must not be uploaded or integrated into a public pack. `.33` is the
-current pre-runtime replacement candidate.
+current unpublished replacement candidate.
 
 ## Required before publishing `.33`
 

@@ -4,9 +4,9 @@
 > `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
 > files in this branch are retained only as historical snapshots.
 
-**Status: PRE-RUNTIME - NOT APPROVED FOR UPLOAD.**
+**Status: RUNTIME VERIFICATION IN PROGRESS - NOT APPROVED FOR UPLOAD.**
 
-This is a pre-runtime candidate record. Use it for the 26.1.x upload only after
+This is an unpublished candidate record. Use it for the 26.1.x upload only after
 the exact JAR passes every applicable runtime and ecosystem gate below.
 
 ## Project
@@ -103,7 +103,8 @@ Minecraft Java 26.1.x Fabric port.
   2026-09-08; a second clean build reproduced the recorded size, SHA-256 and
   SHA-512 for both Automobility and Momentum.
 - CI-mode clean rebuild against the committed `.33` release record: **PENDING**.
-- Exact `.33` dedicated-server startup and clean shutdown: **NOT RUN**.
+- Exact `.33` full-stack dedicated-server startup and normal save/shutdown:
+  passed on 2026-09-08, including an exclusive world-lock check after exit.
 - Exact `.33` entity persistence, missing-add-on NBT and autonomous spawn-protection
   regression: **NOT RUN**.
 - Exact `.33` headless addon startup and released RIA `.6` codec contract: **NOT RUN**.
@@ -112,12 +113,34 @@ Minecraft Java 26.1.x Fabric port.
 - Exact `.32` 26.2 runtime regression: **FAILED**. Its model remained at the previous
   altitude after an empty parked automobile was teleported upward by 17 blocks. The
   failed candidate is recorded in `FAILED_RELEASE_CANDIDATES.md` and is not releasable.
-- Exact `.33` single-client parked-car teleport regression, first without `/data merge`
-  and then with the observed fuel/addon/shader sequence: **NOT RUN**.
-- Exact `.33` locally driven and remotely observed teleport, small and large relocation,
-  normal driving interpolation, empty-car coasting,
-  horizontal relocation, dimension transfer and reconnect smoke: **NOT RUN**.
-- Exact-artifact two-client ecosystem smoke: **NOT RUN**.
+- Exact `.33` full-stack single-client parked-car vertical relocation: passed on
+  2026-09-08 for `+17Y` absolute sync and a following `+6Y` relative update. The
+  automobile model remained visible at the authoritative destination.
+- Exact `.33` occupied/local-driver `-23Y` relocation: passed on 2026-09-08; the
+  model and rider remained together without rollback. A single vanilla
+  moved-too-quickly warning was recorded.
+- Exact `.33` empty-car server-driven coasting: passed on 2026-09-08; the automobile
+  moved, settled and remained visible without changing fuel during the tested impulse.
+- The first same-client disconnect run ended in a native Microsoft OpenJDK 25.0.1+8
+  G1 crash about 24 seconds after disconnect. `hs_err_pid9004.log` has SHA-256
+  `A3475B9CFB3B0EA7E221C5DCB83E15CB1B67DD6CD1593F50A5FFF89B233013A9` and reports
+  `g1HeapRegionManager.cpp:55` on the VM Periodic Task Thread with only native
+  `jvm.dll` frames; it contains no Java or Automobility frame. This matches Microsoft
+  OpenJDK issue `https://github.com/microsoft/openjdk/issues/677` and is classified
+  as an environmental JVM/G1 incident, not a demonstrated `.33` failure.
+- Controlled same-stack rerun with only
+  `-XX:+UnlockDiagnosticVMOptions -XX:-G1UseTimeBasedHeapSizing`: disconnect, a
+  5-minute 39-second idle period and reconnect passed on 2026-09-08. The automobile
+  remained visible and retained fuel `44701`; Autoradio Next/progress interaction also
+  passed. The server stayed healthy for 13 minutes 44 seconds, beyond the original
+  13-minute crash point, produced no new `hs_err`, and then completed `save-all flush`
+  and a normal stop with exit code 0. Immutable client evidence
+  `auto33-g1-mitigated-reconnect-exit.log` has SHA-256
+  `B7CFF8A3DC2E2BF14F07B16D4D9FE657F5CC8CBBCF6178CE66D0EFE20CBECBFE`.
+- Exact `.33` held-key/manual driving continuity: **NOT PROVEN**.
+- Exact `.33` small relocation as seen by a third-party client and the complete
+  exact-artifact two-client ecosystem smoke: **NOT PROVEN**.
+- Exact `.33` horizontal relocation and dimension-transfer smoke: **NOT RUN**.
 - Ecosystem dependency metadata for the `.33` candidate: **PENDING**.
 - Publication remains blocked until every applicable pending item above passes.
 

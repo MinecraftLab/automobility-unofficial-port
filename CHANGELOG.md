@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0-unofficial.33 - 2026-09-08 (PRE-RUNTIME CANDIDATE; NOT PUBLISHED)
+## 0.5.0-unofficial.33 - 2026-09-08 (UNPUBLISHED CANDIDATE)
 
 Client position-packet reconciliation for the unofficial Minecraft Java 26.1.x
 and 26.2 Fabric ports. This candidate supersedes the unpublished, runtime-rejected
@@ -20,8 +20,9 @@ and 26.2 Fabric ports. This candidate supersedes the unpublished, runtime-reject
 
 ### Verification status
 - The Java 25 preparation gate passed 107 tests (Fabric 73; Momentum 34), with
-  0 failures and 0 skips. Live client/server acceptance, ecosystem verification
-  and publication remain pending.
+  0 failures and 0 skips. Target-specific partial runtime results are recorded in
+  the target release records; manual-driving, two-client observer and publication
+  gates remain pending.
 
 ## 0.5.0-unofficial.32 - 2026-09-08 (unpublished; runtime rejected)
 
