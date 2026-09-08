@@ -190,6 +190,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private float lastWheelAngle = 0;
 
     private final Displacement displacement = new AutomobileEntity.Displacement();
+    private transient boolean clientTeleportDisplacementRefresh = false;
 
     private boolean drifting = false;
     private boolean burningOut = false;
@@ -1026,7 +1027,20 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             }
         }
 
-        displacementTick(first || (this.position().subtract(prevPos).length() > 0 || this.getYRot() != this.yRotO));
+        boolean teleportDisplacementRefresh = this.clientTeleportDisplacementRefresh;
+        this.clientTeleportDisplacementRefresh = false;
+        if (teleportDisplacementRefresh && this.usesLocalDisplacement()) {
+            // A component sync may have arrived after the teleport packet. Discard any absolute
+            // vertical target it carried before scanning the automobile's new surroundings.
+            this.displacement.resetVerticalForTeleport(this.getY());
+        }
+        displacementTick(AutomobileDisplacementUpdatePolicy.shouldUpdate(
+                first,
+                teleportDisplacementRefresh,
+                prevPos,
+                this.position(),
+                this.getYRot() != this.yRotO
+        ));
         if (!this.level().isClientSide()) {
             this.previousServerTickEndPosition = this.position();
             this.previousServerTickEndDimension = this.level().dimension();
@@ -1047,6 +1061,25 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
             this.lerpTicks--;
         }
+    }
+
+    /**
+     * Reconciles render-only state after vanilla applies an explicit clientbound teleport.
+     * Ordinary movement packets intentionally do not use this path.
+     */
+    public void clientOnTeleportApplied(double previousEntityY) {
+        if (!this.level().isClientSide()
+                || !this.displacement.translateVerticalAfterTeleport(previousEntityY, this.getY())) {
+            return;
+        }
+
+        // An explicit teleport supersedes any target left by Automobility's normal movement sync.
+        this.lerpTicks = 0;
+        this.trackedX = this.getX();
+        this.trackedY = this.getY();
+        this.trackedZ = this.getZ();
+        this.trackedYaw = this.getYRot();
+        this.clientTeleportDisplacementRefresh = true;
     }
 
     public void markDirty() {
@@ -2675,6 +2708,40 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.lastAngular.set(angular);
             this.currAngular.set(angular);
             this.angularTarget.set(angular);
+        }
+
+        boolean translateVerticalAfterTeleport(double previousEntityY, double currentEntityY) {
+            if (!Double.isFinite(currentEntityY)) {
+                return false;
+            }
+
+            double deltaY = currentEntityY - previousEntityY;
+            double translatedLast = this.lastVertical + deltaY;
+            double translatedCurrent = this.currVertical + deltaY;
+            double translatedTarget = this.verticalTarget + deltaY;
+            if (!Double.isFinite(previousEntityY)
+                    || !Double.isFinite(deltaY)
+                    || !Double.isFinite(translatedLast)
+                    || !Double.isFinite(translatedCurrent)
+                    || !Double.isFinite(translatedTarget)) {
+                return this.resetVerticalForTeleport(currentEntityY);
+            }
+
+            this.lastVertical = translatedLast;
+            this.currVertical = translatedCurrent;
+            this.verticalTarget = translatedTarget;
+            return true;
+        }
+
+        boolean resetVerticalForTeleport(double currentEntityY) {
+            if (!Double.isFinite(currentEntityY)) {
+                return false;
+            }
+
+            this.lastVertical = currentEntityY;
+            this.currVertical = currentEntityY;
+            this.verticalTarget = currentEntityY;
+            return true;
         }
 
         public double getVertical(float tickDelta) {
