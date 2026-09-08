@@ -96,7 +96,8 @@ Minecraft Java 26.1.x Fabric port.
   passed on 2026-09-08.
 - Default exact staged-JAR and release-record hash gate: passed on 2026-09-08;
   a second clean rebuild reproduced the recorded size, SHA-256 and SHA-512.
-- Clean-checkout CI reproduction of the committed `.32` hashes: **PENDING**.
+- CI-mode clean rebuild reproduced the committed `.32` size, SHA-256 and SHA-512
+  without requiring local staging JARs on 2026-09-08.
 - Exact `.32` dedicated-server startup and clean shutdown: **NOT RUN**.
 - Exact `.32` entity persistence, missing-add-on NBT and autonomous spawn-protection
   regression: **NOT RUN**.
