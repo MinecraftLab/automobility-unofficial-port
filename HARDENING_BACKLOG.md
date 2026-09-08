@@ -1,24 +1,27 @@
 # Automobility hardening backlog
 
-This file separates release gates for `0.5.0-unofficial.32` from changes that
+This file separates release gates for `0.5.0-unofficial.33` from changes that
 need a versioned follow-up. It is not a promise that every item belongs in the
 same release.
 
-The unpublished `.31` candidate is superseded by `.32` because it can leave a
-parked automobile's model at its old altitude after a same-dimension teleport.
-Its JARs and release records are retained only as immutable evidence and must not
-be uploaded or integrated into a public pack.
+The unpublished `.32` 26.2 candidate is `REJECTED-RUNTIME` because it intercepted
+the wrong vanilla packet path and still left a parked automobile's model at its
+old altitude after a large same-dimension teleport. Its 26.1.2 counterpart is
+`SUPERSEDED-UNTESTED`. Their JARs and source bundles are retained only as immutable
+evidence and must not be uploaded or integrated into a public pack. `.33` is the
+current pre-runtime replacement candidate.
 
-## Required before publishing `.32`
+## Required before publishing `.33`
 
 - Run the exact release-candidate JARs with two distinct clients and a dedicated
   server. Cover driving input and expiry, observer tracking, run-over damage,
-  parked, locally driven and remotely observed automobile teleports, horizontal
-  and vertical relocation, dimension transfer, attachment menu removal and drops,
-  dismounting, reconnect, save/reload and a full server restart. Preserve both
-  client logs and the server log.
-- Update Pumps & Pistons/Roadworks from its exact Automobility `.31` dependency
-  pin, then test it in a separate lane with `.32`. Do not combine that lane with
+  the parked-car `+17Y` absolute-sync regression, a smaller relative relocation,
+  mounted/local-driver and third-party-observer paths, ordinary driving, unmanned
+  coasting, horizontal relocation, dimension transfer, attachment menu removal
+  and drops, dismounting, reconnect, save/reload and a full server restart.
+  Preserve both client logs and the server log.
+- Replace Pumps & Pistons/Roadworks' prior exact candidate pin with the exact `.33`
+  candidate, then test it in a separate lane. Do not combine that lane with
   Fuel System while the declared conflict remains.
 - Confirm the canonical source and issue URLs are anonymously reachable again.
   Do not replace the flagged account with a duplicate account or repository.
@@ -28,9 +31,9 @@ be uploaded or integrated into a public pack.
 
 Fuel System `1.8.0` currently pins exact Automobility `.29`. Updating that addon
 is ecosystem follow-up work, not a blocker for publishing the standalone
-Automobility `.32` files.
+Automobility `.33` files.
 
-## Candidate work for `.33+`
+## Candidate work for `.34+`
 
 - Give Momentum's brake/drift packet a heartbeat and server-side expiry so a
   frozen client cannot leave either state latched until disconnect.
@@ -46,7 +49,7 @@ Automobility `.32` files.
   synchronization, mob/autopilot inputs, corrupt/non-finite state and the
   reverse-to-forward transition. Assert that acceleration and movement stay finite.
 - Pin and automate the released RIA `.6` 13-frame/2-wheel registry-codec contract
-  that was exercised externally for `.31` and must be repeated for `.32`.
+  that was exercised externally for `.31` and must be repeated for `.33`.
 - Design a versioned server-authoritative spatial protocol before removing the
   legacy client position fields. Avoid double simulation and visible jitter for
   remote passengers during migration.

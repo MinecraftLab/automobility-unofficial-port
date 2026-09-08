@@ -1,17 +1,40 @@
 # Changelog
 
-## 0.5.0-unofficial.32 - 2026-09-08
+## 0.5.0-unofficial.33 - 2026-09-08 (PRE-RUNTIME CANDIDATE; NOT PUBLISHED)
 
-Client-rendering repair for the unofficial Minecraft Java 26.1.x and 26.2
-Fabric ports. This supersedes the unpublished `.31` release candidate.
+Client position-packet reconciliation for the unofficial Minecraft Java 26.1.x
+and 26.2 Fabric ports. This candidate supersedes the unpublished, runtime-rejected
+`.32` candidate and carries forward the `.31` security and data-safety changes.
 
 ### Fixed
-- Kept an automobile's body model aligned with its entity and interaction hitboxes
-  after same-dimension teleports and authoritative relocation corrections.
-- Preserved the existing relative suspension height and body tilt across relocation,
-  then refreshed the new terrain once without requiring a reconnect.
-- Cleared only the obsolete movement target superseded by a teleport; ordinary driving
-  packets, vehicle physics and the legacy ecosystem packet layout are unchanged.
+- Reconciled automobile render displacement after the absolute position-sync packet
+  used by the server for large observer relocations, while retaining the vanilla
+  teleport-packet path used for riding players.
+- Rebased client-local suspension displacement after smaller relative position
+  updates without clearing Automobility's normal movement interpolation.
+- Refreshed destination terrain after a position change and closed the ordering seam
+  where legacy component synchronization could move an automobile before the vanilla
+  position packet was applied.
+- Aligned server displacement before serializing legacy component state so a position
+  change cannot expose the previous vertical sample in the same tick.
+
+### Verification status
+- The Java 25 preparation gate passed 107 tests (Fabric 73; Momentum 34), with
+  0 failures and 0 skips. Live client/server acceptance, ecosystem verification
+  and publication remain pending.
+
+## 0.5.0-unofficial.32 - 2026-09-08 (unpublished; runtime rejected)
+
+Attempted client-rendering repair for the unofficial Minecraft Java 26.1.x and
+26.2 Fabric ports. This candidate must not be published or integrated.
+
+### Rejected
+- The patch intercepted only the teleport-entity packet. A live 26.2 regression test
+  proved that a large teleport of an empty tracked automobile instead arrives through
+  the absolute entity-position-sync path: its entity and hitbox moved, but its body
+  model remained at the previous altitude until returning or reconnecting.
+- Both `.32` JARs and their source bundles are retained as immutable failure evidence;
+  their exact identities are recorded in `FAILED_RELEASE_CANDIDATES.md`.
 
 ## 0.5.0-unofficial.31 - 2026-09-04
 
