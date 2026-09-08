@@ -8,12 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class AutomobileDisplacementUpdatePolicyTest {
     @Test
-    void pendingTeleportRefreshesAStationaryAutomobile() {
+    void pendingPacketPositionRefreshesAStationaryAutomobile() {
         assertTrue(shouldUpdate(false, true, Vec3.ZERO, Vec3.ZERO, false));
     }
 
     @Test
-    void stationaryAutomobileWithoutTeleportDoesNotRescan() {
+    void stationaryAutomobileWithoutPacketPositionDoesNotRescan() {
         assertFalse(shouldUpdate(false, false, Vec3.ZERO, Vec3.ZERO, false));
     }
 
@@ -26,14 +26,14 @@ final class AutomobileDisplacementUpdatePolicyTest {
 
     private static boolean shouldUpdate(
             boolean firstTick,
-            boolean teleportRefreshPending,
+            boolean packetPositionRefreshPending,
             Vec3 beforeSimulation,
             Vec3 afterSimulation,
             boolean yawChanged
     ) {
         return AutomobileDisplacementUpdatePolicy.shouldUpdate(
                 firstTick,
-                teleportRefreshPending,
+                packetPositionRefreshPending,
                 beforeSimulation,
                 afterSimulation,
                 yawChanged

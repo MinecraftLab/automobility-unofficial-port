@@ -16,7 +16,7 @@ final class AutomobileTeleportDisplacementTest {
         var tilt = new Quaternionf().rotationXYZ(0.15f, -0.2f, 0.08f);
         displacement.snapTo(183.25, tilt);
 
-        assertTrue(displacement.translateVerticalAfterTeleport(183, 200));
+        assertTrue(displacement.translateVerticalAfterPositionChange(183, 200));
         assertEquals(200.25, displacement.getVertical(0), 1.0E-9);
         assertEquals(200.25, displacement.getVertical(1), 1.0E-9);
 
@@ -34,11 +34,11 @@ final class AutomobileTeleportDisplacementTest {
     void forcedRefreshCanDiscardAnAbsoluteTargetFromAStaleSync() {
         var displacement = new AutomobileEntity.Displacement();
         displacement.readSyncData(syncData(183), false);
-        assertTrue(displacement.translateVerticalAfterTeleport(183, 200));
+        assertTrue(displacement.translateVerticalAfterPositionChange(183, 200));
 
         // Simulate a sync overwriting the absolute target between packet handling and entity tick.
         displacement.readSyncData(syncData(183), false);
-        assertTrue(displacement.resetVerticalForTeleport(200));
+        assertTrue(displacement.resetVerticalAfterPositionChange(200));
         displacement.preTick();
         displacement.postTick();
 
@@ -51,12 +51,24 @@ final class AutomobileTeleportDisplacementTest {
         var displacement = new AutomobileEntity.Displacement();
         displacement.snapTo(183, new Quaternionf());
 
-        assertFalse(displacement.translateVerticalAfterTeleport(183, Double.NaN));
+        assertFalse(displacement.translateVerticalAfterPositionChange(183, Double.NaN));
         assertEquals(183, displacement.getVertical(1), 1.0E-9);
 
-        assertTrue(displacement.translateVerticalAfterTeleport(Double.NaN, 200));
+        assertTrue(displacement.translateVerticalAfterPositionChange(Double.NaN, 200));
         assertEquals(200, displacement.getVertical(0), 1.0E-9);
         assertEquals(200, displacement.getVertical(1), 1.0E-9);
+    }
+
+    @Test
+    void serverRefreshBeforeSerializationCannotEmitAStaleAbsoluteHeight() {
+        var displacement = new AutomobileEntity.Displacement();
+        displacement.snapTo(183, new Quaternionf());
+
+        assertTrue(displacement.resetVerticalAfterPositionChange(200));
+        var buffer = new FriendlyByteBuf(Unpooled.buffer());
+        displacement.writeSyncData(buffer);
+
+        assertEquals(200, buffer.readDouble(), 1.0E-9);
     }
 
     private static FriendlyByteBuf syncData(double vertical) {
