@@ -14,11 +14,11 @@ final class AutomobileTeleportDisplacementTest {
     void verticalTeleportKeepsTheBodyAtItsRelativeRideHeight() {
         var displacement = new AutomobileEntity.Displacement();
         var tilt = new Quaternionf().rotationXYZ(0.15f, -0.2f, 0.08f);
-        displacement.snapTo(183, tilt);
+        displacement.snapTo(183.25, tilt);
 
         assertTrue(displacement.translateVerticalAfterTeleport(183, 200));
-        assertEquals(200, displacement.getVertical(0), 1.0E-9);
-        assertEquals(200, displacement.getVertical(1), 1.0E-9);
+        assertEquals(200.25, displacement.getVertical(0), 1.0E-9);
+        assertEquals(200.25, displacement.getVertical(1), 1.0E-9);
 
         var actualTilt = new Quaternionf();
         displacement.getAngular(1, actualTilt);
@@ -26,7 +26,7 @@ final class AutomobileTeleportDisplacementTest {
 
         displacement.preTick();
         displacement.postTick();
-        assertEquals(200, displacement.getVertical(1), 1.0E-9,
+        assertEquals(200.25, displacement.getVertical(1), 1.0E-9,
                 "the translated target must not pull the model back to its pre-teleport Y");
     }
 
