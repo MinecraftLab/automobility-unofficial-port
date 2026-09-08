@@ -1,17 +1,24 @@
 # Automobility hardening backlog
 
-This file separates release gates for `0.5.0-unofficial.31` from changes that
+This file separates release gates for `0.5.0-unofficial.32` from changes that
 need a versioned follow-up. It is not a promise that every item belongs in the
 same release.
 
-## Required before publishing `.31`
+The unpublished `.31` candidate is superseded by `.32` because it can leave a
+parked automobile's model at its old altitude after a same-dimension teleport.
+Its JARs and release records are retained only as immutable evidence and must not
+be uploaded or integrated into a public pack.
+
+## Required before publishing `.32`
 
 - Run the exact release-candidate JARs with two distinct clients and a dedicated
   server. Cover driving input and expiry, observer tracking, run-over damage,
-  attachment menu removal and drops, dismounting, reconnect, save/reload and a
-  full server restart. Preserve both client logs and the server log.
+  parked, locally driven and remotely observed automobile teleports, horizontal
+  and vertical relocation, dimension transfer, attachment menu removal and drops,
+  dismounting, reconnect, save/reload and a full server restart. Preserve both
+  client logs and the server log.
 - Update Pumps & Pistons/Roadworks from its exact Automobility `.30` dependency
-  pin, then test it in a separate lane with `.31`. Do not combine that lane with
+  pin, then test it in a separate lane with `.32`. Do not combine that lane with
   Fuel System while the declared conflict remains.
 - Confirm the canonical source and issue URLs are anonymously reachable again.
   Do not replace the flagged account with a duplicate account or repository.
@@ -21,9 +28,9 @@ same release.
 
 Fuel System `1.8.0` currently pins exact Automobility `.29`. Updating that addon
 is ecosystem follow-up work, not a blocker for publishing the standalone
-Automobility `.31` files.
+Automobility `.32` files.
 
-## Candidate work for `.32`
+## Candidate work for `.33+`
 
 - Give Momentum's brake/drift packet a heartbeat and server-side expiry so a
   frozen client cannot leave either state latched until disconnect.
@@ -39,7 +46,7 @@ Automobility `.31` files.
   synchronization, mob/autopilot inputs, corrupt/non-finite state and the
   reverse-to-forward transition. Assert that acceleration and movement stay finite.
 - Pin and automate the released RIA `.6` 13-frame/2-wheel registry-codec contract
-  that was exercised externally for `.31`.
+  that was exercised externally for `.31` and must be repeated for `.32`.
 - Design a versioned server-authoritative spatial protocol before removing the
   legacy client position fields. Avoid double simulation and visible jitter for
   remote passengers during migration.

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0-unofficial.32 - 2026-09-08
+
+Client-rendering repair for the unofficial Minecraft Java 26.1.x and 26.2
+Fabric ports. This supersedes the unpublished `.31` release candidate.
+
+### Fixed
+- Kept an automobile's body model aligned with its entity and interaction hitboxes
+  after same-dimension teleports and authoritative relocation corrections.
+- Preserved the existing relative suspension height and body tilt across relocation,
+  then refreshed the new terrain once without requiring a reconnect.
+- Cleared only the obsolete movement target superseded by a teleport; ordinary driving
+  packets, vehicle physics and the legacy ecosystem packet layout are unchanged.
+
 ## 0.5.0-unofficial.31 - 2026-09-04
 
 Security, data-safety and release-verification update for the unofficial
