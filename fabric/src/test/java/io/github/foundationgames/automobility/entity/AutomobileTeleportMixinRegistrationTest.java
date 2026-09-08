@@ -53,8 +53,8 @@ final class AutomobileTeleportMixinRegistrationTest {
         assertTrue(positionSyncCapture.contains("exceedsRelativeEncoding"));
         assertTrue(positionSyncCapture.contains("automobility$capturePosition(entity, hardCorrection)"));
         String relativeCapture = methodBody(mixin, "private void automobility$captureAutomobileBeforeRelativeMove(");
-        assertTrue(relativeCapture.contains("packet.hasPosition()"));
-        assertTrue(relativeCapture.contains(", false)"));
+        assertTrue(relativeCapture.contains(
+                "packet.hasPosition() ? packet.getEntity(self.getLevel()) : null, false"));
         assertTrue(injectionContext(mixin, "automobility$captureAutomobileBeforePositionSync").contains(
                 "method = \"handleEntityPositionSync\""));
         assertTrue(injectionContext(mixin, "automobility$refreshAutomobileAfterPositionSync").contains(
@@ -70,8 +70,11 @@ final class AutomobileTeleportMixinRegistrationTest {
         assertTrue(authoritative.contains("this.trackedY = this.getY()"));
         assertTrue(authoritative.contains("this.trackedZ = this.getZ()"));
         assertTrue(authoritative.contains("this.trackedYaw = this.getYRot()"));
+        assertTrue(authoritative.contains("this.clientAuthoritativePositionRefresh = true"));
 
         String relative = methodBody(automobile, "public void clientOnRelativePositionApplied(");
+        assertTrue(relative.contains("!this.usesLocalDisplacement()"));
+        assertTrue(relative.contains("this.clientRelativePositionRefresh = true"));
         assertTrue(!relative.contains("lerpTicks")
                         && !relative.contains("trackedX")
                         && !relative.contains("trackedY")
@@ -97,8 +100,9 @@ final class AutomobileTeleportMixinRegistrationTest {
     private static String injectionContext(String source, String methodName) {
         int method = source.indexOf(methodName + "(");
         assertTrue(method >= 0, "missing source method " + methodName);
-        int contextStart = Math.max(0, method - 600);
-        return source.substring(contextStart, method);
+        int injection = source.lastIndexOf("@Inject", method);
+        assertTrue(injection >= 0, "missing @Inject for " + methodName);
+        return source.substring(injection, method);
     }
 
     private static Path findSource(String repositoryRelativePath) {
