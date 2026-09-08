@@ -1,4 +1,4 @@
-# Modrinth Release - Automobility 0.5.0-unofficial.31 for 26.1.x
+# Modrinth Release - Automobility 0.5.0-unofficial.32 for 26.1.x
 
 > **Target-scoped release record:** Use this file only when its filename target matches
 > `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
@@ -17,7 +17,7 @@ Use this file for the 26.1.x upload after the release candidate passes the in-ga
 ## Version Form
 
 - Version type: `beta`
-- Version number: `0.5.0-unofficial.31+26.1.2`
+- Version number: `0.5.0-unofficial.32+26.1.2`
 - Version subtitle: `for Minecraft 26.1.x`
 - Loaders: `Fabric`
 - Game versions: `26.1`, `26.1.1`, `26.1.2`
@@ -33,15 +33,15 @@ Do not add Fabric Loader as a project dependency. The JAR metadata already requi
 
 ## Upload File
 
-- Local JAR: `dist\release-candidate-0.5.0-unofficial.31\automobility-0.5.0-unofficial.31+26.1.2-fabric.jar`
-- Size: `1393873` bytes
-- SHA-256: `9D3BAB2BB0F3588335FF4341B1B28785B5002DB042B83CA5F75006774800F916`
-- SHA-512: `146C114E84931728C3C084B8329EEFF8B7CC29E8F2A80C6946C60A818058A0CC00D8C0DF35F882D2037C225F724277A8ABFF09DFFD68137321FCF9A1BD75AF5B`
+- Local JAR: `dist\release-candidate-0.5.0-unofficial.32\automobility-0.5.0-unofficial.32+26.1.2-fabric.jar`
+- Size: `1396768` bytes
+- SHA-256: `4243DB608D280275ED56A68B6D15626E36811AD942A003C005D288E9B980AEDE`
+- SHA-512: `75EAAD2C07C3B263D4BE426AFAB20C0B1804EA096D9E476350DBB5B6D1BBCAEE0B565F0CFB6ECF755EA2CE491E7D5B3245B9948301DB2A407C7A4988AD0C31A1`
 
 ## Version Changelog
 
 ```markdown
-Security, data-safety and release-verification update for the unofficial
+Teleport-rendering, security, data-safety and release-verification update for the unofficial
 Minecraft Java 26.1.x Fabric port.
 
 ### Security
@@ -58,6 +58,10 @@ Minecraft Java 26.1.x Fabric port.
 
 ### Fixed
 
+- Automobile body models now stay aligned with their entities and interaction hitboxes
+  after same-dimension teleports and authoritative relocation corrections. The existing
+  relative suspension height and body tilt are preserved, then the destination terrain is
+  refreshed once without changing ordinary driving packets or requiring a reconnect.
 - Removed the unconditional forced velocity update previously sent for every automobile tick.
 - Raw automobile items without custom component data now place a playable default car.
 - Attachment menus now invalidate when their attachment is removed or replaced, the car
@@ -83,36 +87,38 @@ Minecraft Java 26.1.x Fabric port.
 
 ## Verification Record
 
-- Java 25 clean merged-source build: passed on 2026-09-04.
-- Fabric and Momentum unit suites: 94 passed, 0 failed, 0 skipped
-  (Fabric 60; Momentum 34).
-- Clean-checkout CI build verification reproduced both module JARs and matched their
-  committed size, SHA-256 and SHA-512 records on 2026-09-04.
-- Exact `.31` JAR metadata, license and release-record hash gate: passed on 2026-09-04.
-- Exact `.31` JAR dedicated-server startup and clean shutdown: passed on 2026-09-04;
-  the server reached `Done` with no errors, exceptions or crash report.
-- Exact `.31` entity save, full server restart and UUID reload, including opaque
-  nested NBT for missing front and rear add-on attachments: passed on 2026-09-04.
-- Exact `.31` autonomous autopilot+paver integration: four dirt blocks inside
-  dedicated-server spawn protection remained unchanged while the matching four-block
-  probe outside protection became dirt path; passed on 2026-09-04.
-- Headless addon startup with Momentum `.10`, RIA `.6` and immutable Autoradio `0.1.0`:
-  passed on 2026-09-04. This does not cover client mixins or gameplay.
-- Released RIA `.6` source-contract test: all 13 frame definitions and both wheel
-  definitions round-tripped through the exact `.31` `DIRECT_CODEC` with
-  `RegistryOps`/`NbtOps`; passed on both Minecraft targets on 2026-09-04.
-- Ecosystem metadata preflight: Momentum `.10`, RIA `.6` and Autoradio `0.1.0` accept
-  Automobility `.31`; current Pumps & Pistons/Roadworks `dev.19` pins exact `.30`.
-  Pumps & Pistons also declares a Fuel System conflict.
+- Focused Java 25 Fabric source suite: 67 passed, 0 failed, 0 skipped on 2026-09-08.
+  This compiles the client hook and covers displacement translation, stale-sync recovery,
+  one-shot refresh policy and packaged mixin registration; it is not a live packet test.
+- Java 25 clean build and full unit suites: passed on 2026-09-08; 101 tests,
+  0 failed, 0 skipped (Fabric 67; Momentum 34).
+- Fresh `.32` production JAR metadata, contents, licenses and unsafe-file checks:
+  passed on 2026-09-08.
+- Default exact staged-JAR and release-record hash gate: **PENDING**.
+- Clean-checkout CI reproduction of the committed `.32` hashes: **PENDING**.
+- Exact `.32` dedicated-server startup and clean shutdown: **NOT RUN**.
+- Exact `.32` entity persistence, missing-add-on NBT and autonomous spawn-protection
+  regression: **NOT RUN**.
+- Exact `.32` headless addon startup and released RIA `.6` codec contract: **NOT RUN**.
+- The passed `.31` server and codec evidence from 2026-09-04 is historical only and does
+  not validate the new `.32` bytes.
+- Exact `.32` single-client parked-car teleport regression, first without `/data merge`
+  and then with the observed fuel/addon/shader sequence: **NOT RUN**.
+- Exact `.32` locally driven and remotely observed teleport, normal driving interpolation,
+  horizontal relocation, dimension transfer and reconnect smoke: **NOT RUN**.
 - Exact-artifact two-client ecosystem smoke: **NOT RUN**.
-- Publication remains blocked until every pending item above passes.
+- Ecosystem dependency metadata for the `.32` candidate: **PENDING**.
+- Publication remains blocked until every applicable pending item above passes.
 
 ## Before Upload
 
 - Run `tools\qa\Test-Automobility.ps1 -Rebuild` and confirm the final gate matches the
-  exact size and hashes above.
+  exact `.32` size and hashes above.
 - First update and verify the Pumps & Pistons/Roadworks Automobility dependency range.
   Run separate core-addon and Roadworks lanes; do not combine Roadworks with Fuel System.
+- Reproduce the original parked-car vertical teleport first without `/data merge`; the
+  model must remain visible immediately without reconnecting. Then repeat with the full
+  fuel/addon/shader sequence and cover horizontal and dimension relocation.
 - Complete the exact-JAR two-client smoke on a dedicated server with Automobility,
   Momentum, RIA, Autoradio and the compatible Roadworks build. Cover driving, observer
   tracking, run-over damage, attachment menu removal, item drops, dismounting, persistence,
@@ -127,6 +133,6 @@ Minecraft Java 26.1.x Fabric port.
 
 - Download the public Modrinth file and compare its SHA-256 with the value above.
 - Confirm the anonymous Modrinth API, CDN download and Maven coordinate all return
-  the `.31` artifact before publishing dependants that require it.
+  the `.32` artifact before publishing dependants that require it.
 - Confirm Modrinth shows Fabric and all three 26.1.x game versions.
 - Confirm Fabric API is required and both Controlify and Momentum are optional.
