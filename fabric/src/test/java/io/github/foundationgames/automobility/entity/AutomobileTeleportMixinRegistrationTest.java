@@ -48,11 +48,21 @@ final class AutomobileTeleportMixinRegistrationTest {
 
         assertTrue(methodBody(mixin, "private void automobility$captureAutomobileBeforeTeleport(").contains(
                 "automobility$capturePosition(self.getLevel().getEntity(packet.id()), true)"));
-        assertTrue(methodBody(mixin, "private void automobility$captureAutomobileBeforePositionSync(").contains(
-                "exceedsRelativeEncoding"));
+        String positionSyncCapture = methodBody(
+                mixin, "private void automobility$captureAutomobileBeforePositionSync(");
+        assertTrue(positionSyncCapture.contains("exceedsRelativeEncoding"));
+        assertTrue(positionSyncCapture.contains("automobility$capturePosition(entity, hardCorrection)"));
         String relativeCapture = methodBody(mixin, "private void automobility$captureAutomobileBeforeRelativeMove(");
         assertTrue(relativeCapture.contains("packet.hasPosition()"));
         assertTrue(relativeCapture.contains(", false)"));
+        assertTrue(injectionContext(mixin, "automobility$captureAutomobileBeforePositionSync").contains(
+                "method = \"handleEntityPositionSync\""));
+        assertTrue(injectionContext(mixin, "automobility$refreshAutomobileAfterPositionSync").contains(
+                "method = \"handleEntityPositionSync\""));
+        assertTrue(injectionContext(mixin, "automobility$captureAutomobileBeforeRelativeMove").contains(
+                "method = \"handleMoveEntity\""));
+        assertTrue(injectionContext(mixin, "automobility$refreshAutomobileAfterRelativeMove").contains(
+                "method = \"handleMoveEntity\""));
 
         String authoritative = methodBody(automobile, "public void clientOnAuthoritativePositionApplied(");
         assertTrue(authoritative.contains("this.lerpTicks = 0"));
@@ -82,6 +92,13 @@ final class AutomobileTeleportMixinRegistrationTest {
             if (character == '}' && --depth == 0) return source.substring(openingBrace, index + 1);
         }
         throw new AssertionError("unterminated method body for " + methodDeclaration);
+    }
+
+    private static String injectionContext(String source, String methodName) {
+        int method = source.indexOf(methodName + "(");
+        assertTrue(method >= 0, "missing source method " + methodName);
+        int contextStart = Math.max(0, method - 600);
+        return source.substring(contextStart, method);
     }
 
     private static Path findSource(String repositoryRelativePath) {
