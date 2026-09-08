@@ -190,7 +190,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private float lastWheelAngle = 0;
 
     private final Displacement displacement = new AutomobileEntity.Displacement();
-    private transient boolean clientTeleportDisplacementRefresh = false;
+    private transient boolean clientAuthoritativePositionRefresh = false;
+    private transient boolean clientRelativePositionRefresh = false;
 
     private boolean drifting = false;
     private boolean burningOut = false;
@@ -310,6 +311,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         setDrifting(syncedDrifting);
         setBurningOut(syncedBurningOut);
 
+        boolean hadSyncedDisplacement = this.displacement.hasSyncedData();
+        Vec3 positionBeforeStoppedSync = this.position();
         this.displacement.readSyncData(buf, false);
 
         if (this.level().isClientSide()) {
@@ -328,6 +331,10 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
                 this.setPos(syncedX, syncedY, syncedZ);
                 this.setYRot(syncedYaw);
                 this.syncPacketPositionCodec(syncedX, syncedY, syncedZ);
+                if (hadSyncedDisplacement
+                        && AutomobilePositionUpdatePolicy.positionChanged(positionBeforeStoppedSync, this.position())) {
+                    this.clientOnAuthoritativePositionApplied(positionBeforeStoppedSync);
+                }
             }
 
             if (stoppedSync) {
@@ -951,6 +958,10 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (!level().isClientSide()) {
             this.resolveRecentDismountHitboxOverlap();
 
+            // syncData runs before the common displacementTick below. Keep an already-dirty
+            // stationary automobile from emitting its pre-teleport absolute render Y here.
+            this.displacement.resetVerticalAfterPositionChange(this.getY());
+
             var tailPos = this.getTailPos();
             var currentDimension = this.level().dimension();
             boolean dimensionChanged = this.previousServerTickEndDimension != null
@@ -1027,16 +1038,19 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             }
         }
 
-        boolean teleportDisplacementRefresh = this.clientTeleportDisplacementRefresh;
-        this.clientTeleportDisplacementRefresh = false;
-        if (teleportDisplacementRefresh && this.usesLocalDisplacement()) {
-            // A component sync may have arrived after the teleport packet. Discard any absolute
-            // vertical target it carried before scanning the automobile's new surroundings.
-            this.displacement.resetVerticalForTeleport(this.getY());
+        boolean authoritativePositionRefresh = this.clientAuthoritativePositionRefresh;
+        boolean relativePositionRefresh = this.clientRelativePositionRefresh;
+        boolean packetPositionRefresh = authoritativePositionRefresh || relativePositionRefresh;
+        this.clientAuthoritativePositionRefresh = false;
+        this.clientRelativePositionRefresh = false;
+        if (authoritativePositionRefresh) {
+            // A component sync may arrive on either side of an absolute vanilla position packet.
+            // Resolve both orderings to the entity's authoritative Y before any local terrain scan.
+            this.displacement.resetVerticalAfterPositionChange(this.getY());
         }
         displacementTick(AutomobileDisplacementUpdatePolicy.shouldUpdate(
                 first,
-                teleportDisplacementRefresh,
+                packetPositionRefresh,
                 prevPos,
                 this.position(),
                 this.getYRot() != this.yRotO
@@ -1063,23 +1077,37 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
     }
 
-    /**
-     * Reconciles render-only state after vanilla applies an explicit clientbound teleport.
-     * Ordinary movement packets intentionally do not use this path.
-     */
-    public void clientOnTeleportApplied(double previousEntityY) {
+    /** Reconciles render-only state after vanilla applies an absolute clientbound position. */
+    public void clientOnAuthoritativePositionApplied(Vec3 previousPosition) {
         if (!this.level().isClientSide()
-                || !this.displacement.translateVerticalAfterTeleport(previousEntityY, this.getY())) {
+                || !AutomobilePositionUpdatePolicy.positionChanged(previousPosition, this.position())
+                || !this.displacement.translateVerticalAfterPositionChange(previousPosition.y, this.getY())) {
             return;
         }
 
-        // An explicit teleport supersedes any target left by Automobility's normal movement sync.
+        // An absolute vanilla correction supersedes any target left by Automobility's movement sync.
         this.lerpTicks = 0;
         this.trackedX = this.getX();
         this.trackedY = this.getY();
         this.trackedZ = this.getZ();
         this.trackedYaw = this.getYRot();
-        this.clientTeleportDisplacementRefresh = true;
+        this.clientAuthoritativePositionRefresh = true;
+    }
+
+    /**
+     * Keeps locally calculated body displacement attached to an unoccupied automobile when
+     * vanilla applies a relative movement packet between entity ticks. This deliberately leaves
+     * Automobility's interpolation target intact for ordinary driving.
+     */
+    public void clientOnRelativePositionApplied(Vec3 previousPosition) {
+        if (!this.level().isClientSide()
+                || !this.usesLocalDisplacement()
+                || !AutomobilePositionUpdatePolicy.positionChanged(previousPosition, this.position())
+                || !this.displacement.translateVerticalAfterPositionChange(previousPosition.y, this.getY())) {
+            return;
+        }
+
+        this.clientRelativePositionRefresh = true;
     }
 
     public void markDirty() {
@@ -1570,7 +1598,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
             this.displacement.postTick();
         } else {
-            this.displacement.lastVertical = this.displacement.currVertical = this.displacement.verticalTarget = this.getY();
+            this.displacement.resetVerticalAfterPositionChange(this.getY());
         }
     }
 
@@ -2710,7 +2738,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.angularTarget.set(angular);
         }
 
-        boolean translateVerticalAfterTeleport(double previousEntityY, double currentEntityY) {
+        boolean translateVerticalAfterPositionChange(double previousEntityY, double currentEntityY) {
             if (!Double.isFinite(currentEntityY)) {
                 return false;
             }
@@ -2724,7 +2752,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
                     || !Double.isFinite(translatedLast)
                     || !Double.isFinite(translatedCurrent)
                     || !Double.isFinite(translatedTarget)) {
-                return this.resetVerticalForTeleport(currentEntityY);
+                return this.resetVerticalAfterPositionChange(currentEntityY);
             }
 
             this.lastVertical = translatedLast;
@@ -2733,7 +2761,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             return true;
         }
 
-        boolean resetVerticalForTeleport(double currentEntityY) {
+        boolean resetVerticalAfterPositionChange(double currentEntityY) {
             if (!Double.isFinite(currentEntityY)) {
                 return false;
             }

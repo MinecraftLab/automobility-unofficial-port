@@ -8,13 +8,13 @@ final class AutomobileDisplacementUpdatePolicy {
 
     static boolean shouldUpdate(
             boolean firstTick,
-            boolean teleportRefreshPending,
+            boolean packetPositionRefreshPending,
             Vec3 beforeSimulation,
             Vec3 afterSimulation,
             boolean yawChanged
     ) {
         return firstTick
-                || teleportRefreshPending
+                || packetPositionRefreshPending
                 || afterSimulation.subtract(beforeSimulation).length() > 0
                 || yawChanged;
     }
