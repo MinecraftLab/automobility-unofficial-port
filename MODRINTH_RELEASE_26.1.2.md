@@ -37,9 +37,9 @@ Do not add Fabric Loader as a project dependency. The JAR metadata already requi
 ## Upload File
 
 - Local JAR: `dist\release-candidate-0.5.0-unofficial.33\automobility-0.5.0-unofficial.33+26.1.2-fabric.jar`
-- Size: `PENDING` bytes
-- SHA-256: `PENDING`
-- SHA-512: `PENDING`
+- Size: `1398967` bytes
+- SHA-256: `2736C27143FD20E19911B2DCB0359D9EBF4AAC18C207F11C3C608BEA74E1BCC7`
+- SHA-512: `05F373FA5DAEF43A068E425C60DBC39DE2AAACD65912FC893AD604A3D569FA91FEE17404D0323AA39450623609082836B9F58488C1020BC0ADAEFD7FE973680A`
 
 ## Version Changelog
 
@@ -91,10 +91,14 @@ Minecraft Java 26.1.x Fabric port.
 
 ## Verification Record
 
-- Java 25 clean build and full unit suites: **PENDING**.
+- Java 25 clean build and full unit suites: passed on 2026-09-08; 107 tests,
+  0 failed, 0 skipped (Fabric 73; Momentum 34). The suite covers displacement
+  translation, stale-sync recovery, packet-handler registration and hard/soft
+  classification boundaries; it is not a live packet test.
 - Fresh `.33` production JAR metadata, contents, licenses and unsafe-file checks:
-  **PENDING**.
-- Candidate preparation clean rebuild and staging: **PENDING**.
+  passed on 2026-09-08.
+- Candidate preparation clean rebuild and staging: passed on 2026-09-08; the built
+  and staged JARs matched the size, SHA-256 and SHA-512 recorded above.
 - Default exact staged-JAR and committed release-record hash gate: **PENDING**.
 - CI-mode clean rebuild against the committed `.33` release record: **PENDING**.
 - Exact `.33` dedicated-server startup and clean shutdown: **NOT RUN**.
