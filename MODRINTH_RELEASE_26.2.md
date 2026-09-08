@@ -1,10 +1,13 @@
-# Modrinth Release - Automobility 0.5.0-unofficial.32 for 26.2
+# Modrinth Release - Automobility 0.5.0-unofficial.33 for 26.2
 
 > **Target-scoped release record:** Use this file only when its filename target matches
 > `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
 > files in this branch are retained only as historical snapshots.
 
-Use this file for the 26.2 upload after the release candidate passes the in-game smoke test.
+**Status: PRE-RUNTIME - NOT APPROVED FOR UPLOAD.**
+
+This is a pre-runtime candidate record. Use it for the 26.2 upload only after the
+exact JAR passes every applicable runtime and ecosystem gate below.
 
 ## Project
 
@@ -14,7 +17,7 @@ Use this file for the 26.2 upload after the release candidate passes the in-game
 ## Version Form
 
 - Version type: `beta`
-- Version number: `0.5.0-unofficial.32+26.2`
+- Version number: `0.5.0-unofficial.33+26.2`
 - Version subtitle: `for Minecraft 26.2`
 - Loaders: `Fabric`
 - Game versions: `26.2`
@@ -30,17 +33,17 @@ Do not add Fabric Loader as a project dependency. The JAR metadata already requi
 
 ## Upload File
 
-- Local JAR: `dist\release-candidate-0.5.0-unofficial.32\automobility-0.5.0-unofficial.32+26.2-fabric.jar`
-- Size: `1396746` bytes
-- SHA-256: `341AD0241C792C73DABB13EBDCFD4150DE5B73014BD6393A8C65CB15E7A1BE05`
-- SHA-512: `55E676ABCBC0A69CB1A3DE30C0546DF5DA40EEB71B6E2C33B7507A52A8A86E2F315E1AA1DDCB8F497DDA993ED27896F0526DE935E904BE218B62535D055D5EC6`
+- Local JAR: `dist\release-candidate-0.5.0-unofficial.33\automobility-0.5.0-unofficial.33+26.2-fabric.jar`
+- Size: `1398942` bytes
+- SHA-256: `1FC7DC15EA8690648727620E2FF46B663A13F1F1F29F02A209537C69DBDCFB00`
+- SHA-512: `4FA12AC41DFB110DD0B847FA65846E773AC363FDE777DFDB0F1A479A74880FCB949D2D9E3C1813EC3FD33D33CFA670B2C28E523AF1C8D0756D3BF6CA43FA6798`
 
 ## Version Changelog
 
 Use this exact changelog:
 
 ```markdown
-Teleport-rendering, security, data-safety and release-verification update for the unofficial
+Position-sync rendering, security, data-safety and release-verification update for the unofficial
 Minecraft Java 26.2 Fabric port.
 
 ### Security
@@ -57,10 +60,11 @@ Minecraft Java 26.2 Fabric port.
 
 ### Fixed
 
-- Automobile body models now stay aligned with their entities and interaction hitboxes
-  after same-dimension teleports and authoritative relocation corrections. The existing
-  relative suspension height and body tilt are preserved, then the destination terrain is
-  refreshed once without changing ordinary driving packets or requiring a reconnect.
+- Added reconciliation of cached automobile suspension displacement after the
+  absolute position-sync packets used for large observer relocations and the teleport
+  packets used for riding players. The relative-update path preserves normal movement
+  interpolation while rebasing the client-local suspension sample and scheduling a
+  destination-terrain refresh.
 - Removed the unconditional forced velocity update previously sent for every automobile tick.
 - Raw automobile items without custom component data now place a playable default car.
 - Attachment menus now invalidate when their attachment is removed or replaced, the car
@@ -86,40 +90,45 @@ Minecraft Java 26.2 Fabric port.
 
 ## Verification Record
 
-- Focused Java 25 Fabric source suite: 67 passed, 0 failed, 0 skipped on 2026-09-08.
-  This compiles the client hook and covers displacement translation, stale-sync recovery,
-  one-shot refresh policy and packaged mixin registration; it is not a live packet test.
-- Java 25 clean build and full unit suites: passed on 2026-09-08; 101 tests,
-  0 failed, 0 skipped (Fabric 67; Momentum 34).
-- Fresh `.32` production JAR metadata, contents, licenses and unsafe-file checks:
+- Java 25 clean build and full unit suites: passed on 2026-09-08; 107 tests,
+  0 failed, 0 skipped (Fabric 73; Momentum 34). The suite covers displacement
+  translation, stale-sync recovery, packet-handler registration and hard/soft
+  classification boundaries; it is not a live packet test.
+- Fresh `.33` production JAR metadata, contents, licenses and unsafe-file checks:
   passed on 2026-09-08.
-- Default exact staged-JAR and release-record hash gate: passed on 2026-09-08;
-  a second clean rebuild reproduced the recorded size, SHA-256 and SHA-512.
-- CI-mode clean rebuild reproduced the committed `.32` size, SHA-256 and SHA-512
-  without requiring local staging JARs on 2026-09-08.
-- Exact `.32` dedicated-server startup and clean shutdown: **NOT RUN**.
-- Exact `.32` entity persistence, missing-add-on NBT and autonomous spawn-protection
+- Candidate preparation clean rebuild and staging: passed on 2026-09-08; the built
+  and staged JARs matched the size, SHA-256 and SHA-512 recorded above.
+- Default exact staged-JAR and committed release-record hash gate: **PENDING**.
+- CI-mode clean rebuild against the committed `.33` release record: **PENDING**.
+- Exact `.33` dedicated-server startup and clean shutdown: **NOT RUN**.
+- Exact `.33` entity persistence, missing-add-on NBT and autonomous spawn-protection
   regression: **NOT RUN**.
-- Exact `.32` headless addon startup and released RIA `.6` codec contract: **NOT RUN**.
+- Exact `.33` headless addon startup and released RIA `.6` codec contract: **NOT RUN**.
 - The passed `.31` server and codec evidence from 2026-09-04 is historical only and does
-  not validate the new `.32` bytes.
-- Exact `.32` single-client parked-car teleport regression, first without `/data merge`
+  not validate the new `.33` bytes.
+- Exact `.32` 26.2 runtime regression: **FAILED**. Its model remained at the previous
+  altitude after an empty parked automobile was teleported upward by 17 blocks. The
+  failed candidate is recorded in `FAILED_RELEASE_CANDIDATES.md` and is not releasable.
+- Exact `.33` single-client parked-car teleport regression, first without `/data merge`
   and then with the observed fuel/addon/shader sequence: **NOT RUN**.
-- Exact `.32` locally driven and remotely observed teleport, normal driving interpolation,
+- Exact `.33` locally driven and remotely observed teleport, small and large relocation,
+  normal driving interpolation, empty-car coasting,
   horizontal relocation, dimension transfer and reconnect smoke: **NOT RUN**.
 - Exact-artifact two-client ecosystem smoke: **NOT RUN**.
-- Ecosystem dependency metadata for the `.32` candidate: **PENDING**.
+- Ecosystem dependency metadata for the `.33` candidate: **PENDING**.
 - Publication remains blocked until every applicable pending item above passes.
 
 ## Before Upload
 
 - Run `tools\qa\Test-Automobility.ps1 -Rebuild` and confirm the final gate matches the
-  exact `.32` size and hashes above.
+  exact `.33` size and hashes above.
 - First update and verify the Pumps & Pistons/Roadworks Automobility dependency range.
   Run separate core-addon and Roadworks lanes; do not combine Roadworks with Fuel System.
 - Reproduce the original parked-car vertical teleport first without `/data merge`; the
   model must remain visible immediately without reconnecting. Then repeat with the full
-  fuel/addon/shader sequence and cover horizontal and dimension relocation.
+  fuel/addon/shader sequence. Cover `+17Y` absolute sync, a smaller relative teleport,
+  occupied/local-driver and third-party-observer paths, ordinary driving, unmanned
+  coasting, horizontal relocation, dimension transfer and reconnect.
 - Complete the exact-JAR two-client smoke on a dedicated server with Automobility,
   Momentum, RIA, Autoradio and the compatible Roadworks build. Cover driving, observer
   tracking, run-over damage, attachment menu removal, item drops, dismounting, persistence,
@@ -133,6 +142,6 @@ Minecraft Java 26.2 Fabric port.
 
 - Download the public Modrinth file and compare its SHA-256 with the value above.
 - Confirm the anonymous Modrinth API, CDN download and Maven coordinate all return
-  the `.32` artifact before publishing dependants that require it.
+  the `.33` artifact before publishing dependants that require it.
 - Confirm Modrinth shows Fabric and only Minecraft 26.2 for this file.
 - Confirm Fabric API is required and both Controlify and Momentum are optional.
