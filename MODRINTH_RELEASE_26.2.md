@@ -123,6 +123,12 @@ Minecraft Java 26.2 Fabric port.
   the automobile moved, settled and remained visible without changing fuel.
 - Exact `.33` same-client disconnect/reconnect and Autoradio interaction smoke: passed
   on 2026-09-08; mount state and the radio's Next/progress controls remained usable.
+- Immutable full-stack runtime logs are preserved under
+  `C:\Users\david\RosenvikCanary\graphics-fixes-20260908`: client
+  `survival-ecosystem-1\auto33-teleport-coast-reconnect-exit.log` has SHA-256
+  `AA320622BDC530CE3AB004128BCE2F59A15792A412276BFAAD6B7D382E395A67`; server
+  `server-run-survival-1\auto33-teleport-coast-reconnect-exit.log` has SHA-256
+  `DABB00E9A8EF1AABC7C10E523A0B7816E3436731E168AAD9B8F59DC3F5F5E419`.
 - Exact `.33` held-key/manual driving continuity: **NOT PROVEN**.
 - Exact `.33` small relocation as seen by a third-party client and the complete
   exact-artifact two-client ecosystem smoke: **NOT PROVEN**.
