@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.0-unofficial.34 - 2026-09-12 (UNPUBLISHED CANDIDATE)
+
+### Fixed
+
+- Animals no longer board automobiles automatically or through normal mounting,
+  including rear passenger seats. This covers land animals, aquatic animals and bats.
+- Animals already riding an automobile in an older save safely dismount on the
+  next server tick. Players and non-animal mobs retain their existing boarding rules.
+- Carries forward the unpublished `.33` position-sync rendering repairs.
+
+### Verification status
+
+- Build, regression and dedicated-server checks are pending for these new bytes.
+- Previous `.33` evidence remains historical; public release approval is pending.
+
 ## 0.5.0-unofficial.33 - 2026-09-08 (UNPUBLISHED CANDIDATE)
 
 Client position-packet reconciliation for the unofficial Minecraft Java 26.1.x

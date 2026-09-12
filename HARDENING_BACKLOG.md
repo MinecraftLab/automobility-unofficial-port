@@ -1,6 +1,6 @@
 # Automobility hardening backlog
 
-This file separates release gates for `0.5.0-unofficial.33` from changes that
+This file separates release gates for `0.5.0-unofficial.34` from changes that
 need a versioned follow-up. It is not a promise that every item belongs in the
 same release.
 
@@ -8,10 +8,14 @@ The unpublished `.32` 26.2 candidate is `REJECTED-RUNTIME` because it intercepte
 the wrong vanilla packet path and still left a parked automobile's model at its
 old altitude after a large same-dimension teleport. Its 26.1.2 counterpart is
 `SUPERSEDED-UNTESTED`. Their JARs and source bundles are retained only as immutable
-evidence and must not be uploaded or integrated into a public pack. `.33` is the
-current unpublished replacement candidate.
+evidence and must not be uploaded or integrated into a public pack. `.34` adds
+animal-passenger prevention to the unpublished `.33` position-sync candidate.
 
-## Required before publishing `.33`
+## Required before publishing `.34`
+
+- Verify animal boarding rejection, rear seats, dismount of restored animals, and
+  unchanged player/non-animal boarding on both targets. Earlier `.33` runtime
+  results remain historical until applicable checks run against the new bytes.
 
 - Run the exact release-candidate JARs with two distinct clients and a dedicated
   server. Cover driving input and expiry, observer tracking, run-over damage,
@@ -20,7 +24,7 @@ current unpublished replacement candidate.
   coasting, horizontal relocation, dimension transfer, attachment menu removal
   and drops, dismounting, reconnect, save/reload and a full server restart.
   Preserve both client logs and the server log.
-- Replace Pumps & Pistons/Roadworks' prior exact candidate pin with the exact `.33`
+- Replace Pumps & Pistons/Roadworks' prior exact candidate pin with the exact `.34`
   candidate, then test it in a separate lane. Do not combine that lane with
   Fuel System while the declared conflict remains.
 - Confirm the canonical source and issue URLs are anonymously reachable again.
@@ -33,7 +37,7 @@ Fuel System `1.8.0` currently pins exact Automobility `.29`. Updating that addon
 is ecosystem follow-up work, not a blocker for publishing the standalone
 Automobility `.33` files.
 
-## Candidate work for `.34+`
+## Candidate work for `.35+`
 
 - Give Momentum's brake/drift packet a heartbeat and server-side expiry so a
   frozen client cannot leave either state latched until disconnect.
