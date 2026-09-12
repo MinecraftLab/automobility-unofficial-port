@@ -32,6 +32,19 @@ dependencies {
     implementation(project.project(":common").sourceSets.getByName("main").output)
 }
 
+// Explicit opt-in fixture, deliberately separate from the production artifact.
+val animalBoardingQa = sourceSets.create("animalBoardingQa") {
+    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+    runtimeClasspath += output + compileClasspath
+}
+
+tasks.register<Jar>("animalBoardingQaJar") {
+    dependsOn(tasks.named(animalBoardingQa.classesTaskName))
+    from(animalBoardingQa.output)
+    archiveFileName.set("automobility-animal-boarding-qa.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("qa"))
+}
+
 val automobilityLiteClientExcludes = listOf(
     "**/AutomobilityClient.java",
     "**/automobile/render/item/**",
@@ -84,7 +97,9 @@ tasks {
 
     // put all artifacts in the right directory
     withType<Jar> {
-        destinationDirectory = rootDir.resolve(project.name).resolve("build").resolve("libs")
+        destinationDirectory = layout.buildDirectory.dir(
+            if (name == "animalBoardingQaJar") "qa" else "libs"
+        )
     }
 
     named<Jar>("jar") {

@@ -65,6 +65,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.ambient.AmbientCreature;
+import net.minecraft.world.entity.animal.AgeableWaterCreature;
+import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.fish.WaterAnimal;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -910,6 +913,16 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.lastMeasuredPos = this.position();
         }
 
+        if (!this.level().isClientSide()) {
+            // Also release animals restored from older saves or mounted by a forced command.
+            // The immutable passenger list remains safe to iterate as riders dismount.
+            for (Entity passenger : this.getPassengers()) {
+                if (isAnimalPassenger(passenger)) {
+                    passenger.stopRiding();
+                }
+            }
+        }
+
         if (lastWheelAngle != wheelAngle) markDirty();
         lastWheelAngle = wheelAngle;
 
@@ -990,7 +1003,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
                 var touchingEntities = this.level().getEntities(this, this.getBoundingBox().inflate(0.2, 0, 0.2), EntitySelector.pushableBy(this));
                 for (Entity entity : touchingEntities) {
                     if (!entity.hasPassenger(this)) {
-                        if (!entity.isPassenger() && entity.getBbWidth() <= this.getBbWidth() && entity instanceof Mob && !(entity instanceof WaterAnimal)) {
+                        if (!entity.isPassenger() && entity.getBbWidth() <= this.getBbWidth() && entity instanceof Mob && this.canAddPassenger(entity)) {
                             entity.startRiding(this);
                         }
                     }
@@ -1826,7 +1839,14 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     @Override
     protected boolean canAddPassenger(Entity passenger) {
-        return this.hasSpaceForPassengers();
+        return !isAnimalPassenger(passenger) && this.hasSpaceForPassengers();
+    }
+
+    private static boolean isAnimalPassenger(Entity passenger) {
+        return passenger instanceof Animal
+                || passenger instanceof WaterAnimal
+                || passenger instanceof AgeableWaterCreature
+                || passenger instanceof AmbientCreature;
     }
 
     @Override
