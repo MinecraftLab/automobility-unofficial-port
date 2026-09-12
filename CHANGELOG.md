@@ -12,7 +12,9 @@
 
 ### Verification status
 
-- Build, regression and dedicated-server checks are pending for these new bytes.
+- Both targets passed 107 unit tests and the exact artifact gate. A separate
+  dedicated-server fixture passed 22 animal-boarding scenario groups per target,
+  including 17 animal types, rear seats and mixed-passenger NBT reconstruction.
 - Previous `.33` evidence remains historical; public release approval is pending.
 
 ## 0.5.0-unofficial.33 - 2026-09-08 (UNPUBLISHED CANDIDATE)

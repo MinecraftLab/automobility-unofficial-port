@@ -57,8 +57,10 @@ rendering repairs described in CHANGELOG.md.
 ## Verification Record
 
 - Base: `.33` at `5d91f9c22c615f723e9180ea59f8470ed977dbb6`.
-- New `.34` clean build, unit suites and JAR integrity: **PENDING**.
-- Exact staged-JAR and release-record hash gate: **PENDING**.
+- New `.34` clean build, unit suites and JAR integrity: **PASS** on 2026-09-12;
+  107 tests passed, 0 failed and 0 skipped (Fabric 73; Momentum 34).
+- Exact staged-JAR and release-record hash gate: **PASS** on 2026-09-12.
+  A clean no-cache rebuild reproduced size, SHA-256 and SHA-512 for both modules.
 - Dedicated-server animal boarding, existing animal dismount and non-animal
   passenger control: **PASS**, 22 scenario groups on 2026-09-12, including 17
   animal types and NBT save/load with mixed passengers. Server stopped with exit 0.
