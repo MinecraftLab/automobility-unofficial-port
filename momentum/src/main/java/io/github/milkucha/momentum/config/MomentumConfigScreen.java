@@ -8,6 +8,7 @@ import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
 import dev.isxander.yacl3.api.controller.BooleanControllerBuilder;
 import com.mojang.blaze3d.platform.InputConstants;
+import io.github.milkucha.momentum.input.LegacyKeyCodes;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import dev.isxander.yacl3.api.controller.ColorControllerBuilder;
 import dev.isxander.yacl3.api.controller.FloatSliderControllerBuilder;
@@ -342,9 +343,9 @@ public class MomentumConfigScreen {
                 .group(OptionGroup.createBuilder()
                         .name(text("group.key_bindings"))
                         .option(LabelOption.create(text("key_binding.brake",
-                                InputConstants.Type.KEYSYM.getOrCreate(localCfg.brakeKey).getDisplayName())))
+                                InputConstants.Type.KEYBOARD.getOrCreate(LegacyKeyCodes.toScancode(localCfg.brakeKey)).getDisplayName())))
                         .option(LabelOption.create(text("key_binding.handbrake",
-                                InputConstants.Type.KEYSYM.getOrCreate(localCfg.driftKey).getDisplayName())))
+                                InputConstants.Type.KEYBOARD.getOrCreate(LegacyKeyCodes.toScancode(localCfg.driftKey)).getDisplayName())))
                         .option(LabelOption.create(text("key_binding.remap_hint")))
                         .build())
                 .build();

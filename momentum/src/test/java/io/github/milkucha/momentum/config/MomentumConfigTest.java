@@ -9,6 +9,28 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MomentumConfigTest {
+    @Test
+    void keyCodesRemainLegacyValuesAcrossJsonRoundTrip() {
+        var config = new Gson().fromJson("{\"brakeKey\":340,\"driftKey\":-1}", MomentumConfig.class);
+        config.sanitize();
+        var reloaded = new Gson().fromJson(new Gson().toJson(config), MomentumConfig.class);
+        reloaded.sanitize();
+
+        assertEquals(340, reloaded.brakeKey);
+        assertEquals(-1, reloaded.driftKey);
+    }
+
+    @Test
+    void invalidKeyCodesFallBackToLegacyDefaultsWithoutNativeLibraries() {
+        var config = new MomentumConfig();
+        config.brakeKey = Integer.MAX_VALUE;
+        config.driftKey = Integer.MIN_VALUE;
+        config.sanitize();
+
+        assertEquals(83, config.brakeKey);
+        assertEquals(32, config.driftKey);
+    }
+
     @AfterEach
     void clearServerConfig() {
         MomentumConfig.clearServerGameplayConfig();

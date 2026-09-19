@@ -1,7 +1,7 @@
 package io.github.milkucha.momentum;
 
 /**
- * Shared brake state between the client-only GLFW polling code and the
+ * Shared brake state between the client-only SDL polling code and the
  * both-sides AutomobileEntityMixin.
  *
  * Kept in a class with zero client-specific imports so it can be safely

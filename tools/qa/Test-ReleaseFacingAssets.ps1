@@ -106,8 +106,8 @@ function Assert-CanonicalContact {
 
     Assert-True ($null -ne $Manifest.contact) "Missing contact block for $($Manifest.id)."
     Assert-True ($Manifest.contact.homepage -eq $Homepage) "Unexpected homepage for $($Manifest.id)."
-    Assert-True ($Manifest.contact.sources -eq 'https://github.com/nickynicolaus/automobility-unofficial-port') "Unexpected source URL for $($Manifest.id)."
-    Assert-True ($Manifest.contact.issues -eq 'https://github.com/nickynicolaus/automobility-unofficial-port/issues') "Unexpected issue URL for $($Manifest.id)."
+    Assert-True ($Manifest.contact.sources -eq 'https://git.offchunk.com/Offchunk/automobility-unofficial-port') "Unexpected source URL for $($Manifest.id)."
+    Assert-True ($Manifest.contact.issues -eq 'https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues') "Unexpected issue URL for $($Manifest.id)."
 }
 
 function Assert-LocalMarkdownImages {
@@ -144,6 +144,7 @@ function Assert-LocalMarkdownImages {
 }
 
 $root = [System.IO.Path]::GetFullPath($RepositoryRoot)
+$activeProperties = Read-GradleProperties -Path (Join-Path $root 'gradle.properties')
 $publicMarkdown = @(
     'README.md',
     'CHANGELOG.md',
@@ -155,8 +156,10 @@ $publicMarkdown = @(
     'MOMENTUM_MODRINTH_DESCRIPTION.md',
     'MOMENTUM_MODRINTH_RELEASE_26.1.2.md',
     'MOMENTUM_MODRINTH_RELEASE_26.2.md',
-    'momentum/README.md'
-) | ForEach-Object { Join-Path $root $_ }
+    'momentum/README.md',
+    "MODRINTH_RELEASE_$($activeProperties.minecraft_version).md",
+    "MOMENTUM_MODRINTH_RELEASE_$($activeProperties.minecraft_version).md"
+) | Select-Object -Unique | ForEach-Object { Join-Path $root $_ }
 
 foreach ($path in $publicMarkdown) {
     Assert-True (Test-Path -LiteralPath $path -PathType Leaf) "Missing release-facing document: $path"
@@ -167,8 +170,10 @@ $releaseRecordPaths = @(
     'MODRINTH_RELEASE_26.1.2.md',
     'MODRINTH_RELEASE_26.2.md',
     'MOMENTUM_MODRINTH_RELEASE_26.1.2.md',
-    'MOMENTUM_MODRINTH_RELEASE_26.2.md'
-) | ForEach-Object { Join-Path $root $_ }
+    'MOMENTUM_MODRINTH_RELEASE_26.2.md',
+    "MODRINTH_RELEASE_$($activeProperties.minecraft_version).md",
+    "MOMENTUM_MODRINTH_RELEASE_$($activeProperties.minecraft_version).md"
+) | Select-Object -Unique | ForEach-Object { Join-Path $root $_ }
 $targetScopeGuard = 'Target-scoped release record:'
 foreach ($path in $releaseRecordPaths) {
     $content = Get-Content -LiteralPath $path -Raw

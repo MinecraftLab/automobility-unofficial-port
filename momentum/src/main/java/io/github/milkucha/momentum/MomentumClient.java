@@ -5,6 +5,7 @@ import io.github.foundationgames.automobility.platform.Platform;
 import io.github.milkucha.momentum.accessor.SteeringDebugAccessor;
 import io.github.milkucha.momentum.config.MomentumConfig;
 import io.github.milkucha.momentum.hud.BarHud;
+import io.github.milkucha.momentum.input.LegacyKeyCodes;
 import io.github.milkucha.momentum.network.KeyStatePacket;
 import io.github.milkucha.momentum.network.GameplayConfigPacket;
 import io.github.milkucha.momentum.network.VehicleInputPacket;
@@ -27,7 +28,6 @@ import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
-import org.lwjgl.glfw.GLFW;
 
 public class MomentumClient implements ClientModInitializer {
     private static final KeyMapping.Category MOMENTUM_CATEGORY =
@@ -35,7 +35,7 @@ public class MomentumClient implements ClientModInitializer {
 
     // ── Registered KeyBindings ────────────────────────────────────────────────
     // NOTE: Brake and Drift keys are NOT registered as Minecraft KeyBindings.
-    // They are stored in MomentumConfig as GLFW key codes (brakeKey / driftKey).
+    // Persisted legacy GLFW codes are translated to SDL scancodes at the input boundary.
     // This avoids Fabric's key conflict suppression in multiplayer - registering
     // them on Space/S would interfere with vanilla Jump and Move Backwards.
 
@@ -96,8 +96,8 @@ public class MomentumClient implements ClientModInitializer {
 
         KeyMapping reloadKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.momentum.reload_config",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_F6,
+                InputConstants.Type.KEYBOARD,
+                InputConstants.KEY_F6,
                 MOMENTUM_CATEGORY
         ));
 
@@ -105,8 +105,8 @@ public class MomentumClient implements ClientModInitializer {
         if (FabricLoader.getInstance().isModLoaded("yet_another_config_lib_v3")) {
             openOptionsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                     "key.momentum.open_options",
-                    InputConstants.Type.KEYSYM,
-                    GLFW.GLFW_KEY_PERIOD,
+                    InputConstants.Type.KEYBOARD,
+                    InputConstants.KEY_PERIOD,
                     MOMENTUM_CATEGORY
             ));
         } else {
@@ -115,26 +115,26 @@ public class MomentumClient implements ClientModInitializer {
 
         KeyMapping cruiseKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.momentum.cruise_control",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_C,
+                InputConstants.Type.KEYBOARD,
+                InputConstants.KEY_C,
                 MOMENTUM_CATEGORY
         ));
         KeyMapping cruiseIncreaseKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.momentum.cruise_increase",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_PAGE_UP,
+                InputConstants.Type.KEYBOARD,
+                InputConstants.KEY_PAGEUP,
                 MOMENTUM_CATEGORY
         ));
         KeyMapping cruiseDecreaseKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.momentum.cruise_decrease",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_PAGE_DOWN,
+                InputConstants.Type.KEYBOARD,
+                InputConstants.KEY_PAGEDOWN,
                 MOMENTUM_CATEGORY
         ));
         KeyMapping cruiseResumeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.momentum.cruise_resume",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_R,
+                InputConstants.Type.KEYBOARD,
+                InputConstants.KEY_R,
                 MOMENTUM_CATEGORY
         ));
 
@@ -159,11 +159,10 @@ public class MomentumClient implements ClientModInitializer {
                     && auto.isDriving(client.player);
 
             if (locallyDriving && client.gui.screen() == null) {
-                long window = client.getWindow().handle();
                 MomentumConfig config = MomentumConfig.get();
                 var controller = Platform.get().controller();
-                MomentumBrakeState.brakeHeld = isKeyHeld(config.brakeKey, window) || controller.braking();
-                MomentumDriftState.driftKeyHeld = isKeyHeld(config.driftKey, window) || controller.drifting();
+                MomentumBrakeState.brakeHeld = isKeyHeld(config.brakeKey) || controller.braking();
+                MomentumDriftState.driftKeyHeld = isKeyHeld(config.driftKey) || controller.drifting();
             } else {
                 MomentumBrakeState.brakeHeld = false;
                 MomentumDriftState.driftKeyHeld = false;
@@ -408,12 +407,12 @@ public class MomentumClient implements ClientModInitializer {
     }
 
     /**
-     * Returns true if the given GLFW key code is currently held down.
-     * Reads raw GLFW state - does not consume key events or interfere with
+     * Returns true if the persisted legacy key is currently held down.
+     * Reads Minecraft's SDL-backed state - does not consume key events or interfere with
      * vanilla key bindings (Jump, Move Backwards, etc.).
      */
-    private static boolean isKeyHeld(int glfwKeyCode, long windowHandle) {
-        return glfwKeyCode != GLFW.GLFW_KEY_UNKNOWN
-                && GLFW.glfwGetKey(windowHandle, glfwKeyCode) == GLFW.GLFW_PRESS;
+    private static boolean isKeyHeld(int legacyKeyCode) {
+        int scancode = LegacyKeyCodes.toScancode(legacyKeyCode);
+        return scancode != LegacyKeyCodes.UNKNOWN && InputConstants.isKeyDown(scancode);
     }
 }

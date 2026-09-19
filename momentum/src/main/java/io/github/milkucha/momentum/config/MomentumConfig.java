@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import io.github.milkucha.momentum.Momentum;
 import net.fabricmc.loader.api.FabricLoader;
-import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -30,10 +29,10 @@ public class MomentumConfig {
     /** Last hand-tuned chassis values, retained while a named preset is active. */
     public DrivingSettings customDrivingSettings;
 
-    /** GLFW key code for the brake action. Default: S (83). Edit in momentum.json to remap. */
-    public int brakeKey = GLFW.GLFW_KEY_S;
-    /** GLFW key code for the handbrake/drift action. Default: Space (32). Edit in momentum.json to remap. */
-    public int driftKey = GLFW.GLFW_KEY_SPACE;
+    /** Legacy GLFW key code, retained for config compatibility. Default: S (83). */
+    public int brakeKey = 83;
+    /** Legacy GLFW key code, retained for config compatibility. Default: Space (32). */
+    public int driftKey = 32;
 
     public Movement movement = new Movement();
     public Steering steering = new Steering();
@@ -578,7 +577,7 @@ public class MomentumConfig {
     }
 
     private static int validKey(int key, int fallback) {
-        return key >= GLFW.GLFW_KEY_UNKNOWN && key <= GLFW.GLFW_KEY_LAST ? key : fallback;
+        return key >= -1 && key <= 348 ? key : fallback;
     }
 
     private static float finite(float value, float min, float max, float fallback) {

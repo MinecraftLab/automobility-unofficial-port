@@ -296,7 +296,7 @@ public class AutoMechanicTableScreen extends AbstractContainerScreen<AutoMechani
                 188, 17 + (hoveredCatButton > 0 ? CATEGORY_BUTTON_HEIGHT : 0), CATEGORY_BUTTON_WIDTH, CATEGORY_BUTTON_HEIGHT, 256, 256);
 
         if (this.categoryTitle != null) {
-            graphics.centeredText(this.font, this.categoryTitle, this.leftPos + 120, this.topPos + 8, 0xFFFFFF);
+            graphics.centeredText(this.font, this.categoryTitle, this.leftPos + 120, this.topPos + 8, 0xFFFFFFFF);
         }
     }
 

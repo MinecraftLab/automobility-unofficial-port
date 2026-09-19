@@ -30,6 +30,10 @@ public final class AnimalBoardingQa implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        if (Boolean.getBoolean("automobility.qa.showcase263")) {
+            Showcase263Qa.initialize();
+            return;
+        }
         ServerLifecycleEvents.SERVER_STARTED.register(server -> server.overworld().setChunkForced(0, 0, true));
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             if (this.finished) return;
@@ -160,6 +164,9 @@ public final class AnimalBoardingQa implements ModInitializer {
                 require(!AutoMechanicTableScreenHandler.OpeningData.fromLevel(level).recipes().isEmpty(), "mechanic recipes loaded from 26.3 registries");
                 paverCar.discard();
                 logger.info("AUTO263_PORT_SMOKE_PASS checks=5");
+                if (Boolean.getBoolean("automobility.qa.ecosystem263")) {
+                    Ecosystem263Qa.run(server);
+                }
             } catch (Throwable failure) {
                 logger.error("AUTO34_ANIMAL_BOARDING_FAIL after checks=" + checks, failure);
             } finally {

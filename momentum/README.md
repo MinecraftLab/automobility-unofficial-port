@@ -1,20 +1,32 @@
 # Momentum for Automobility: Unofficial Port
 
-This subproject is an unofficial Fabric port of [Momentum for Automobility](https://modrinth.com/mod/momentum-for-automobility) by milkucha for Minecraft Java 26.x. Releases are built per Minecraft target, such as 26.1.x and 26.2.
+This subproject is an unofficial Fabric port of [Momentum for Automobility](https://modrinth.com/mod/momentum-for-automobility) by milkucha for Minecraft Java 26.x. This branch builds the Minecraft **26.3** candidate; older Minecraft targets use separate builds.
 
 Momentum changes Automobility vehicle movement feel and adds a compact driving dashboard. It is optional, but when used in multiplayer it must be installed on both the client and the server.
 
 ## Requirements
-- A matching Minecraft Java 26.x build
-- Fabric Loader 0.19.2+ for Minecraft 26.1.x, or 0.19.3+ for Minecraft 26.2
-- Fabric API matching the Minecraft build
+- Minecraft Java 26.3
+- Fabric Loader 0.19.5+
+- Fabric API 0.161.0+26.3 or newer for this Minecraft target
 - Java 25 or newer
-- Automobility `0.5.0-unofficial.29` or newer
+- The Minecraft 26.3 build of Automobility `0.5.0-unofficial.34` or newer
 
 ## Optional
-- YACL 3.x for the in-game options screen
-- Mod Menu exposes Momentum's options button when YACL is also installed
-- Controlify 3.0.2+ for native controller bindings, contextual button guides, and radial-menu actions
+- YACL `3.9.6+26.3-fabric` for the in-game options screen
+- Mod Menu `21.0.0-beta.1` exposes Momentum's options button when YACL is also installed
+- The optional Controlify adapter is retained, but **Controlify on 26.3 is not verified**:
+  no public Fabric 26.3 build was available when checked on 2026-09-19. Do not install a
+  26.2 Controlify JAR into 26.3 or override its Minecraft dependency.
+
+## Minecraft 26.3 input compatibility
+
+Minecraft 26.3 uses SDL keyboard scancodes. Momentum's registered controls use that API.
+Existing `momentum.json` `brakeKey` and `driftKey` numbers intentionally retain their legacy
+GLFW meaning (default `83` = S, `32` = Space, `-1` = unbound). They are translated when
+polled and displayed, not rewritten when saving, so a shared configuration is not silently
+rebound. Letters, digits, punctuation, navigation, modifiers, keypad, and F1-F24 are covered.
+The platform-specific legacy `WORLD_1` / `WORLD_2` and F25 have no portable mapping and are
+treated as unbound; choose a supported key for those unusual configurations.
 
 ## Port Status
 - Vehicle acceleration, coasting, braking, steering, and drift profiles are ported.
@@ -26,7 +38,10 @@ Momentum changes Automobility vehicle movement feel and adds a compact driving d
 - The original bar-and-text speed HUD remains selectable as a legacy layout.
 - Cruise control uses `C` to set or cancel, `Page Up` / `Page Down` to adjust the
   target, and `R` to resume the last set speed. All four bindings are remappable.
-- With Controlify installed, all cruise actions appear in the Driving controller category and can
+- When combining with RIAutomobility, keep its seat-switch binding separate from Momentum's
+  resume binding. The coordinated 26.3 RIA default is `G`, chosen by the user after finding
+  the old `R` collision; existing saved bindings should be checked in Controls.
+- On a supported Controlify build, all cruise actions appear in the Driving controller category and can
   be placed on the radial menu. Momentum intentionally leaves physical buttons unassigned by
   default so it never overrides a player's existing gamepad layout.
 - Brake and drift key state sync works on dedicated servers.

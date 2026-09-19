@@ -402,7 +402,7 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
      * Active when profile == ARCADE.
      *
      * Independent of Automobility's drifting/holdingDrift/turboCharge pipeline.
-     * Reads the Drift keybinding state (polled from GLFW/KeyBinding in START_CLIENT_TICK).
+     * Reads the Drift keybinding state (polled from SDL/KeyMapping in START_CLIENT_TICK).
      *
      * Rising edge + conditions → set arcadeDriftActive, snap arcadeDriftOffset to initial slip.
      * While drift held → converge offset to slipAngle; cancel if speed drops.
