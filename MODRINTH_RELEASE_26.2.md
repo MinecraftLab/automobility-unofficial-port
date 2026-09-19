@@ -4,15 +4,15 @@
 > `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
 > files in this branch are retained only as historical snapshots.
 
-**Status: CANDIDATE IN VERIFICATION - NOT APPROVED FOR UPLOAD.**
+**Status: BETA PUBLICATION AUTHORIZED BY OWNER ON 2026-09-19; FINAL ARTIFACT CHECKS PASS.**
 
 ## Project
 
 - Project: `https://modrinth.com/mod/automobility-unofficial-port`
 - Environment: `Client and server, required on both`
 - License: MIT
-- Source: `https://github.com/nickynicolaus/automobility-unofficial-port`
-- Issues: `https://github.com/nickynicolaus/automobility-unofficial-port/issues`
+- Source: `https://git.offchunk.com/Offchunk/automobility-unofficial-port`
+- Issues: `https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues`
 
 ## Version Form
 
@@ -36,9 +36,9 @@ dependency updates before combining them with `.34`.
 ## Upload File
 
 - Local JAR: `dist\release-candidate-0.5.0-unofficial.34\automobility-0.5.0-unofficial.34+26.2-fabric.jar`
-- Size: `1399096` bytes
-- SHA-256: `E8C825FD7851EAFA001F5836548265321703496D76C246267162342F808F8D21`
-- SHA-512: `78A4DC236FBA31CE84C1C4332D0CD654EE85313AEFEEEAEF86ECF561DB0C75CC2A5073C545224FE394790763AD7B5BB457F53FE4C9BC68429E74E12D37075A8E`
+- Size: `1399097` bytes
+- SHA-256: `87DC331C2F3216381A7EB588BA2259420762603650CE14A60458704244B87D33`
+- SHA-512: `C99F9B68C42E7EE04B4671C606520A1E0E7CB22FAC74FF43C54145B84BD651437C76A089705F249EC40318B35FE90A3466654E3BCD1261504E09559670723D7C`
 
 ## Version Changelog
 
@@ -50,12 +50,33 @@ Animals no longer occupy automobile seats.
 - Animals already seated in an older save dismount safely on the next server tick.
 - Players and non-animal mobs keep their existing boarding behavior.
 
-Includes the unpublished .31 security/data-safety fixes and .33 position-sync
-rendering repairs described in CHANGELOG.md.
+Also includes the previously unpublished security, data-safety and position-sync repairs:
+
+- Hardened vehicle input handling and attachment requests; clients cannot supply
+  arbitrary physics, collision-damage or position values through the legacy packet.
+- Added world-border and vanilla spawn-protection checks for harvester/plow changes.
+- Preserved missing-addon component IDs and attachment inventory data across saves.
+- Bounded datapack physics values, fixed raw automobile placement and stale menus.
+- Repaired automobile/attachment rendering after server position corrections.
+- Updated source and issue links to git.offchunk.com.
+
+Beta: automated unit and dedicated-server animal-boarding tests are covered.
+Fresh manual driving, two-client observation and full modpack acceptance are not
+yet confirmed for this build. Back up worlds and match addon dependency ranges;
+older Pumps & Pistons/Roadworks candidates pinned to .33 require an addon update.
 ```
 
 ## Verification Record
 
+- Offchunk final artifact, 2026-09-19: clean no-cache default gate **PASS**, 107 tests,
+  exact staged size/SHA-256/SHA-512 and licenses/metadata verified. Comparing all 761
+  uncompressed JAR entries against the 2026-09-12 candidate found only
+  `fabric.mod.json` changed (source/issues URLs); no test fixture is in production.
+- Fresh isolated 26.2 server with the final staged JAR: **PASS checks=22**, normal
+  save/stop and exit 0. Log `animal-boarding-offchunk-20260919.log` under the documented
+  QA directory, SHA-256 `A6D50587815773CEC560EAE81698FA09DFD8E60A8EE07FA80B5E93E0AA98CCF3`.
+- Original pre-Offchunk artifacts remain in `dist/archive-20260912-pre-offchunk`;
+  the following 2026-09-12 results describe those historical bytes, not the new hashes.
 - Base: `.33` at `dea66f3b7b36a23ce3358dfdd483814bdffd6f41`.
 - New `.34` clean build, unit suites and JAR integrity: **PASS** on 2026-09-12;
   107 tests passed, 0 failed and 0 skipped (Fabric 73; Momentum 34).
@@ -70,14 +91,16 @@ rendering repairs described in CHANGELOG.md.
 - Held-key/manual driving, two-client observer, horizontal/dimension transfer,
   full persistence/missing-addon/spawn-protection and ecosystem acceptance:
   **NOT PROVEN for .34**.
-- Public source/issues availability and explicit upload approval remain release gates.
+- Owner explicitly requested Modrinth publication on 2026-09-19. Manual acceptance
+  is not implied by that request; the unproven coverage above remains disclosed.
+- Anonymous Offchunk source/issues and final artifact checks must pass before upload.
 
 ## Before Upload
 
 - Run `tools\qa\Test-Automobility.ps1 -Rebuild` against the final staged artifacts.
-- Verify the target-specific ecosystem dependency ranges and player acceptance.
+- Keep limited beta coverage explicit; do not claim full ecosystem/player acceptance.
 - Confirm canonical source and issue URLs are anonymously reachable; preserve the
-  existing account recovery process.
+  upstream attribution and MIT notices.
 - Upload only after approval, using the exact JAR and metadata in this record.
 
 ## After Upload

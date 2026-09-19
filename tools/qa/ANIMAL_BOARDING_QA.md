@@ -56,3 +56,15 @@ SHA-256 of the retained logs:
 
 The existing Windows OSHI/Perflib counter diagnostic can appear during startup.
 It does not replace checking the fixture's explicit pass marker and clean stop.
+
+## Offchunk publication recheck, 2026-09-19
+
+The final 26.2 JAR in the target release record passed all 22 scenario groups in a
+fresh world selected with `--world animal-boarding-offchunk-20260919`. Log:
+`C:\Users\david\Automobility-34-Animal-Boarding-QA\26.2\animal-boarding-offchunk-20260919.log`.
+SHA-256: `A6D50587815773CEC560EAE81698FA09DFD8E60A8EE07FA80B5E93E0AA98CCF3`.
+The server saved and stopped normally with exit 0; loopback port 25661 was released.
+
+The old and new production JARs each contain 761 entries; only `fabric.mod.json`
+differs, exclusively in its Offchunk source/issues links. Original JARs and logs
+remain available. This is dedicated-server evidence, not manual client acceptance.

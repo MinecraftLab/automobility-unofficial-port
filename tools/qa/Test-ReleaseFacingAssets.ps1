@@ -106,8 +106,8 @@ function Assert-CanonicalContact {
 
     Assert-True ($null -ne $Manifest.contact) "Missing contact block for $($Manifest.id)."
     Assert-True ($Manifest.contact.homepage -eq $Homepage) "Unexpected homepage for $($Manifest.id)."
-    Assert-True ($Manifest.contact.sources -eq 'https://github.com/nickynicolaus/automobility-unofficial-port') "Unexpected source URL for $($Manifest.id)."
-    Assert-True ($Manifest.contact.issues -eq 'https://github.com/nickynicolaus/automobility-unofficial-port/issues') "Unexpected issue URL for $($Manifest.id)."
+    Assert-True ($Manifest.contact.sources -eq 'https://git.offchunk.com/Offchunk/automobility-unofficial-port') "Unexpected source URL for $($Manifest.id)."
+    Assert-True ($Manifest.contact.issues -eq 'https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues') "Unexpected issue URL for $($Manifest.id)."
 }
 
 function Assert-LocalMarkdownImages {

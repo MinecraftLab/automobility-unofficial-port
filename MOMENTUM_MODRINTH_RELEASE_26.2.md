@@ -6,6 +6,9 @@
 
 Use this file for the 26.2 upload after the release candidate passes the in-game smoke test.
 
+2026-09-19: the Offchunk-link rebuild below is a local QA companion only. This
+Automobility release does not publish or replace any Momentum version.
+
 ## Project
 
 - Project: `https://modrinth.com/mod/momentum-for-automobility-unofficial-port`
@@ -34,9 +37,9 @@ Controlify adds Momentum's native cruise-control bindings, contextual controller
 ## Upload File
 
 - Local JAR: `dist\release-candidate-0.1.11-unofficial.10\momentum-0.1.11-unofficial.10+26.2-fabric.jar`
-- Size: `214657` bytes
-- SHA-256: `810C22307B3F1309342B0E8DE6FAC4D10641677E38EA628552E2AA74D627C939`
-- SHA-512: `B6DBF2E18ACDC9202D3C77AC2BFEB563D1FB66C926DE755C9C45702520BF6C444951CE6F5891867555D07EC3C0C492B9DDDA06B36D35AFCA57FAA15D20311BC5`
+- Size: `214656` bytes
+- SHA-256: `3A56FBFA97851394306181E327199382077DE467C4AA71FBBF36B92D2FA63C0D`
+- SHA-512: `067E5D7EEF89D21EF68EA95B27EB56029F312323F79A3D6AD190DD4B7197302729C1A3ECDEAAEA7F733FB479326F06F747483B32CF39AF890EC8715CE70A9232`
 
 ## Version Changelog
 
@@ -59,7 +62,7 @@ Native controller-support release for the unofficial Minecraft Java 26.2 Fabric 
 ## Before Upload
 
 - Complete the 26.2 client singleplayer and multiplayer smoke tests with the matching Automobility `.31` JAR.
-- Push the `port/26.2` branch and create the matching GitHub release.
+- Push the `port/26.2` branch and create the matching Forgejo release.
 - Upload exactly the JAR and metadata listed above.
 - Keep the version as beta while the port still has limited public testing.
 
