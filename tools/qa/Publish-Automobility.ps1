@@ -58,7 +58,7 @@ $dependencies = @(
 )
 $body = @{
     project_id = 'B6d5S1wQ'; name = "for Minecraft $target"; version_number = $version
-    changelog = $changelog; dependencies = $dependencies; game_versions = $gameVersions
+    changelog = $changelog; dependencies = $dependencies; game_versions = @($gameVersions)
     version_type = 'beta'; loaders = @('fabric'); featured = $false; status = 'listed'
     environment = 'client_and_server'; file_parts = @('file'); primary_file = 'file'
 }
@@ -113,7 +113,10 @@ try {
             $form.Add($content, 'file', $file.Name)
             $response = $http.PostAsync("$api/version", $form).GetAwaiter().GetResult()
             try {
-                if (-not $response.IsSuccessStatusCode) { throw "Upload failed: HTTP $([int]$response.StatusCode). Check current versions before retrying." }
+                if (-not $response.IsSuccessStatusCode) {
+                    $failure = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json
+                    throw "Upload failed: HTTP $([int]$response.StatusCode), $($failure.error): $($failure.description). Check current versions before retrying."
+                }
                 $created = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json
                 Assert-PublicVersion $created
                 $releaseId = $created.id
