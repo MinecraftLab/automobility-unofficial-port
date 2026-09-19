@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0-unofficial.34 - 2026-09-12 (UNPUBLISHED CANDIDATE)
+## 0.5.0-unofficial.34 - 2026-09-19 (BETA)
 
 ### Fixed
 
@@ -8,14 +8,18 @@
   including rear passenger seats. This covers land animals, aquatic animals and bats.
 - Animals already riding an automobile in an older save safely dismount on the
   next server tick. Players and non-animal mobs retain their existing boarding rules.
-- Carries forward the unpublished `.33` position-sync rendering repairs.
+- Carries forward the `.31` security/data-safety and `.33` position-sync rendering repairs.
+- Source and issue links now use git.offchunk.com.
 
 ### Verification status
 
 - Both targets passed 107 unit tests and the exact artifact gate. A separate
   dedicated-server fixture passed 22 animal-boarding scenario groups per target,
   including 17 animal types, rear seats and mixed-passenger NBT reconstruction.
-- Previous `.33` evidence remains historical; public release approval is pending.
+- Final Offchunk artifacts were rebuilt and server-tested on 2026-09-19. Exact
+  publication/download evidence is in the target-specific release record.
+- Previous `.33` evidence remains historical; fresh manual driving, two-client
+  observation and full modpack acceptance remain unproven for `.34`.
 
 ## 0.5.0-unofficial.33 - 2026-09-08 (UNPUBLISHED CANDIDATE)
 

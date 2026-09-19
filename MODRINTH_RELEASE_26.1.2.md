@@ -4,7 +4,9 @@
 > `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
 > files in this branch are retained only as historical snapshots.
 
-**Status: BETA PUBLICATION AUTHORIZED BY OWNER ON 2026-09-19; FINAL ARTIFACT CHECKS PASS.**
+**Status: PUBLISHED BETA ON 2026-09-19; ANONYMOUS API/CDN HASH VERIFICATION PASS.**
+
+Public version: [0.5.0-unofficial.34+26.1.2](https://modrinth.com/mod/automobility-unofficial-port/version/X8JzLZr8).
 
 ## Project
 
@@ -112,5 +114,8 @@ older Pumps & Pistons/Roadworks candidates pinned to .33 require an addon update
 
 ## After Upload
 
+- 2026-09-19: anonymous API metadata and downloaded CDN size/SHA-256/SHA-512 all
+  matched the artifact above. Receipt: `dist/publication-X8JzLZr8.json`.
+- Matching source: Offchunk branch `fix/automobility-34-no-animal-passengers-26.1.2`.
 - Download the public file and compare size, SHA-256 and SHA-512.
 - Verify anonymous Modrinth metadata, CDN and Maven availability before dependants.
