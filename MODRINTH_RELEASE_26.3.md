@@ -1,8 +1,8 @@
-# Automobility 26.3 candidate
+# Automobility 26.3 beta release
 
 > **Target-scoped release record:** Only for minecraft_version=26.3.
 
-Status: MANUALLY ACCEPTED BETA / FINAL PUBLICATION CHECKS (2026-09-19).
+Status: PUBLISHED AND ANONYMOUSLY VERIFIED (2026-09-19).
 The user accepted the local-driver turning correction in the 4859E013 candidate.
 The newer 9DF5ACCF candidate retains that correction and also fixes remote-vehicle
 interpolation; its real-client packet-handler regression passed 46 checks.
@@ -54,3 +54,19 @@ packet-handler checks passing. The client-only fixture is absent from production
 See PORTING_26.3.md for exact tests and limitations. Build/server checks do not prove
 visual rendering, real-player driving, multiplayer or addon acceptance. Never
 replace the already-published 26.1.x/26.2 files with this target-specific JAR.
+
+## Verified publication
+
+- Modrinth: [WgNM3r8h](https://modrinth.com/mod/automobility-unofficial-port/version/WgNM3r8h).
+- Published: `2026-09-19T19:06:51.618187Z`; status `listed`, channel `beta`.
+- Exact target: Fabric, Minecraft `26.3`, environment `client_and_server`.
+- [Public JAR](https://cdn.modrinth.com/data/B6d5S1wQ/versions/WgNM3r8h/automobility-0.5.0-unofficial.34%2B26.3-fabric.jar).
+- Anonymous API, version page HTTP 200 and fresh CDN download verified; size,
+  SHA-256 and SHA-512 match the accepted file above.
+- [Release source](https://git.offchunk.com/Offchunk/automobility-unofficial-port/commit/9d831488a49a4bb5e167e64894167c5dc1d9aae5) is public on Offchunk.
+- Dependencies: Fabric API required; matching Momentum and RIA projects optional.
+- Final no-cache build: 101 core + 43 Momentum tests, zero failures/errors/skips,
+  and byte-identical production output. Prior runtime/manual receipts are retained.
+
+No older public file was replaced. Test fixtures, normal Minecraft profiles and
+production servers were not included in this publication.

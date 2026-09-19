@@ -1,10 +1,12 @@
-# Momentum Minecraft 26.3 candidate
+# Momentum Minecraft 26.3 release
 
-Status: **manual beta acceptance received; publication checks in progress**. The module build, input-contract tests and
+Status: **published beta q2J8dtUO; anonymous artifact verified**. The module build, input-contract tests and
 combined Automobility + Momentum + RIA dedicated-server regression checks pass.
 An isolated graphical client connected and passed Momentum options-screen smoke checks.
 The user accepted turning and the requested cruise-control check in the final
 three-mod client. Full end-to-end two-real-player/controller coverage is unproven.
+The fresh public CDN download matches the same tested JAR below. See
+`MOMENTUM_MODRINTH_RELEASE_26.3.md` for the version/dependency/source receipt.
 
 ## Changes
 

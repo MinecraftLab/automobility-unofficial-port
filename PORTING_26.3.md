@@ -1,11 +1,11 @@
 # Minecraft 26.3 core port - local candidate
 
-Status on 2026-09-19: **FINAL CANDIDATE MANUALLY ACCEPTED / PUBLICATION CHECKS IN PROGRESS**.
+Status on 2026-09-19: **PUBLISHED / FINAL MANUAL CHECKS ACCEPTED / PUBLIC FILES VERIFIED**.
 Branch `port/26.3`, initially based on Automobility `.34` commit `36f0044`.
 No normal Minecraft profile or production server was changed. The initial core
 port has now been extended to Momentum and tested with a separate RIAutomobility
-26.3 worktree. The final requested manual checks are now accepted; the publication
-receipt below must be verified before claiming a public release.
+26.3 worktree. The final requested manual checks are accepted, and the publication
+receipt below verifies the three public beta artifacts.
 
 ## Build and dependencies
 
@@ -380,3 +380,29 @@ migration trial or controller test is inferred; those remain NOT PROVEN.
 The final staged core is copied byte-for-byte to the canonical release-record
 path, with the old GUI candidate preserved under
 `dist/previous-candidates/gui-before-final-release-20260919`.
+
+### Public beta release completed
+
+On 2026-09-19 at 19:06:51-55 UTC, the exact accepted artifacts were published as
+listed Fabric betas for Minecraft 26.3 only, environment `client_and_server`:
+
+- Automobility `.34+26.3`: `WgNM3r8h`.
+- Momentum `.10+26.3`: `q2J8dtUO`.
+- RIAutomobility `.6+26.3`: `8hM0nOi2`.
+
+The core was anonymously read/downloaded and hash-verified before either addon
+was created. Both addons require that exact public core version; Fabric API is
+required throughout. All three fresh anonymous CDN downloads match size, SHA-256
+and SHA-512 of the tested client files. Each public version page returned HTTP 200.
+The final clean no-cache rebuild passed 171 tests (101 core, 43 Momentum, 27 RIA)
+and reproduced the same artifacts. Public source revisions are core/Momentum
+`9d831488a49a4bb5e167e64894167c5dc1d9aae5` and RIA
+`58dbd25841a0bf5bec52c2b77fc8e92e3fd9ffb5` on Offchunk's `port/26.3` branches.
+
+Exact creation responses, public metadata, verification receipts and fresh JAR
+downloads are retained in
+`C:\Users\david\Automobility-26.3-Release-Verification-20260919`.
+The target-specific Modrinth records contain direct version/CDN/source links.
+No GitHub mutation, replacement of older releases, normal-profile installation or
+production-server deployment occurred. Unrun coverage remains as documented above;
+publication does not turn it into a passing test.

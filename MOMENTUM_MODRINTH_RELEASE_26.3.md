@@ -1,8 +1,8 @@
-# Momentum 26.3 candidate
+# Momentum 26.3 beta release
 
 > **Target-scoped release record:** Only for minecraft_version=26.3.
 
-Status: MANUALLY ACCEPTED BETA / FINAL PUBLICATION CHECKS (2026-09-19).
+Status: PUBLISHED AND ANONYMOUSLY VERIFIED (2026-09-19).
 The user accepted turning and subsequently confirmed the requested cruise,
 G seat-switch and cargo checks with this unchanged Momentum artifact in the final
 three-mod 26.3 client. Two-real-player and controller coverage remain NOT PROVEN.
@@ -35,3 +35,17 @@ controller assignments.
 
 See PORTING_MOMENTUM_26.3.md for exact coverage and limitations. Never replace a
 published 26.1.x/26.2 artifact with this target-specific JAR.
+
+## Verified publication
+
+- Modrinth: [q2J8dtUO](https://modrinth.com/mod/momentum-for-automobility-unofficial-port/version/q2J8dtUO).
+- Published: `2026-09-19T19:06:53.690028Z`; status `listed`, channel `beta`.
+- Exact target: Fabric, Minecraft `26.3`, environment `client_and_server`.
+- [Public JAR](https://cdn.modrinth.com/data/pOgpsBUs/versions/q2J8dtUO/momentum-0.1.11-unofficial.10%2B26.3-fabric.jar).
+- Anonymous API, version page HTTP 200 and fresh CDN download verified; size,
+  SHA-256 and SHA-512 match the accepted file above.
+- Required Automobility version: `WgNM3r8h` (`.34+26.3`), verified publicly first.
+  Fabric API is required; YACL and Mod Menu are optional.
+- [Release source](https://git.offchunk.com/Offchunk/automobility-unofficial-port/commit/9d831488a49a4bb5e167e64894167c5dc1d9aae5) is public on Offchunk.
+
+No older public file, normal profile or production server was changed.
