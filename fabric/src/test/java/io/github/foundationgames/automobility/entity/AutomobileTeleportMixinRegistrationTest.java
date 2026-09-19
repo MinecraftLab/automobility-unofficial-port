@@ -65,11 +65,7 @@ final class AutomobileTeleportMixinRegistrationTest {
                 "method = \"handleMoveEntity\""));
 
         String authoritative = methodBody(automobile, "public void clientOnAuthoritativePositionApplied(");
-        assertTrue(authoritative.contains("this.lerpTicks = 0"));
-        assertTrue(authoritative.contains("this.trackedX = this.getX()"));
-        assertTrue(authoritative.contains("this.trackedY = this.getY()"));
-        assertTrue(authoritative.contains("this.trackedZ = this.getZ()"));
-        assertTrue(authoritative.contains("this.trackedYaw = this.getYRot()"));
+        assertTrue(authoritative.contains("this.getInterpolation().cancel()"));
         assertTrue(authoritative.contains("this.clientAuthoritativePositionRefresh = true"));
 
         String relative = methodBody(automobile, "public void clientOnRelativePositionApplied(");

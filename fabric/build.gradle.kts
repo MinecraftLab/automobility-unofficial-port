@@ -45,6 +45,19 @@ tasks.register<Jar>("animalBoardingQaJar") {
     destinationDirectory.set(layout.buildDirectory.dir("qa"))
 }
 
+// Passive local-driving telemetry. Never included in production or server QA JARs.
+val clientDrivingQa = sourceSets.create("clientDrivingQa") {
+    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+    runtimeClasspath += output + compileClasspath
+}
+
+tasks.register<Jar>("clientDrivingQaJar") {
+    dependsOn(tasks.named(clientDrivingQa.classesTaskName))
+    from(clientDrivingQa.output)
+    archiveFileName.set("automobility-client-driving-qa.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("qa"))
+}
+
 val automobilityLiteClientExcludes = listOf(
     "**/AutomobilityClient.java",
     "**/automobile/render/item/**",
@@ -98,7 +111,7 @@ tasks {
     // put all artifacts in the right directory
     withType<Jar> {
         destinationDirectory = layout.buildDirectory.dir(
-            if (name == "animalBoardingQaJar") "qa" else "libs"
+            if (name == "animalBoardingQaJar" || name == "clientDrivingQaJar") "qa" else "libs"
         )
     }
 

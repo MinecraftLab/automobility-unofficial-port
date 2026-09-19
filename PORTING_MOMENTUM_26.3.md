@@ -1,9 +1,10 @@
 # Momentum Minecraft 26.3 candidate
 
-Status: **local candidate, not published**. The module build, input-contract tests and
+Status: **manual beta acceptance received; publication checks in progress**. The module build, input-contract tests and
 combined Automobility + Momentum + RIA dedicated-server regression checks pass.
 An isolated graphical client connected and passed Momentum options-screen smoke checks.
-Physical driving and full end-to-end multiplayer acceptance remain unproven.
+The user accepted turning and the requested cruise-control check in the final
+three-mod client. Full end-to-end two-real-player/controller coverage is unproven.
 
 ## Changes
 
@@ -119,6 +120,11 @@ the `ecosystem-001` screenshot. Previously saved player bindings must be checked
 changing a default should not silently overwrite a player's customized controls.
 
 ## Remaining acceptance gates
+
+The later user confirmation "ano vše ok" accepted the requested cruise-control,
+G seat-switch and cargo checks on `ecosystem-005-interpolation` with this unchanged
+Momentum JAR and final core 9DF5ACCF. It is not an exhaustive sub-action or
+two-player/controller test. See the final acceptance record in `PORTING_26.3.md`.
 
 - Follow-up client smoke passed: `ecosystem-002-g` used RIA G / Momentum R and
   actual G input changed server-side seat assignments. `ecosystem-003-gui` then

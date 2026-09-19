@@ -61,6 +61,7 @@ import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.InterpolationHandler;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MoverType;
@@ -141,11 +142,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     private long clientTime;
 
-    private double trackedX;
-    private double trackedY;
-    private double trackedZ;
-    private float trackedYaw;
-    private int lerpTicks;
+    private transient boolean clientAuthoritativePositionUpdate;
 
     private static final int CLIENT_SYNC_INTERVAL = 4;
     private static final int SERVER_SYNC_INTERVAL = 4;
@@ -219,6 +216,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private transient Vec3 previousServerTickEndPosition = null;
     private transient ResourceKey<Level> previousServerTickEndDimension = null;
     private float prevYawForRotate = 0;
+    private final DeferredDriverRotation deferredDriverRotation = new DeferredDriverRotation();
 
     private int slopeStickingTimer = 0;
     private float grip = 1;
@@ -326,11 +324,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
                 addedVelocity = Vec3.ZERO;
                 lastVelocity = Vec3.ZERO;
                 angularSpeed = 0;
-                lerpTicks = 0;
-                trackedX = syncedX;
-                trackedY = syncedY;
-                trackedZ = syncedZ;
-                trackedYaw = syncedYaw;
+                this.getInterpolation().cancel();
                 this.setPos(syncedX, syncedY, syncedZ);
                 this.setYRot(syncedYaw);
                 this.syncPacketPositionCodec(syncedX, syncedY, syncedZ);
@@ -1074,36 +1068,48 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
     }
 
+    @Override
+    protected InterpolationHandler createInterpolationHandler() {
+        if (!this.level().isClientSide()) return InterpolationHandler.NO_OP;
+        return new AutomobileInterpolationHandler(this::storePositionAndRotation,
+                this::isLocalInstanceAuthoritative, () -> this.clientAuthoritativePositionUpdate,
+                pose -> {
+                    this.setPos(pose.position());
+                    this.setYRot(pose.yRot());
+                    this.setXRot(pose.xRot());
+                }, this.getType().updateInterval() + 1);
+    }
+
     public void positionTrackingTick() {
         if (this.isLocalInstanceAuthoritative()) {
-            this.lerpTicks = 0;
+            this.getInterpolation().cancel();
             syncPacketPositionCodec(getX(), getY(), getZ());
-        } else if (lerpTicks > 0) {
-            this.setPos(
-                    this.getX() + ((this.trackedX - this.getX()) / (double)this.lerpTicks),
-                    this.getY() + ((this.trackedY - this.getY()) / (double)this.lerpTicks),
-                    this.getZ() + ((this.trackedZ - this.getZ()) / (double)this.lerpTicks)
-            );
-            this.setYRot(this.getYRot() + (Mth.wrapDegrees(this.trackedYaw - this.getYRot()) / (float)this.lerpTicks));
-
-            this.lerpTicks--;
+        } else if (this.getInterpolation() instanceof AutomobileInterpolationHandler interpolation) {
+            interpolation.tick();
         }
+    }
+
+    /** Brackets vanilla packets without discarding the base used to resolve relative teleports. */
+    public void clientBeginPositionUpdate(boolean authoritative) {
+        this.clientAuthoritativePositionUpdate = this.level().isClientSide() && authoritative;
+    }
+
+    public void clientEndPositionUpdate() {
+        // Vanilla may bypass interpolateTo for a far-away/non-ticking entity; cancel that path too.
+        if (this.clientAuthoritativePositionUpdate) this.getInterpolation().cancel();
+        this.clientAuthoritativePositionUpdate = false;
     }
 
     /** Reconciles render-only state after vanilla applies an absolute clientbound position. */
     public void clientOnAuthoritativePositionApplied(Vec3 previousPosition) {
-        if (!this.level().isClientSide()
-                || !AutomobilePositionUpdatePolicy.positionChanged(previousPosition, this.position())
+        if (!this.level().isClientSide()) return;
+        this.getInterpolation().cancel();
+        if (!AutomobilePositionUpdatePolicy.positionChanged(previousPosition, this.position())
                 || !this.displacement.translateVerticalAfterPositionChange(previousPosition.y, this.getY())) {
             return;
         }
 
         // An absolute vanilla correction supersedes any target left by Automobility's movement sync.
-        this.lerpTicks = 0;
-        this.trackedX = this.getX();
-        this.trackedY = this.getY();
-        this.trackedZ = this.getZ();
-        this.trackedYaw = this.getYRot();
         this.clientAuthoritativePositionRefresh = true;
     }
 
@@ -1433,6 +1439,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void postMovementTick() {
+        this.deferredDriverRotation.clear();
         float addedVelReduction = 0.1f;
         if (this.burningOut()) {
             addedVelReduction = 0.05f;
@@ -1520,7 +1527,11 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
             var first = this.getFirstPassenger();
             if (first != null && this.isDriving(first)) {
-                if (inLockedViewMode()) {
+                if (this.level().isClientSide() && first instanceof Player player && player.isLocalPlayer()) {
+                    // 26.3 snapshots passenger yRotO after the vehicle tick. Rotating the driver here
+                    // would erase the camera's interpolation delta and visibly step turns at 20 Hz.
+                    this.deferredDriverRotation.queue(first, this.tickCount, yawInc, inLockedViewMode());
+                } else if (inLockedViewMode()) {
                     whenRotatedSmooth(first);
                 } else {
                     whenRotated(yawInc, first);
@@ -1531,6 +1542,22 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         this.measuredAngVel = yawInc;
         if (this.automobileOnGround()) {
             this.smoothAngVel = Mth.lerp(0.34f, this.smoothAngVel, this.measuredAngVel);
+        }
+    }
+
+    /** Called at local rideTick HEAD, after vanilla snapshots old yaw and before head animation. */
+    public void applyDeferredDriverRotation(Player passenger) {
+        var rotation = this.deferredDriverRotation.consume(passenger, this.tickCount,
+                this.level().isClientSide() && passenger.isLocalPlayer() && passenger.isAlive()
+                        && !this.isRemoved() && passenger.getVehicle() == this && this.isDriving(passenger));
+        if (rotation == null) {
+            return;
+        }
+
+        if (rotation.lockedView()) {
+            whenRotatedSmooth(passenger);
+        } else {
+            whenRotated(rotation.yawDelta(), passenger);
         }
     }
 
@@ -1665,11 +1692,10 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void lerpTo(double x, double y, double z, float yaw, float pitch, int interpolationSteps) {
-        this.trackedX = x;
-        this.trackedY = y;
-        this.trackedZ = z;
-        this.trackedYaw = yaw;
-        this.lerpTicks = this.getType().updateInterval() + 1;
+        // Compatibility entry point for addons; Minecraft 26.3 uses createInterpolationHandler.
+        // The old target was discarded for a local driver; keep that authority contract here.
+        if (this.isLocalInstanceAuthoritative()) return;
+        this.moveOrInterpolateTo(new Vec3(x, y, z), yaw, pitch);
     }
 
     private float calculateAcceleration(float speed, AutomobileStats stats) {
@@ -1874,6 +1900,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     @Override
     protected void removePassenger(Entity passenger) {
+        this.deferredDriverRotation.clear();
         boolean wasDriver = this.isDriving(passenger);
         boolean shouldCoastAfterDriverDismount = wasDriver && this.shouldCoastAfterDriverDismount();
 
@@ -1921,11 +1948,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         this.lastSteering = 0;
         this.setDrifting(false);
         this.setBurningOut(false);
-        this.lerpTicks = 0;
-        this.trackedX = this.getX();
-        this.trackedY = this.getY();
-        this.trackedZ = this.getZ();
-        this.trackedYaw = this.getYRot();
+        this.getInterpolation().cancel();
         this.syncPacketPositionCodec(this.getX(), this.getY(), this.getZ());
         this.prevYDisplacements.clear();
         this.touchingWall = false;
@@ -1990,11 +2013,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         this.setDrifting(false);
         this.setBurningOut(false);
         this.setDeltaMovement(Vec3.ZERO);
-        this.lerpTicks = 0;
-        this.trackedX = this.getX();
-        this.trackedY = this.getY();
-        this.trackedZ = this.getZ();
-        this.trackedYaw = this.getYRot();
+        this.getInterpolation().cancel();
         this.syncPacketPositionCodec(this.getX(), this.getY(), this.getZ());
         this.prevYDisplacements.clear();
         this.touchingWall = false;

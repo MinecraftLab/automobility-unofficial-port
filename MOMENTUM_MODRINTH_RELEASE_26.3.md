@@ -2,7 +2,10 @@
 
 > **Target-scoped release record:** Only for minecraft_version=26.3.
 
-Status: UNPUBLISHED CANDIDATE. Client and multiplayer acceptance pending.
+Status: MANUALLY ACCEPTED BETA / FINAL PUBLICATION CHECKS (2026-09-19).
+The user accepted turning and subsequently confirmed the requested cruise,
+G seat-switch and cargo checks with this unchanged Momentum artifact in the final
+three-mod 26.3 client. Two-real-player and controller coverage remain NOT PROVEN.
 
 - Version number: `0.1.11-unofficial.10+26.3`
 - Version type: `beta`

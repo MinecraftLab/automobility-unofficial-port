@@ -1,10 +1,11 @@
 # Minecraft 26.3 core port - local candidate
 
-Status on 2026-09-19: **UNPUBLISHED / CLIENT SMOKE PASSED / MANUAL ACCEPTANCE PENDING**.
+Status on 2026-09-19: **FINAL CANDIDATE MANUALLY ACCEPTED / PUBLICATION CHECKS IN PROGRESS**.
 Branch `port/26.3`, initially based on Automobility `.34` commit `36f0044`.
 No normal Minecraft profile or production server was changed. The initial core
 port has now been extended to Momentum and tested with a separate RIAutomobility
-26.3 worktree. All three remain unpublished candidates, not an accepted release.
+26.3 worktree. The final requested manual checks are now accepted; the publication
+receipt below must be verified before claiming a public release.
 
 ## Build and dependencies
 
@@ -206,3 +207,176 @@ This is a render/input smoke test, not proof of a complete assembly/crafting flo
 Client and server shut down normally at 20:07:37-38; QA ports 25663 and 25664 are
 closed. Prior failure logs and earlier candidate client copies remain available.
 No public upload, normal-profile installation or production deployment occurred.
+
+## Manual driving feedback: turning stutter (2026-09-19)
+
+The later physical-user run of `ecosystem-003-gui` reported strong stuttering
+while driving/turning. The user clarified that the vehicle/camera jerks rather
+than the entire rendered image. This is a failed driving acceptance result;
+the earlier startup/menu smoke passes must not be promoted to a driving pass.
+Publication is blocked until the corrected candidate is retested.
+
+Read-only diagnosis of the actual 26.2/26.3 Minecraft bytecode found a changed
+local-player camera interpolation contract. In 26.3 `LocalPlayer.getViewYRot`
+uses `getYRot(partial)`, interpolating `yRotO` to current yaw. Automobility's
+vehicle tick rotates its driver before `ClientLevel.tickPassenger` calls the
+passenger's `commonTick`/`setOldPosAndRot`; the latter overwrites `yRotO` with
+the already-rotated yaw. The vehicle-driven turn delta is therefore lost to
+camera interpolation. The 26.2 riding path used head-yaw interpolation instead.
+A correction must preserve vanilla immediate mouse look and existing physics.
+
+Runtime diagnostics during this session:
+
+- Server `tick query` at 20:22:38 CEST: mean 3.0 ms, P95 4.4 ms, P99 7.0 ms,
+  target 50 ms / 20 TPS, 100 samples. This snapshot did not show tick overload.
+- 45-second Java Flight Recorder captures under
+  `C:\Users\david\Automobility-26.3-Client-QA\diagnostics\`:
+  `turn-jitter-client-20260919.jfr` and `turn-jitter-server-20260919.jfr`.
+- Client GC: two pauses, maximum 5.4601 ms, total 8.2834 ms.
+  Server GC: four pauses, maximum 7.0664 ms, total 14.6579 ms.
+  These samples do not prove perfect frame pacing, but do not show long GC stalls.
+- Momentum configuration matched on both sides; its locked-camera branch was
+  disabled, and the 26.3 steering implementation did not change physics from
+  its baseline. Active RIA port sources contain no camera yaw mixin.
+
+A separate network interpolation regression was also identified: 26.3 removed
+the vanilla `lerpTo` entrypoint, while the port still declares the old method
+and inherits the no-op interpolation handler. This affects remote vehicles /
+passengers and remains a separate release-blocking follow-up until corrected
+and tested. Do not attribute the local-driver symptom solely to this issue.
+
+### Narrow local-driver correction and retest candidate
+
+The local driver's automobile-driven rotation is now queued during the car tick
+and consumed at `LocalPlayer.rideTick` HEAD, after vanilla snapshots old yaw but
+before head animation. The one-shot handoff checks rider identity, vehicle tick,
+current seat/vehicle, liveness and removal. Dismount/new-tick paths clear it.
+Vanilla mouse/view methods, physics, remote/server rotation and the existing
+locked-view calculation remain unchanged. This is not the remote interpolation
+fix described above.
+
+- Two new compiled-integration tests first failed on the old code, then passed.
+- Fixed core suite: 86 tests, zero failures/errors/skips (75 previous + 11 new).
+- Momentum suite: 43 tests, zero failures/errors/skips.
+- Production JAR: `dist/steering-fix-candidate-26.3/automobility-0.5.0-unofficial.34+26.3-fabric.jar`.
+- Size: 1,398,992 bytes.
+- SHA-256: `4859E0137AFC93E7C753F90B94CB426834F4A95FF5E54470AFADE58D35BDCD67`.
+- SHA-512: `A879D88743544BCC1F69B8700BC14D3FD5D957CFB08A1789C0454F19F3E4FFFDD972A357278D32A6C7676B13825BD916144FFD2F72E626FA34CA8B9AFBE16974`.
+- Production archive scan found the new helper/mixin and no QA fixture classes.
+- The final headless rerun passed animal 22, core port 5, ecosystem 30 and RIA 9
+  groups plus `RIA263_EXAMPLEPACK_PASS`, then stopped normally. Retained log:
+  `C:\Users\david\Automobility-26.3-Ecosystem-QA\ecosystem263-steering-fix-pass.log`.
+  An earlier run omitted the ExamplePack opt-in property and is retained under
+  `ecosystem263-steering-pass-without-example-gate.log`; it is not full coverage.
+
+Manual retest run: `C:\Users\david\Automobility-26.3-Client-QA\runs\ecosystem-004-steering`.
+It keeps the previous test client's options and Momentum configuration, the same
+saved showcase world/inventory, unchanged Momentum/RIA production JARs, and the
+new core. The user explicitly approved restarting this isolated test game.
+Before replacement the prior world, JAR and manual-failure logs were copied to
+`C:\Users\david\Automobility-26.3-Showcase-QA\backups\before-steering-fix-20260919`.
+
+This retest alone includes the separate client-only passive telemetry fixture
+`automobility-client-driving-qa.jar` (4,727 bytes, SHA-256
+`480C6D55EC2D8885CA8B5C72A4E5F16CC24ED5303B7CF86750FA06AB0F9F5D65`).
+It records at most 120 turning ticks, never changes inputs/world state, and logs
+view yaw at partial ticks 0/0.5/1. Keep it out of public artifacts and normal
+profiles. No physical-user pass is inferred from numerical interpolation alone.
+Physical acceptance of the fix remains PENDING.
+
+The fixed client connected at 20:34:39 CEST and the showcase was visually checked
+after restart. Its log confirms `AUTO263_DRIVER_QA_READY` with the expected three
+mod versions. At handoff the passive observer had no turning samples yet, so no
+numeric or physical turning pass is claimed. The world and client remain running
+for the user's retest. Final server-regression log SHA-256:
+`5DF161E15856AE1D30A413A4D0B827C06629D34BBEA03029E45AE63EEB9F5231`.
+
+### Physical turning acceptance received
+
+The user subsequently confirmed "ano už ok" for the steering/camera retest with
+core `4859E013...BDCD67`. Passive telemetry at 20:37:16 CEST completed 120 turning
+samples: 120 interpolated, zero flat-view and zero nonlinear samples. This agrees
+with the user's comfort report; it is acceptance of the reported turning issue,
+not an assumed pass for all cargo/crafting, controllers or two-player scenarios.
+Retained client log: `runs/ecosystem-004-steering/client004-steering-user-pass.log`,
+SHA-256 `CF73E20356699C6436889E3FF6E514A3E7A7C8C25CE03D2EF3D691BF0828FEA7`.
+The separate remote-interpolation correction was completed and technically
+verified below. Broader manual release gates remain open.
+
+### Remote interpolation correction and approved restart
+
+Minecraft 26.3 now enters Automobility's client `InterpolationHandler`, rather
+than the obsolete vanilla `lerpTo` callback. The handler retains the queued
+endpoint for position-only/rotation-only packets and shortest-path yaw, and
+advances exactly once in the existing automobile position-tracking phase after
+`prevPos` capture. Vanilla `commonTick` does not advance it a second time.
+Remote visual steps leave the network position codec unchanged.
+
+Authoritative packets are bracketed without prematurely deleting the queued
+endpoint used to resolve relative teleports. Hard corrections, same-position
+teleports, native far-distance/non-ticking snaps, and driver takeover discard
+stale interpolation. Local-driver rotation and physics remain unchanged from
+the accepted steering candidate. Hitboxes retain immediate/no-op interpolation.
+
+- Initial two compiled-entrypoint regression tests failed before the correction.
+- Final core suite: 101 tests; Momentum suite: 43 tests; zero failures/errors/skips.
+- Production JAR: `dist/interpolation-fix-candidate-26.3/automobility-0.5.0-unofficial.34+26.3-fabric.jar`.
+- Size: 1,401,851 bytes.
+- SHA-256: `9DF5ACCF8E744D4904BFEE6CFD953AE6ADB3F80032AFCCECB3E02B798A4BBE1C`.
+- SHA-512: `C020FE5B6E448F48A7E4FEA466058DE1D366F7156BD2AB6C0BF41D9F5396E17095275F88E61C2BF956D3C34ABA7C49EDB0A1B22BA4EA01F92F4652403E4ECF37`.
+- Production archive: 763 entries, no QA fixture classes. Client and both isolated
+  QA server copies match the candidate SHA-256.
+- Packaged headless server rerun at 20:52:30 CEST passed animal 22, core port 5,
+  ecosystem 30, RIA 9, and `RIA263_EXAMPLEPACK_PASS`, then stopped normally.
+  Log: `C:\Users\david\Automobility-26.3-Ecosystem-QA\ecosystem263-interpolation-fix-pass.log`.
+  SHA-256: `5FB1B0B563EC14DB0E9ACA8C6ECBFBF1BFE66B5C05FA8FCC534922BFDA59EEF7`.
+
+The user explicitly approved completing the technical check and restarting only
+the test Minecraft. The previous client disconnected, the server saved and
+stopped normally, and the world/logs/old core were copied to
+`C:\Users\david\Automobility-26.3-Showcase-QA\backups\before-remote-fix-20260919`.
+The existing world, cars and player inventory were retained; the new client run
+`C:\Users\david\Automobility-26.3-Client-QA\runs\ecosystem-005-interpolation`
+keeps run 004's options/configuration and unchanged Momentum/RIA production JARs.
+
+The separate test-only client fixture is 12,744 bytes, SHA-256
+`7FAF7669383703EBF87875EE1082E93DD843BB667D21B4BA165C438EB5721510`.
+Only this child launch opted in with `AUTOMOBILITY_QA_REMOTE_INTERPOLATION=1`.
+It uses a temporary, client-only automobile and the real packet handlers on the
+loopback server as Auto263QA; no real player is mounted or controlled, and the
+temporary entity is removed within the same callback. It does not send movement
+packets to the server or mutate existing vehicles, inventory or blocks.
+
+At 20:54:02 CEST, the packaged client reported
+`AUTO263_REMOTE_INTERPOLATION_PASS checks=46 realPacketHandlers=true physicalTwoPlayerAcceptance=NOT_PROVEN`.
+Coverage includes tick ordering, mixed position/rotation updates, codec
+preservation, yaw wrapping, +17Y hard / +6Y relative movement, -23Y teleport,
+same-position and relative teleports, eager authority takeover and return,
+far-distance and unloaded/non-ticking snaps, and fixture cleanup.
+Retained log: `runs/ecosystem-005-interpolation/client005-remote-interpolation-pass.log`,
+SHA-256 `44C3AC7C4816900A2D6BC76C82804C0DEDEF66CBAF81AECB2FE2CBD76D054FD0`.
+
+Computer Use confirmed the correct 26.3 multiplayer window after restart and
+returned it from the pause menu to the preserved showcase. The client and
+loopback showcase server remain running for the user's test. The other 26.2
+Minecraft window was not touched. No public upload, source push, normal-profile
+installation or production deployment occurred.
+
+Remaining coverage is explicitly NOT PROVEN: a complete physical-user pass of
+cruise/drift, cargo/crafting and save/rejoin on this final candidate; two real
+players driving/riding/changing seats and dimensions; optional controller runtime.
+The user's earlier turning acceptance remains valid evidence for that correction,
+not a claim that these other scenarios were performed.
+
+### Final requested manual checks accepted (2026-09-19)
+
+After the final `ecosystem-005-interpolation` restart and technical pass, the user
+was explicitly asked to try cruise control, G seat switching and cargo. The user
+answered "ano vše ok". This accepts those requested checks with core 9DF5ACCF,
+Momentum 3071A381 and RIA 82E1E204. It complements the earlier physical turning
+acceptance and authorizes continuing the already requested Modrinth beta release.
+No two-real-player test, full crafting/save-rejoin/destruction matrix, custom-key
+migration trial or controller test is inferred; those remain NOT PROVEN.
+The final staged core is copied byte-for-byte to the canonical release-record
+path, with the old GUI candidate preserved under
+`dist/previous-candidates/gui-before-final-release-20260919`.

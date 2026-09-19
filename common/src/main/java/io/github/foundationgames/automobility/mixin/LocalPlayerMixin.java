@@ -19,6 +19,14 @@ public class LocalPlayerMixin {
 
     @Shadow @Final protected Minecraft minecraft;
 
+    @Inject(method = "rideTick", at = @At("HEAD"))
+    private void automobility$applyDriverRotation(CallbackInfo ci) {
+        LocalPlayer self = (LocalPlayer)(Object)this;
+        if (self.getVehicle() instanceof AutomobileEntity vehicle) {
+            vehicle.applyDeferredDriverRotation(self);
+        }
+    }
+
     @Inject(method = "rideTick", at = @At("TAIL"))
     public void automobility$setAutomobileInputs(CallbackInfo ci) {
         LocalPlayer self = (LocalPlayer)(Object)this;

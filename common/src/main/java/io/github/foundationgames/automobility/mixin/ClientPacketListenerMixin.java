@@ -24,6 +24,9 @@ public abstract class ClientPacketListenerMixin {
 
     @Unique
     private void automobility$capturePosition(Entity entity, boolean authoritative) {
+        if (this.automobility$positionTarget != null) {
+            this.automobility$positionTarget.clientEndPositionUpdate();
+        }
         this.automobility$positionTarget = null;
         this.automobility$previousPosition = null;
         this.automobility$authoritativePosition = false;
@@ -31,6 +34,7 @@ public abstract class ClientPacketListenerMixin {
             this.automobility$positionTarget = automobile;
             this.automobility$previousPosition = automobile.position();
             this.automobility$authoritativePosition = authoritative;
+            automobile.clientBeginPositionUpdate(authoritative);
         }
     }
 
@@ -42,6 +46,7 @@ public abstract class ClientPacketListenerMixin {
         this.automobility$positionTarget = null;
         this.automobility$previousPosition = null;
         this.automobility$authoritativePosition = false;
+        if (automobile != null) automobile.clientEndPositionUpdate();
         if (automobile == null || previousPosition == null || currentEntity != automobile) {
             return;
         }
@@ -97,7 +102,11 @@ public abstract class ClientPacketListenerMixin {
             var target = packet.position().endPosition();
             var codec = automobile.getPositionCodec();
             hardCorrection = io.github.foundationgames.automobility.entity.AutomobilePositionUpdatePolicy
-                    .exceedsRelativeEncoding(codec.encodeX(target), codec.encodeY(target), codec.encodeZ(target));
+                    .exceedsRelativeEncoding(codec.encodeX(target), codec.encodeY(target), codec.encodeZ(target))
+                    // Vanilla also snaps unticking or very distant entities, even when the
+                    // delta from the previous network endpoint still fits a relative packet.
+                    || !self.getLevel().isTickingEntity(automobile)
+                    || automobile.position().distanceToSqr(target) > 4096.0;
         }
         this.automobility$capturePosition(entity, hardCorrection);
     }

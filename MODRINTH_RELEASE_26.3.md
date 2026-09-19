@@ -2,7 +2,15 @@
 
 > **Target-scoped release record:** Only for minecraft_version=26.3.
 
-Status: UNPUBLISHED CANDIDATE. Client and multiplayer acceptance pending.
+Status: MANUALLY ACCEPTED BETA / FINAL PUBLICATION CHECKS (2026-09-19).
+The user accepted the local-driver turning correction in the 4859E013 candidate.
+The newer 9DF5ACCF candidate retains that correction and also fixes remote-vehicle
+interpolation; its real-client packet-handler regression passed 46 checks.
+The user then confirmed "ano vše ok" after being asked to test cruise control,
+G seat switching and cargo in the final candidate. Those requested checks are
+accepted. Two-physical-player, exhaustive crafting/persistence and controller
+coverage remain NOT PROVEN, not inferred from this confirmation.
+See PORTING_26.3.md for the exact evidence and remaining limits.
 
 - Version number: `0.5.0-unofficial.34+26.3`
 - Version type: `beta`
@@ -18,9 +26,15 @@ Status: UNPUBLISHED CANDIDATE. Client and multiplayer acceptance pending.
 ## Upload file
 
 - Local JAR: `dist\release-candidate-0.5.0-unofficial.34\automobility-0.5.0-unofficial.34+26.3-fabric.jar`
-- Size: `1396419` bytes
-- SHA-256: `D0731665902A1F9DA02AB1CC467AE48443B64E0A5FD0629711B35F79B90792DC`
-- SHA-512: `E4794C74738F10AB08D8E23B12B9A515B2791E2926E8A3563B1A3BD16DD2CE9FAAAD631357E20945C79E1BCD3C2F3DF89F7D15531FA055669A4433E63910C7BD`
+- Size: `1401851` bytes
+- SHA-256: `9DF5ACCF8E744D4904BFEE6CFD953AE6ADB3F80032AFCCECB3E02B798A4BBE1C`
+- SHA-512: `C020FE5B6E448F48A7E4FEA466058DE1D366F7156BD2AB6C0BF41D9F5396E17095275F88E61C2BF956D3C34ABA7C49EDB0A1B22BA4EA01F92F4652403E4ECF37`
+
+The older D0731665 GUI candidate is retained in
+`dist/previous-candidates/gui-before-final-release-20260919`; the 4859E013 steering
+candidate also remains historical evidence, not an upload target. The accepted
+interpolation candidate was copied byte-for-byte to the canonical release path.
+Do not upload the separate test-only client-driving QA JAR.
 
 ## Changes and evidence
 
@@ -29,6 +43,13 @@ Minecraft 26.3. Migrates SDL input, rendering signatures, block APIs and the pav
 registry-driven shovel transformations. No artwork changes.
 Client QA additionally fixes invisible mechanic category titles and assembler
 statistics text; compiled-render-call regression tests cover both corrections.
+Fixes stepped local-driver camera rotation with the 26.3 passenger tick order.
+Restores remote-vehicle smoothing through the new 26.3 interpolation API while
+preserving hard/relative teleports and local-driver authority.
+
+Final technical evidence: 101 core + 43 Momentum tests, all passing; packaged
+server animal/core/ecosystem/RIA and ExamplePack checks passing; 46 real-client
+packet-handler checks passing. The client-only fixture is absent from production.
 
 See PORTING_26.3.md for exact tests and limitations. Build/server checks do not prove
 visual rendering, real-player driving, multiplayer or addon acceptance. Never

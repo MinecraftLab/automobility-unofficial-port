@@ -307,7 +307,7 @@ function Assert-FabricJar {
             $_ -match '(?i)(^|/)(\.git|\.github|gradle|build|run|dist)(/|$)' -or
             $_ -match '(?i)\.(java|kt|kts|ps1|bat|cmd|gradle)$' -or
             $_ -match '(?i)(^|/)(gradle\.properties|gradlew)$' -or
-            $_ -match '(AnimalBoardingQa|Ecosystem263Qa|Showcase263Qa|Client263Qa)'
+            $_ -match '(AnimalBoardingQa|Ecosystem263Qa|Showcase263Qa|Client263Qa|ClientDrivingQa|RemoteInterpolationQa)'
         })
         Assert-True ($forbiddenEntries.Count -eq 0) "$artifactName contains development-only files: $($forbiddenEntries -join ', ')"
 
