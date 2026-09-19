@@ -94,7 +94,7 @@ public abstract class ClientPacketListenerMixin {
         var entity = self.getLevel().getEntity(packet.id());
         boolean hardCorrection = false;
         if (entity instanceof AutomobileEntity automobile) {
-            var target = packet.values().position();
+            var target = packet.position().endPosition();
             var codec = automobile.getPositionCodec();
             hardCorrection = io.github.foundationgames.automobility.entity.AutomobilePositionUpdatePolicy
                     .exceedsRelativeEncoding(codec.encodeX(target), codec.encodeY(target), codec.encodeZ(target));

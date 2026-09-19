@@ -9,8 +9,7 @@
     "EntityMixin",
     "ItemCombinerMenuMixin",
     "PlayerEnderChestContainerMixin",
-    "ServerGamePacketListenerImplMixin",
-    "ShovelItemAccess"
+    "ServerGamePacketListenerImplMixin"
   ],
   "client": [
     "ClientPacketListenerMixin",

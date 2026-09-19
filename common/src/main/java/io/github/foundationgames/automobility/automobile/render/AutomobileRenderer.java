@@ -31,8 +31,8 @@ public enum AutomobileRenderer {;
 
         pose.pushPose();
 
-        pose.mulPose(Axis.ZP.rotationDegrees(180));
-        pose.mulPose(Axis.YP.rotationDegrees(automobile.getAutomobileYaw(tickDelta) + 180));
+        pose.rotate(Axis.ZP.rotationDegrees(180));
+        pose.rotate(Axis.YP.rotationDegrees(automobile.getAutomobileYaw(tickDelta) + 180));
 
         float chassisRaise = wheels.model().radius() / 16;
         float bounce = automobile.getSuspensionBounce(tickDelta) * 0.048f;
@@ -63,7 +63,7 @@ public enum AutomobileRenderer {;
 
         var ePos = frame.model().enginePos().scale(1.0 / 16);
         pose.translate(ePos.x(), -ePos.y(), -ePos.z());
-        pose.mulPose(Axis.YP.rotationDegrees(180));
+        pose.rotate(Axis.YP.rotationDegrees(180));
         if (!engine.isEmpty() && engineModel != null) {
             submit(engineModel, state(tickDelta), pose, submitter, engineTexture, light, overlay, 0xFFFFFFFF);
         }
@@ -84,8 +84,8 @@ public enum AutomobileRenderer {;
                 pose.pushPose();
 
                 pose.translate(exhaust.x() / 16, -exhaust.y() / 16, exhaust.z() / 16);
-                pose.mulPose(Axis.YP.rotationDegrees(exhaust.yaw()));
-                pose.mulPose(Axis.XP.rotationDegrees(exhaust.pitch()));
+                pose.rotate(Axis.YP.rotationDegrees(exhaust.yaw()));
+                pose.rotate(Axis.XP.rotationDegrees(exhaust.pitch()));
                 submit(exhaustFumesModel, state(tickDelta), pose, submitter, exhaustRenderType, light, overlay, 0xFFFFFFFF);
 
                 pose.popPose();
@@ -112,13 +112,13 @@ public enum AutomobileRenderer {;
                 pose.translate(pos.right() / 16, wheelRadius / 16, -pos.forward() / 16);
 
                 if (pos.end() == WheelBase.WheelEnd.FRONT) {
-                    pose.mulPose(Axis.YP.rotationDegrees(automobile.getSteering(tickDelta) * 27));
+                    pose.rotate(Axis.YP.rotationDegrees(automobile.getSteering(tickDelta) * 27));
                 }
                 pose.translate(0, -chassisRaise, 0);
-                pose.mulPose(Axis.XP.rotationDegrees(wheelAngle));
+                pose.rotate(Axis.XP.rotationDegrees(wheelAngle));
                 pose.scale(scale, scale, scale);
 
-                pose.mulPose(Axis.YP.rotationDegrees(180 + pos.yaw()));
+                pose.rotate(Axis.YP.rotationDegrees(180 + pos.yaw()));
 
                 submit(wheelModel, state(tickDelta), pose, submitter, wheels.model().texture(), light, overlay, 0xFFFFFFFF);
 
@@ -133,7 +133,7 @@ public enum AutomobileRenderer {;
         if (!rearAtt.isEmpty() && rearAttachmentModel != null) {
             pose.pushPose();
             pose.translate(0, chassisRaise, frame.model().rearAttachmentPos() / 16);
-            pose.mulPose(Axis.YN.rotationDegrees(automobile.getAutomobileYaw(tickDelta) - automobile.getRearAttachmentYaw(tickDelta)));
+            pose.rotate(Axis.YN.rotationDegrees(automobile.getAutomobileYaw(tickDelta) - automobile.getRearAttachmentYaw(tickDelta)));
 
             pose.translate(0, 0, rearAtt.model().pivotDistPx() / 16);
             submit(
@@ -218,7 +218,7 @@ public enum AutomobileRenderer {;
     private static void submit(Model<?> model, BaseModel.RenderState state, PoseStack pose, SubmitNodeCollector submitter,
                                Identifier texture, int light, int overlay, int color) {
         if (model instanceof BaseModel base) {
-            submitter.submitModel(base, state, pose, base.renderType(texture), light, overlay, color, null, 0, null);
+            submitter.submitModel(base, state, pose, base.renderType(texture), light, overlay, color, null, 0);
         } else if (model instanceof ObjModel obj) {
             obj.submit(pose, submitter, obj.renderType(texture), light, overlay, color);
         }
@@ -227,7 +227,7 @@ public enum AutomobileRenderer {;
     private static void submit(Model<?> model, BaseModel.RenderState state, PoseStack pose, SubmitNodeCollector submitter,
                                RenderType renderType, int light, int overlay, int color) {
         if (model instanceof BaseModel base) {
-            submitter.submitModel(base, state, pose, renderType, light, overlay, color, null, 0, null);
+            submitter.submitModel(base, state, pose, renderType, light, overlay, color, null, 0);
         } else if (model instanceof ObjModel obj) {
             obj.submit(pose, submitter, renderType, light, overlay, color);
         }

@@ -1,6 +1,5 @@
 package io.github.foundationgames.automobility.block;
 
-import com.mojang.serialization.MapCodec;
 import io.github.foundationgames.automobility.item.SlopePlacementContext;
 import io.github.foundationgames.automobility.util.AUtils;
 import io.github.foundationgames.automobility.util.duck.CollisionArea;
@@ -34,7 +33,6 @@ public class SteepSlopeBlock extends HorizontalDirectionalBlock implements Simpl
     public static final VoxelShape WEST_SHAPE;
 
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
-    public static final MapCodec<SteepSlopeBlock> CODEC = Block.simpleCodec(SteepSlopeBlock::new);
 
     public SteepSlopeBlock(Properties settings) {
         super(settings.noOcclusion());
@@ -120,8 +118,4 @@ public class SteepSlopeBlock extends HorizontalDirectionalBlock implements Simpl
         WEST_SHAPE = shapes.get(3);
     }
 
-    @Override
-    protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
-        return CODEC;
-    }
 }

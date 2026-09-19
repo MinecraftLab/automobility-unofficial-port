@@ -1932,7 +1932,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         this.hadVehicleCollision = 0;
         this.unmannedCoastSettleTicks = shouldCoastAfterDriverDismount ? UNMANNED_COAST_SETTLE_MAX_TICKS : 1;
         this.markDirty();
-        this.hurtMarked = true;
+        this.syncVelocity = true;
         this.updateHitboxPositions();
         if (!this.level().isClientSide()) {
             this.resolveRecentDismountHitboxOverlap();
@@ -2000,7 +2000,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         this.touchingWall = false;
         this.hadVehicleCollision = 0;
         this.markDirty();
-        this.hurtMarked = true;
+        this.syncVelocity = true;
         if (!this.level().isClientSide()) {
             this.updateHitboxPositions();
             this.resolveRecentDismountHitboxOverlap();

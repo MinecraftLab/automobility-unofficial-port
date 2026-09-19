@@ -1,6 +1,5 @@
 package io.github.foundationgames.automobility.block;
 
-import com.mojang.serialization.MapCodec;
 import io.github.foundationgames.automobility.block.entity.AutomobileAssemblerBlockEntity;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -36,8 +35,6 @@ public class AutomobileAssemblerBlock extends HorizontalDirectionalBlock impleme
 
     public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 
-    public static final MapCodec<AutomobileAssemblerBlock> CODEC = Block.simpleCodec(AutomobileAssemblerBlock::new);
-
     private static final VoxelShape BASE = Shapes.or(
             Block.box(0, 0, 0, 16, 4, 16),
             Block.box(5, 4, 5, 11, 12, 11));
@@ -50,11 +47,6 @@ public class AutomobileAssemblerBlock extends HorizontalDirectionalBlock impleme
     public AutomobileAssemblerBlock(Properties settings) {
         super(settings);
         this.registerDefaultState(this.defaultBlockState().setValue(FACING, Direction.NORTH).setValue(POWERED, false));
-    }
-
-    @Override
-    protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
-        return CODEC;
     }
 
     @Override

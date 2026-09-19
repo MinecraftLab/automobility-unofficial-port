@@ -1,6 +1,6 @@
 plugins {
     id("idea")
-    id("net.fabricmc.fabric-loom") version "1.17.14"
+    id("net.fabricmc.fabric-loom") version "1.17.21"
 }
 
 repositories {

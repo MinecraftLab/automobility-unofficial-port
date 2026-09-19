@@ -2,7 +2,6 @@ package io.github.foundationgames.automobility.block;
 
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.github.foundationgames.automobility.block.entity.AutopilotSignBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -50,16 +49,9 @@ public class AutopilotSignBlock extends BaseEntityBlock implements SimpleWaterlo
     public static final IntegerProperty ROTATION = IntegerProperty.create("rotation", 0, 7);
     public static final EnumProperty<Type> TYPE = EnumProperty.create("type", Type.class);
 
-    public static final MapCodec<AutopilotSignBlock> CODEC = simpleCodec(AutopilotSignBlock::new);
-
     public AutopilotSignBlock(Properties properties) {
         super(properties);
         this.registerDefaultState(this.defaultBlockState().setValue(ROTATION, 0).setValue(TYPE, Type.STANDING_RIGHT).setValue(POWERED, false).setValue(WATERLOGGED, false));
-    }
-
-    @Override
-    protected MapCodec<? extends BaseEntityBlock> codec() {
-        return CODEC;
     }
 
     @Override

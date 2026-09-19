@@ -41,6 +41,21 @@ The 26.2 fixture uses EntityTypes constants; 26.1.2 uses EntityType constants.
 The production animal filter is identical in both targets, including Animal,
 WaterAnimal, AgeableWaterCreature and AmbientCreature subclasses.
 
+## 26.3 development fixture
+
+On `port/26.3`, startup requests a forced chunk and the test runs from
+`END_SERVER_TICK` only after that chunk becomes entity-ticking (with a 200-tick
+timeout). This is required because 26.3 living entities outside entity-ticking
+chunks are not pushable. Pig and villager pickup candidacy are asserted before
+testing the production collision boarding behavior; the ticket is released when
+the fixture stops. The production pickup predicate is not bypassed.
+
+Also require `AUTO263_PORT_SMOKE_PASS checks=5`: data-driven paver grass-to-path,
+non-mutating result computation, unchanged stone, blocked-above grass, and loaded
+mechanic recipes. See `PORTING_26.3.md` for exact artifact/log evidence and the
+unproven client/addon gates. The old 26.1.2/26.2 evidence below is historical, not
+evidence of 26.3 compatibility.
+
 ## Local evidence
 
 Isolated server directories:

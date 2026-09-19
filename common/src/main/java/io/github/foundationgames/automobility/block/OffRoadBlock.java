@@ -27,7 +27,7 @@ public class OffRoadBlock extends Block {
     public final Vector3f color;
 
     public OffRoadBlock(Properties settings, Vector3f color) {
-        super(settings.pushReaction(PushReaction.DESTROY));
+        super(settings.pushReaction(PushReaction.POPPED));
         registerDefaultState(defaultBlockState().setValue(LAYERS, 1));
         this.color = color;
     }

@@ -2,8 +2,11 @@ package io.github.foundationgames.automobility.entity;
 
 import com.mojang.authlib.GameProfile;
 import io.github.foundationgames.automobility.automobile.attachment.RearAttachmentType;
+import io.github.foundationgames.automobility.automobile.attachment.rear.PaverRearAttachment;
+import io.github.foundationgames.automobility.screen.AutoMechanicTableScreenHandler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.level.ServerPlayer;
@@ -22,13 +25,24 @@ import java.util.UUID;
 
 /** Isolated dedicated-server checks; this source set is never included in the mod JAR. */
 public final class AnimalBoardingQa implements ModInitializer {
+    private boolean finished;
+    private int readinessTicks;
+
     @Override
     public void onInitialize() {
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> server.overworld().setChunkForced(0, 0, true));
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            if (this.finished) return;
+            var testPosition = new BlockPos(3, 200, 3);
+            // 26.3 excludes living entities outside entity-ticking chunks from pushableBy.
+            // A loaded chunk in SERVER_STARTED is not sufficient for a meaningful pickup test.
+            if (!server.overworld().isPositionEntityTicking(testPosition) && ++this.readinessTicks < 200) return;
+            this.finished = true;
             var logger = LoggerFactory.getLogger("AnimalBoardingQa");
             int checks = 0;
             try {
                 var level = server.overworld();
+                require(level.isPositionEntityTicking(testPosition), "fixture chunk became entity-ticking");
                 level.getChunk(0, 0);
                 for (int x = 0; x < 8; x++) {
                     for (int z = 0; z < 8; z++) {
@@ -66,6 +80,7 @@ public final class AnimalBoardingQa implements ModInitializer {
                 pig.setNoAi(true);
                 pig.setPos(auto.position());
                 level.addFreshEntity(pig);
+                require(net.minecraft.world.entity.EntitySelector.pushableBy(auto).test(pig), "touching pig is a pickup candidate");
                 auto.tick();
                 require(!pig.isPassenger() && auto.getPassengers().isEmpty(), "touching pig does not auto-board");
                 pig.discard();
@@ -75,6 +90,7 @@ public final class AnimalBoardingQa implements ModInitializer {
                 driver.setNoAi(true);
                 driver.setPos(auto.position());
                 level.addFreshEntity(driver);
+                require(net.minecraft.world.entity.EntitySelector.pushableBy(auto).test(driver), "touching villager is a pickup candidate");
                 auto.tick();
                 require(driver.getVehicle() == auto, "touching villager still auto-boards");
                 require(!auto.canAddPassenger(player), "normal one-seat capacity retained");
@@ -127,9 +143,27 @@ public final class AnimalBoardingQa implements ModInitializer {
                 restored.discard();
                 player.discard();
                 logger.info("AUTO34_ANIMAL_BOARDING_PASS checks={}", checks);
+                var paverCar = new AutomobileEntity(level);
+                var paver = new PaverRearAttachment(RearAttachmentType.PAVER, paverCar);
+                var pavingPosition = new BlockPos(5, 199, 5);
+                var grass = Blocks.GRASS_BLOCK.defaultBlockState();
+                var stone = Blocks.STONE.defaultBlockState();
+                level.setBlockAndUpdate(pavingPosition.above(), Blocks.AIR.defaultBlockState());
+                level.setBlockAndUpdate(pavingPosition, grass);
+                require(paver.plowResult(pavingPosition, grass).is(Blocks.DIRT_PATH), "registry shovel transform flattens grass");
+                require(level.getBlockState(pavingPosition) == grass, "paver result computation does not mutate world");
+                level.setBlockAndUpdate(pavingPosition, stone);
+                require(paver.plowResult(pavingPosition, stone) == stone, "paver preserves non-transformable stone");
+                level.setBlockAndUpdate(pavingPosition, grass);
+                level.setBlockAndUpdate(pavingPosition.above(), stone);
+                require(paver.plowResult(pavingPosition, grass) == grass, "paver preserves grass blocked above");
+                require(!AutoMechanicTableScreenHandler.OpeningData.fromLevel(level).recipes().isEmpty(), "mechanic recipes loaded from 26.3 registries");
+                paverCar.discard();
+                logger.info("AUTO263_PORT_SMOKE_PASS checks=5");
             } catch (Throwable failure) {
                 logger.error("AUTO34_ANIMAL_BOARDING_FAIL after checks=" + checks, failure);
             } finally {
+                server.overworld().setChunkForced(0, 0, false);
                 server.halt(false);
             }
         });

@@ -56,7 +56,7 @@ public class AutomobileItemSpecialRenderer implements SpecialModelRenderer<Autom
             pose.translate(0.5, 0, 0.5);
             pose.scale(argument.scale, -argument.scale, -argument.scale);
             if (model instanceof BaseModel base) {
-                submitter.submitModel(base, new BaseModel.RenderState(0), pose, base.renderType(argument.texture), light, overlay, color, null, 0, null);
+                submitter.submitModel(base, new BaseModel.RenderState(0), pose, base.renderType(argument.texture), light, overlay, color, null, 0);
             } else if (model instanceof ObjModel obj) {
                 obj.submit(pose, submitter, obj.renderType(argument.texture), light, overlay, color);
             }

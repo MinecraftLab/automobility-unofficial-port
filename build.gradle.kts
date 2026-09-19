@@ -1,6 +1,6 @@
 plugins {
 	id("java")
-	id("net.fabricmc.fabric-loom") version "1.17.14" apply false
+	id("net.fabricmc.fabric-loom") version "1.17.21" apply false
 }
 
 allprojects {

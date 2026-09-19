@@ -47,7 +47,7 @@ public class AutomobileEntityRenderer extends EntityRenderer<AutomobileEntity, A
 
         pose.pushPose();
         pose.translate(0, state.verticalOffset, 0);
-        pose.mulPose(state.angularRotation);
+        pose.rotate(state.angularRotation);
         AutomobileRenderer.render(pose, submitter, state.lightCoords, OverlayTexture.NO_OVERLAY, state.tickDelta, state.automobile);
 
         pose.popPose();

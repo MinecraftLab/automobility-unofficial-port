@@ -51,7 +51,7 @@ public class AutomobileAssemblerBlockEntityRenderer implements BlockEntityRender
 
         matrices.pushPose();
         matrices.translate(0.5, 0, 0.5);
-        matrices.mulPose(Axis.YP.rotationDegrees(-state.entity.getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).toYRot()));
+        matrices.rotate(Axis.YP.rotationDegrees(-state.entity.getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).toYRot()));
         matrices.translate(0, 0.372, 0.501);
         matrices.scale(0.008f, -0.008f, 0.008f);
 

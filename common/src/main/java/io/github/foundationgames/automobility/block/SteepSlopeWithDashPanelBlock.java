@@ -1,6 +1,5 @@
 package io.github.foundationgames.automobility.block;
 
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.InsideBlockEffectApplier;
@@ -8,14 +7,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.redstone.Orientation;
 
 public class SteepSlopeWithDashPanelBlock extends SteepSlopeBlock {
-    public static final MapCodec<SteepSlopeWithDashPanelBlock> CODEC = Block.simpleCodec(SteepSlopeWithDashPanelBlock::new);
-
     public SteepSlopeWithDashPanelBlock(Properties settings) {
         super(settings);
 
@@ -47,10 +43,5 @@ public class SteepSlopeWithDashPanelBlock extends SteepSlopeBlock {
     protected void entityInside(BlockState state, Level world, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isInside) {
         super.entityInside(state, world, pos, entity, effectApplier, isInside);
         DashPanelBlock.onCollideWithDashPanel(state, entity);
-    }
-
-    @Override
-    protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
-        return CODEC;
     }
 }

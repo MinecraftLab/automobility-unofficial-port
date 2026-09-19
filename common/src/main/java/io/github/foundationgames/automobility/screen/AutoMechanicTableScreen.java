@@ -1,5 +1,6 @@
 package io.github.foundationgames.automobility.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.foundationgames.automobility.Automobility;
 import io.github.foundationgames.automobility.recipe.AutoMechanicIngredient;
 import io.github.foundationgames.automobility.recipe.AutoMechanicTableRecipe;
@@ -17,7 +18,6 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -164,7 +164,7 @@ public class AutoMechanicTableScreen extends AbstractContainerScreen<AutoMechani
         double mouseX = event.x();
         double mouseY = event.y();
         int button = event.button();
-        if (button == GLFW.GLFW_MOUSE_BUTTON_1) {
+        if (button == InputConstants.MOUSE_BUTTON_LEFT) {
             int selectedCatButton = getHoveredCategoryButton((int) mouseX, (int) mouseY);
             if (selectedCatButton != 0) {
                 this.changeCategory(selectedCatButton);

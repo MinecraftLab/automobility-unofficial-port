@@ -43,9 +43,9 @@ public class ObjModel extends Model<BaseModel.RenderState> {
         poseStack.pushPose();
 
         poseStack.translate(translation.x(), translation.y(), translation.z());
-        poseStack.mulPose(Axis.ZP.rotationDegrees(rotation.z()));
-        poseStack.mulPose(Axis.XP.rotationDegrees(rotation.x()));
-        poseStack.mulPose(Axis.YP.rotationDegrees(rotation.y()));
+        poseStack.rotate(Axis.ZP.rotationDegrees(rotation.z()));
+        poseStack.rotate(Axis.XP.rotationDegrees(rotation.x()));
+        poseStack.rotate(Axis.YP.rotationDegrees(rotation.y()));
         poseStack.scale(scale.x(), scale.y(), scale.z());
         submitter.submitCustomGeometry(poseStack, renderType, (pose, buffer) -> renderObj(obj, pose, buffer, packedLight, packedOverlay, color));
         poseStack.popPose();

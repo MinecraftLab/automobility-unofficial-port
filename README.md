@@ -2,6 +2,13 @@
 
 # Automobility: Unofficial Port
 
+> **26.3 development branch:** this branch contains an unpublished, core-only
+> Automobility candidate for Minecraft 26.3. See [PORTING_26.3.md](PORTING_26.3.md)
+> for its build commands, verified server checks, and remaining client gates.
+> Momentum and optional addon compatibility are not covered by this port stage.
+> The combined release gate below is not yet configured for 26.3; the remaining
+> release-support information describes the existing 26.1.x/26.2 releases.
+
 This repository is an unofficial Fabric port/fork of [Automobility](https://modrinth.com/mod/automobility) by [FoundationGames](https://github.com/FoundationGames/Automobility) for current Minecraft Java 26.x releases. The `main` branch targets 26.1.x and is built and smoke-tested on 26.1.2; the `port/26.2` branch targets 26.2. It is not affiliated with or endorsed by FoundationGames unless stated otherwise by the upstream maintainers.
 
 Automobility adds customizable and functional vehicles, automobile parts, attachments, road-building blocks, driving controls, sounds, and resource/data-pack vehicle support.

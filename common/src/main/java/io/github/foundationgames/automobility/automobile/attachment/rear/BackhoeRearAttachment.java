@@ -20,7 +20,7 @@ public class BackhoeRearAttachment extends BasePlowRearAttachment {
 
     @Override
     public SoundEvent plowSound() {
-        return SoundEvents.HOE_TILL;
+        return SoundEvents.HOE_TILL.value();
     }
 
     @Override

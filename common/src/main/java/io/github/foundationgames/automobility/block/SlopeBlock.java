@@ -1,6 +1,5 @@
 package io.github.foundationgames.automobility.block;
 
-import com.mojang.serialization.MapCodec;
 import io.github.foundationgames.automobility.item.SlopePlacementContext;
 import io.github.foundationgames.automobility.util.AUtils;
 import io.github.foundationgames.automobility.util.duck.CollisionArea;
@@ -42,8 +41,6 @@ public class SlopeBlock extends HorizontalDirectionalBlock implements SimpleWate
     public static final EnumProperty<Half> HALF = BlockStateProperties.HALF;
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
 
-    public static final MapCodec<SlopeBlock> CODEC = Block.simpleCodec(SlopeBlock::new);
-
     public SlopeBlock(Properties settings) {
         super(settings);
         registerDefaultState(defaultBlockState().setValue(FACING, Direction.NORTH).setValue(HALF, Half.BOTTOM).setValue(WATERLOGGED, false));
@@ -71,11 +68,6 @@ public class SlopeBlock extends HorizontalDirectionalBlock implements SimpleWate
         }
 
         return new CollisionArea.SlopeArea(bounds, xSlope, zSlope, originY);
-    }
-
-    @Override
-    protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
-        return CODEC;
     }
 
     @Nullable
