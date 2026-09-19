@@ -42,7 +42,7 @@ Patch release for the unofficial Minecraft Java 26.2 Fabric port of Momentum for
 ## Before Upload
 
 - Complete the 26.2 singleplayer smoke test with the matching Automobility `.26` JAR.
-- Push the `port/26.2` branch and create the matching GitHub release.
+- Push the `port/26.2` branch and create the matching Forgejo release.
 - Upload exactly the JAR and metadata listed above.
 - Keep the version as beta while the port still has limited public testing.
 

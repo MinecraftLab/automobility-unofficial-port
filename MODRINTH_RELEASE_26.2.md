@@ -41,7 +41,7 @@ Compatibility and translation update for the unofficial Minecraft Java 26.2 Fabr
 ## Before Upload
 
 - Complete the 26.2 singleplayer smoke test and, where available, a multiplayer connection test.
-- Push the `port/26.2` branch and create the matching GitHub release.
+- Push the `port/26.2` branch and create the matching Forgejo release.
 - Upload exactly the JAR and metadata listed above.
 - Keep the version as beta while the port still has limited public testing.
 

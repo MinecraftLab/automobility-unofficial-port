@@ -2,6 +2,8 @@
 
 # Automobility - Unofficial 26.x Port
 
+Maintained source and issue tracking have moved to [Offchunk Forgejo](https://git.offchunk.com/Offchunk/automobility-unofficial-port).
+
 This repository is an unofficial Fabric port/fork of [Automobility](https://modrinth.com/mod/automobility) by [FoundationGames](https://github.com/FoundationGames/Automobility) for current Minecraft Java 26.x releases. The `main` branch targets 26.1.x and is built and smoke-tested on 26.1.2; the `port/26.2` branch targets 26.2. It is not affiliated with or endorsed by FoundationGames unless stated otherwise by the upstream maintainers.
 
 Automobility adds customizable and functional vehicles, automobile parts, attachments, road-building blocks, driving controls, sounds, and resource/data-pack vehicle support.

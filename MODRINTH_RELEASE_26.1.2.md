@@ -7,8 +7,8 @@ Use this file for the 26.1.x upload after the release candidate passes the in-ga
 - Project: `https://modrinth.com/mod/automobility-unofficial-port`
 - Environment: `Client and server, required on both`
 - License: MIT
-- Source: `https://github.com/nickynicolaus/automobility-unofficial-port`
-- Issues: `https://github.com/nickynicolaus/automobility-unofficial-port/issues`
+- Source: `https://git.offchunk.com/Offchunk/automobility-unofficial-port`
+- Issues: `https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues`
 
 ## Version Form
 
@@ -51,7 +51,7 @@ Compatibility and translation update for the unofficial Minecraft Java 26.1.x Fa
 ## Before Upload
 
 - Complete the 26.1.2 singleplayer and multiplayer smoke test.
-- Push the `main` branch and create the matching GitHub release.
+- Push the `main` branch and create the matching Forgejo release.
 - Upload exactly the JAR and metadata listed above.
 - Keep the version as beta while the port still has limited public testing.
 - Use `MODRINTH_DESCRIPTION.md` as the project description.
