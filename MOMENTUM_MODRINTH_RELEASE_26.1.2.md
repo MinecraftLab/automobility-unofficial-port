@@ -4,15 +4,20 @@
 > `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
 > files in this branch are retained only as historical snapshots.
 
-Use this file for the 26.1.x upload after the release candidate passes the in-game smoke test.
+**Local QA rebuild only (2026-09-19); not an approved Momentum upload.**
+The Offchunk contact migration changes the artifact bytes without changing Momentum's
+version. The original `.10` candidate remains preserved in
+`dist\archive-20260912-pre-offchunk`. Do not replace a published `.10` file
+with this local QA rebuild; a separate Momentum release requires its own version
+decision and validation.
 
 ## Project
 
 - Project: `https://modrinth.com/mod/momentum-for-automobility-unofficial-port`
 - Environment: `Client and server, required on both`
 - License: MIT
-- Source: `https://github.com/nickynicolaus/automobility-unofficial-port`
-- Issues: `https://github.com/nickynicolaus/automobility-unofficial-port/issues`
+- Source: `https://git.offchunk.com/Offchunk/automobility-unofficial-port`
+- Issues: `https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues`
 
 ## Version Form
 
@@ -38,8 +43,8 @@ Controlify adds Momentum's native cruise-control bindings, contextual controller
 
 - Local JAR: `dist\release-candidate-0.1.11-unofficial.10\momentum-0.1.11-unofficial.10+26.1.2-fabric.jar`
 - Size: `214524` bytes
-- SHA-256: `91B60E21F324A361AA4FC3AA382650A8358CCDE3143D8E8CEC5352BB547EDA46`
-- SHA-512: `23689A00D89F622B3B5E5D4A2F5F49D014B4722D05F232E392EABFD71BC10104EE940CC2267C649F75D59E51824D92226D2498D3791C5AA3BF5A7461A4374D41`
+- SHA-256: `0AD500B70934CB03BF903723EEC26F96F2BE83621C19743D79F790EA2BB227A2`
+- SHA-512: `E7D01693ACA4F6674E0A61035646BB34FCD99E1BA581ACC08E2CE63AB8AE033C3CB653B5DA7058DFB0912BBEAB25A581E61190C2E412A5E6C1E02A0888D2C81B`
 
 ## Version Changelog
 
@@ -60,7 +65,7 @@ Native controller-support release for the unofficial Minecraft Java 26.1.x Fabri
 ## Before Upload
 
 - Complete the 26.1.2 client singleplayer and multiplayer smoke tests with the matching Automobility `.31` JAR.
-- Push the `port/26.1.2` branch and create the matching GitHub release.
+- Push the `port/26.1.2` branch and create the matching Forgejo release.
 - Upload exactly the JAR and metadata listed above.
 - Keep the version as beta while the port still has limited public testing.
 - Use `MOMENTUM_MODRINTH_DESCRIPTION.md` as the project description.

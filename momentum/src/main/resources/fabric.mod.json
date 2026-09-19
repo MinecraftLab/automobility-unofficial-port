@@ -7,8 +7,8 @@
   "authors": ["milkucha"],
   "contact": {
     "homepage": "https://modrinth.com/mod/momentum-for-automobility-unofficial-port",
-    "sources": "https://github.com/nickynicolaus/automobility-unofficial-port",
-    "issues": "https://github.com/nickynicolaus/automobility-unofficial-port/issues"
+    "sources": "https://git.offchunk.com/Offchunk/automobility-unofficial-port",
+    "issues": "https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues"
   },
   "license": "MIT",
   "icon": "momentum_icon.png",
