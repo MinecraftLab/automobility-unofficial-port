@@ -1,6 +1,6 @@
 # Changelog
 
-## Automobility .36 / Momentum .11 for 26.3 - local candidates
+## Automobility .36 / Momentum .11 for 26.3 - 2026-09-26 (BETA)
 
 - Port the newer parked-car terrain refresh and collision short-circuit fixes.
 - Preserve the accepted 26.3 driver rotation and remote interpolation paths.
@@ -12,6 +12,9 @@
 - No 26.3 P&P, adapter, Autoradio or Roadworks port is included.
 - 179 unit tests pass. Runtime, current player acceptance and publication are
   separate gates recorded in docs/release/PARITY_26.3.md.
+- Final requested player test accepted; public files verified by anonymous CDN
+  download and SHA-256/SHA-512. Existing RIA .6 keeps its binary with a new exact
+  core .36 dependency. All nine public target/project matrix rows align.
 
 Historical entries below describe earlier candidates; authoritative public .34
 and Momentum .10 evidence is preserved in docs/release/*-26.3-published.md.

@@ -48,7 +48,7 @@ Reloads and preset changes are synchronized immediately with every compatible co
 
 - YetAnotherConfigLib (YACL) enables the in-game options screen.
 - Mod Menu exposes the Momentum options button when YACL is also installed.
-- Compatible Controlify builds add controller bindings, contextual guide hints and radial-menu actions. Tested API families are version-specific, not a promise of compatibility with arbitrary future SDKs. Older-target Momentum .10 builds support the tested 3.0.2/3.5.3 families; 26.3 modern 3.5.3 support is in the new .11 candidate, not in its public .10 baseline. Check that candidate's release status before installing. Physical-controller gameplay is a separate validation. Momentum remains usable without Controlify.
+- Compatible Controlify builds add controller bindings, contextual guide hints and radial-menu actions. Tested API families are version-specific, not a promise of compatibility with arbitrary future SDKs. Older-target Momentum .10 builds support the tested 3.0.2/3.5.3 families; 26.3 modern 3.5.3 support requires the published .11 beta, not its older .10 baseline. Physical-controller gameplay is a separate validation. Momentum remains usable without Controlify.
 
 ## Compatibility
 

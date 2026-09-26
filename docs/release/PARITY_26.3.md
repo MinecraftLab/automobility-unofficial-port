@@ -2,7 +2,9 @@
 
 Status: implementation, clean no-cache build, default exact artifact gate and
 final packaged runtime matrix PASS. Final requested manual gameplay ACCEPTED on
-2026-09-26. Publication is still pending until anonymous verification succeeds.
+2026-09-26. Publication and fresh anonymous API/page/CDN verification PASS.
+The full public matrix passes without any pending-target exemption.
+See [publication evidence](PUBLIC_26.3_20260926.md).
 
 ## Scope
 
@@ -84,10 +86,16 @@ QA directory. Five existing cars were positioned by exact UUID in a cloned
 showcase world. All 36 original world files were hash-verified unchanged after
 launch. No QA mods, exit probes, original-world edits or unrelated-game stops.
 
-## Remaining gates
+## Publication outcome
 
-- Public source/release, ordered core/addon publication, RIA dependency alignment,
-  anonymous downloads/hash comparison, and final public parity gate.
+- Public source: `7d3b1449cdd34f72375472ae30827ca811749a84` on Offchunk.
+- Core .36: `yPZ9P5d8`; Momentum .11: `uIpEAR2D`, requiring exact core `yPZ9P5d8`.
+- Existing RIA .6 `8hM0nOi2`: unchanged binary, required core pin changed to
+  `yPZ9P5d8`; compatibility text updated without changing other metadata.
+- All three are listed Fabric 26.3 betas, client_and_server. Anonymous pages
+  return 200 and fresh CDN bytes match both SHA-256 and SHA-512.
+- All nine rows in the full public ecosystem matrix pass, without PendingMinecraft.
+- The common release policy is committed and pushed in all three target lanes.
 
 Physical-controller gameplay, two-real-player and exhaustive lifecycle coverage
 remain NOT PROVEN. No measured FPS gain is claimed. No 26.3 P&P or Autoradio port.

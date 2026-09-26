@@ -3,7 +3,13 @@
 > **Target-scoped release record:** Only for minecraft_version=26.3.
 > Prior public .10 evidence is preserved in docs/release/momentum10-26.3-published.md.
 
-Status: MANUALLY ACCEPTED, NOT YET PUBLISHED. Final player acceptance: 2026-09-26.
+Status: PUBLISHED AND ANONYMOUSLY VERIFIED on 2026-09-26. Final player acceptance: 2026-09-26.
+
+- Modrinth version ID: `uIpEAR2D`
+- Public version: https://modrinth.com/mod/momentum-for-automobility-unofficial-port/version/uIpEAR2D
+- Required Automobility version ID: `yPZ9P5d8` (.36+26.3).
+- Release source: `7d3b1449cdd34f72375472ae30827ca811749a84`
+- Anonymous API, page HTTP 200, CDN size/SHA-256/SHA-512: PASS.
 
 - Version number: `0.1.11-unofficial.11+26.3`
 - Version type: `beta`

@@ -2,9 +2,9 @@
 
 # Automobility: Unofficial Port
 
-> **26.3 parity branch:** public .34 / Momentum .10 / RIA .6 remain available.
-> This checkout prepares Automobility .36 and Momentum .11; these new candidates
-> passed the final requested player test on 2026-09-26; publication is pending. See
+> **26.3 parity branch:** Automobility .36 / Momentum .11 / RIA .6 are published
+> and anonymously verified after the final requested player test on 2026-09-26.
+> The older .34 / Momentum .10 files remain available. See
 > [current parity status](docs/release/PARITY_26.3.md) and the
 > [shared release policy](docs/release/ECOSYSTEM_PARITY.md).
 > Historical accepted 26.3 port evidence remains in [PORTING_26.3.md](PORTING_26.3.md).

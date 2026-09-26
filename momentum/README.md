@@ -1,6 +1,6 @@
 # Momentum for Automobility: Unofficial Port
 
-This subproject is an unofficial Fabric port of [Momentum for Automobility](https://modrinth.com/mod/momentum-for-automobility) by milkucha for Minecraft Java 26.x. This branch builds the Minecraft **26.3** candidate; older Minecraft targets use separate builds.
+This subproject is an unofficial Fabric port of [Momentum for Automobility](https://modrinth.com/mod/momentum-for-automobility) by milkucha for Minecraft Java 26.x. This branch builds the published Minecraft **26.3** beta; older Minecraft targets use separate builds.
 
 Momentum changes Automobility vehicle movement feel and adds a compact driving dashboard. It is optional, but when used in multiplayer it must be installed on both the client and the server.
 
@@ -14,7 +14,7 @@ Momentum changes Automobility vehicle movement feel and adds a compact driving d
 ## Optional
 - YACL `3.9.6+26.3-fabric` for the in-game options screen
 - Mod Menu `21.0.0-beta.1` exposes Momentum's options button when YACL is also installed
-- This Momentum .11 candidate ports the modern adapter for Controlify `3.5.3+mc26.3`.
+- Momentum .11 ports the modern adapter for Controlify `3.5.3+mc26.3`.
   SDK linkage and resources have regression tests; current runtime/player status is
   tracked in [parity qualification](../docs/release/PARITY_26.3.md). Do not install a
   26.2 Controlify JAR into 26.3 or override its Minecraft dependency. Neither SDK is bundled.
