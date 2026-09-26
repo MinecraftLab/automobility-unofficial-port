@@ -1,0 +1,4 @@
+# Canonical endings: reproducible .36 metadata and exact public Momentum .10 resources.
+common/src/main/resources/automobility.mixins.json text eol=lf
+momentum/src/main/resources/assets/controlify/radial_icons.json text eol=lf
+momentum/src/main/resources/assets/controlify/contextual/guide/in_game.json text eol=lf

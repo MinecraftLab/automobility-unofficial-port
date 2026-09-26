@@ -1595,7 +1595,10 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.displacement.preTick();
 
             if (this.usesLocalDisplacement()) {
-                if (tick) {
+                var terrainRevisions = this.level() instanceof AutomobileTerrainRevisions.Source source
+                        ? source.automobility$terrainRevisions() : null;
+                boolean terrainChanged = this.displacement.shouldRefreshTerrain(terrainRevisions, this.getX(), this.getZ());
+                if (tick || terrainChanged) {
                     this.displacement.otherColliders.clear();
                     this.accumulateCollisionAreas(this.displacement.otherColliders);
 
@@ -1605,8 +1608,13 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
                 if (level().getBlockState(this.blockPosition()).getBlock() instanceof AutomobileAssemblerBlock) {
                     this.displacement.lastVertical = this.displacement.verticalTarget = (this.getY() - this.getWheels().model().radius() / 16);
                 }
-            } else if (!this.displacement.hasSyncedData()) {
-                this.displacement.snapTo(this.getY(), new Quaternionf());
+            } else {
+                // Do not replace a remote driver's authoritative displacement with a local
+                // terrain scan. If control changes later, recalculate the local terrain once.
+                this.displacement.invalidateTerrain();
+                if (!this.displacement.hasSyncedData()) {
+                    this.displacement.snapTo(this.getY(), new Quaternionf());
+                }
             }
 
             this.displacement.postTick();
@@ -1638,30 +1646,33 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         var floorCuboid = Shapes.create(floorBox);
         var wallCuboid = Shapes.create(wallBox);
         var stepWallCuboid = wallCuboid.move(0, this.maxUpStep() - 0.05, 0);
-        boolean wallHit = false;
-        boolean stepWallHit = false;
+        var collisionState = new AutomobileCollisionState(groundCuboid, floorCuboid, wallCuboid, stepWallCuboid);
         var shapeCtx = CollisionContext.of(this);
         if (this.level().hasChunksAt(start, end)) {
             var pos = new BlockPos.MutableBlockPos();
-            for(int x = start.getX(); x <= end.getX(); ++x) {
+            blockScan: for(int x = start.getX(); x <= end.getX(); ++x) {
                 for(int y = start.getY(); y <= end.getY(); ++y) {
                     for(int z = start.getZ(); z <= end.getZ(); ++z) {
                         pos.set(x, y, z);
                         var state = this.level().getBlockState(pos);
-                        var blockShape = state.getCollisionShape(this.level(), pos, shapeCtx).move(pos.getX(), pos.getY(), pos.getZ());
-                        this.automobileOnGround |= Shapes.joinIsNotEmpty(blockShape, groundCuboid, BooleanOp.AND);
-                        this.isFloorDirectlyBelow |= Shapes.joinIsNotEmpty(blockShape, floorCuboid, BooleanOp.AND);
-                        wallHit |= Shapes.joinIsNotEmpty(blockShape, wallCuboid, BooleanOp.AND);
-                        stepWallHit |= Shapes.joinIsNotEmpty(blockShape, stepWallCuboid, BooleanOp.AND);
+                        collisionState.addLocalShape(state.getCollisionShape(this.level(), pos, shapeCtx), x, y, z);
+                        // Keep flags visible to subsequent entity-aware collision-shape callbacks.
+                        this.automobileOnGround = collisionState.blockGround();
+                        this.isFloorDirectlyBelow = collisionState.floorDirectlyBelow();
+                        if (collisionState.complete()) {
+                            break blockScan;
+                        }
                     }
                 }
             }
         }
-        this.touchingWall = (wallHit && stepWallHit);
-
-        var otherColliders = new HashSet<CollisionArea>();
-        this.accumulateCollisionAreas(otherColliders);
-        this.automobileOnGround |= otherColliders.stream().anyMatch(col -> col.boxIntersects(groundBox));
+        this.isFloorDirectlyBelow = collisionState.floorDirectlyBelow();
+        this.touchingWall = collisionState.touchingWall();
+        this.automobileOnGround = collisionState.onGround(() -> {
+            var otherColliders = new HashSet<CollisionArea>();
+            this.accumulateCollisionAreas(otherColliders);
+            return otherColliders.stream().anyMatch(col -> col.boxIntersects(groundBox));
+        });
     }
 
     public void lerpTo(double x, double y, double z, float yaw, float pitch, int interpolationSteps) {
@@ -2384,6 +2395,9 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (FRAME_TYPE.equals(data) || WHEEL_TYPE.equals(data) || ENGINE_TYPE.equals(data)) {
             this.stats.from(getFrame(), getWheels(), getEngine());
         }
+        if (FRAME_TYPE.equals(data) || WHEEL_TYPE.equals(data)) {
+            this.displacement.invalidateTerrain();
+        }
     }
 
     @Override
@@ -2505,6 +2519,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         private final Quaternionf currAngular = new Quaternionf();
         private final Quaternionf angularTarget = new Quaternionf();
         private final List<Vec3> scanPoints = new ArrayList<>();
+        private final AutomobileTerrainRevisions.Sample terrainSample = new AutomobileTerrainRevisions.Sample();
+        private double terrainScanRadius;
         public final Set<CollisionArea> otherColliders = new HashSet<>();
         private boolean hasSyncedData = false;
 
@@ -2718,9 +2734,21 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
         public void applyWheelbase(WheelBase wheelBase) {
             this.scanPoints.clear();
+            this.terrainScanRadius = 0;
             for (WheelBase.WheelPos pos : wheelBase.wheels()) if (pos.end() != WheelBase.WheelEnd.NONE) {
-                this.scanPoints.add(new Vec3(pos.right() / 16, 0, pos.forward() / 16));
+                var point = new Vec3(pos.right() / 16, 0, pos.forward() / 16);
+                this.scanPoints.add(point);
+                this.terrainScanRadius = Math.max(this.terrainScanRadius, point.length());
             }
+            this.invalidateTerrain();
+        }
+
+        boolean shouldRefreshTerrain(AutomobileTerrainRevisions revisions, double x, double z) {
+            return this.terrainSample.shouldRefresh(revisions, x, z, this.terrainScanRadius);
+        }
+
+        void invalidateTerrain() {
+            this.terrainSample.invalidate();
         }
 
         public void writeSyncData(FriendlyByteBuf buf) {

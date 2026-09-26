@@ -1,5 +1,14 @@
 # Changelog
 
+## Automobility 0.5.0-unofficial.36 - local candidate (not published)
+
+- Refresh stationary vehicle body height after terrain/chunk/view changes and frame/wheel metadata updates.
+- Preserve remote driver displacement authority and existing movement/interpolation rules.
+- Short-circuit redundant collision intersections; differential tests retain the original collision results.
+- Matching P&P RC18 is pinned to the exact .36 artifact. Momentum .10 and RIA .8 binaries remain unchanged.
+- Client verification and renewed player acceptance are separate gates; no measured FPS gain is claimed.
+
+
 ## Automobility 0.5.0-unofficial.35 / Momentum 0.1.11-unofficial.10 - 2026-09-26 (BETA)
 
 Target-specific Fabric builds for Minecraft Java 26.1.2 and 26.2. Momentum `.10`
