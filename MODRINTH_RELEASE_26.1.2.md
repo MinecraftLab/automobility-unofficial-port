@@ -3,7 +3,9 @@
 > **Target-scoped release record:** Use only with matching minecraft_version.
 > Prior public .35 evidence is preserved in docs/release/core35-26.1.2-published.md.
 
-Status: release candidate. Publication and target installation must be verified separately.
+Status: published on 2026-09-26; anonymous CDN size, SHA-256 and SHA-512 verified.
+Modrinth version: https://modrinth.com/mod/automobility-unofficial-port/version/8qn3OqtD
+Publication receipt: dist/publication-8qn3OqtD.json. Target installations are tracked separately.
 
 - Version number: `0.5.0-unofficial.36+26.1.2`
 - Local JAR: `dist\release-candidate-0.5.0-unofficial.36\automobility-0.5.0-unofficial.36+26.1.2-fabric.jar`
