@@ -1,12 +1,13 @@
-# Modrinth Release - Automobility 0.5.0-unofficial.34 for 26.2
+# Modrinth Release - automobility 0.5.0-unofficial.35 for 26.2
 
 > **Target-scoped release record:** Use this file only when its filename target matches
 > `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
 > files in this branch are retained only as historical snapshots.
 
-**Status: PUBLISHED BETA ON 2026-09-19; ANONYMOUS API/CDN HASH VERIFICATION PASS.**
-
-Public version: [0.5.0-unofficial.34+26.2](https://modrinth.com/mod/automobility-unofficial-port/version/NwM5Z0cU).
+**Status (2026-09-26): READY FOR LIMITED BETA; NOT YET PUBLISHED.**
+Final artifact, unit-test, client integration and dedicated-server gates passed.
+Physical-controller, real two-player driving and full-modpack acceptance remain NOT PROVEN.
+Previous published .34 and rejected Momentum .10 artifacts remain preserved in staging/history.
 
 ## Project
 
@@ -19,7 +20,7 @@ Public version: [0.5.0-unofficial.34+26.2](https://modrinth.com/mod/automobility
 ## Version Form
 
 - Version type: `beta`
-- Version number: `0.5.0-unofficial.34+26.2`
+- Version number: `0.5.0-unofficial.35+26.2`
 - Version subtitle: `for Minecraft 26.2`
 - Loaders: `Fabric`
 - Game versions: `26.2`
@@ -28,87 +29,69 @@ Public version: [0.5.0-unofficial.34+26.2](https://modrinth.com/mod/automobility
 ## Dependencies
 
 - Fabric API: required
-- Controlify (Controller support): optional
 - Momentum for Automobility: Unofficial Port: optional
+- RIAutomobility: Unofficial Port: optional
+- Controlify (Controller support): optional
 
-The loader minimum remains in JAR metadata; do not add it as a project dependency.
-Pumps & Pistons/Roadworks candidates pinned to `.33` require separately verified
-dependency updates before combining them with `.34`.
+Controlify remains compile-only and optional. Tested API families do not imply
+support for every future SDK. Momentum must reference the actual public .35 version ID.
 
 ## Upload File
 
-- Local JAR: `dist\release-candidate-0.5.0-unofficial.34\automobility-0.5.0-unofficial.34+26.2-fabric.jar`
-- Size: `1399097` bytes
-- SHA-256: `87DC331C2F3216381A7EB588BA2259420762603650CE14A60458704244B87D33`
-- SHA-512: `C99F9B68C42E7EE04B4671C606520A1E0E7CB22FAC74FF43C54145B84BD651437C76A089705F249EC40318B35FE90A3466654E3BCD1261504E09559670723D7C`
+- Local JAR: `dist\release-candidate-0.5.0-unofficial.35\automobility-0.5.0-unofficial.35+26.2-fabric.jar`
+- Size: `1407814` bytes
+- SHA-256: `3C8CBB18F578E59200682275EB6119CFDE9B02DE06C4E41C092E4E3BB65D451D`
+- SHA-512: `4213CEA4DE0F45B9BA8B3D436B2A46EBA9B7B172B99E70D74A3BFFE961FBE683913D87C4991FB17232318BE319297574012F5F4D0A6686E9D3C4773003CA1D23`
 
 ## Version Changelog
 
+Approved release notes (public version adds the exact source commit and verification scope):
+
 ```markdown
-Animals no longer occupy automobile seats.
+Controlify compatibility update for the unofficial Minecraft Java 26.2 Fabric port.
 
-- Prevented animals from boarding automatically or through normal mounting, including
-  rear passenger seats, aquatic animals and bats.
-- Animals already seated in an older save dismount safely on the next server tick.
-- Players and non-animal mobs keep their existing boarding behavior.
+- Restores optional controller-guide registration with Controlify 3.5.3 while preserving the legacy 3.0.2 API.
+- Preserves existing binding IDs and player mappings; unknown APIs retain keyboard controls with a warning.
+- Retains .34 animal-boarding, input validation and persistence fixes; no vehicle physics changes are intended.
 
-Also includes the previously unpublished security, data-safety and position-sync repairs:
-
-- Hardened vehicle input handling and attachment requests; clients cannot supply
-  arbitrary physics, collision-damage or position values through the legacy packet.
-- Added world-border and vanilla spawn-protection checks for harvester/plow changes.
-- Preserved missing-addon component IDs and attachment inventory data across saves.
-- Bounded datapack physics values, fixed raw automobile placement and stale menus.
-- Repaired automobile/attachment rendering after server position corrections.
-- Updated source and issue links to git.offchunk.com.
-
-Beta: automated unit and dedicated-server animal-boarding tests are covered.
-Fresh manual driving, two-client observation and full modpack acceptance are not
-yet confirmed for this build. Back up worlds and match addon dependency ranges;
-older Pumps & Pistons/Roadworks candidates pinned to .33 require an addon update.
+Install on client and server. Controlify remains optional; SDKs and QA fixtures are not bundled.
+Beta: physical controller input, full multiplayer driving and complete modpack acceptance are not proven.
 ```
 
 ## Verification Record
 
-- Offchunk final artifact, 2026-09-19: clean no-cache default gate **PASS**, 107 tests,
-  exact staged size/SHA-256/SHA-512 and licenses/metadata verified. Comparing all 761
-  uncompressed JAR entries against the 2026-09-12 candidate found only
-  `fabric.mod.json` changed (source/issues URLs); no test fixture is in production.
-- Fresh isolated 26.2 server with the final staged JAR: **PASS checks=22**, normal
-  save/stop and exit 0. Log `animal-boarding-offchunk-20260919.log` under the documented
-  QA directory, SHA-256 `A6D50587815773CEC560EAE81698FA09DFD8E60A8EE07FA80B5E93E0AA98CCF3`.
-- Original pre-Offchunk artifacts remain in `dist/archive-20260912-pre-offchunk`;
-  the following 2026-09-12 results describe those historical bytes, not the new hashes.
-- Base: `.33` at `dea66f3b7b36a23ce3358dfdd483814bdffd6f41`.
-- New `.34` clean build, unit suites and JAR integrity: **PASS** on 2026-09-12;
-  107 tests passed, 0 failed and 0 skipped (Fabric 73; Momentum 34).
-- Exact staged-JAR and release-record hash gate: **PASS** on 2026-09-12.
-  A clean no-cache rebuild reproduced size, SHA-256 and SHA-512 for both modules.
-- Dedicated-server animal boarding, existing animal dismount and non-animal
-  passenger control: **PASS**, 22 scenario groups on 2026-09-12, including 17
-  animal types and NBT save/load with mixed passengers. Server stopped with exit 0.
-  See `tools/qa/ANIMAL_BOARDING_QA.md` for coverage and reproduction.
-- Prior `.33` runtime results apply only to its original hashes, retained in the
-  `.33` worktree and Git history.
-- Held-key/manual driving, two-client observer, horizontal/dimension transfer,
-  full persistence/missing-addon/spawn-protection and ecosystem acceptance:
-  **NOT PROVEN for .34**.
-- Owner explicitly requested Modrinth publication on 2026-09-19. Manual acceptance
-  is not implied by that request; the unproven coverage above remains disclosed.
-- Anonymous Offchunk source/issues and final artifact checks must pass before upload.
+- Earlier 107-test results describe previous .34 / legacy-only Momentum .10 bytes, not this candidate.
+- Initial 26.2 + Controlify 3.5.3 runtime reproduced both broken pre-init callbacks.
+  Historical RED evidence: `C:\Users\david\Momentum-10-Release-QA-20260926\CONTROLIFY_3_5_3_BLOCKER.md`.
+- Final Java 25 default gate with `-Rebuild` (without preparation bypass): PASS,
+  119 tests (82 Fabric + 37 Momentum), 0 failures and 0 skips. Clean rebuild matches
+  the canonical JAR and this record in size, SHA-256 and SHA-512.
+  Log: `dist\momentum-10-26.2-verification-20260926\controlify35-final-release-gate.log`, SHA-256 `6384F722BEAF5045C3F01D217008938DB851B34B74BD13F1ECE90F9FACA73484`.
+- Exact production JARs in isolated Minecraft clients: all three cases PASS.
+  NONE: 2 checks of optional absence/neutral bridge. Controlify 3.0.2: 8 checks of
+  seven binding IDs, facade completion and bridge; legacy guides/icons NOT CHECKED.
+  Controlify 3.5.3: 94 checks including seven applied guides, four radial icons,
+  six synthetic contextual vectors and two resource passes. No physical input was used.
+  Evidence root: `C:\Users\david\Momentum-10-Release-QA-20260926\client-26.2\runs`.
+  - `fixed-none-probe-001/logs/latest.log`: `10D585DAF953F05CBA15BB45A5E2AEB63BE5F363EEA08278140134314380C039`.
+  - `fixed-legacy-probe-001/logs/latest.log`: `9305382CBD10413D7C7BD81740398D8F5FA31AF38AAE25D550024FF3B7A7E45B`.
+  - `fixed-modern-probe-001/logs/latest.log`: `BA717953ECBDFC6F41C123B49969D4F9E1AA9D948F07781D4E38B2300B44A30D`.
+- Isolated dedicated server with exact core/Momentum/Fabric API, no Controlify or QA
+  fixture: startup, status, Sport, reload, sync, restoration to Balanced, save and
+  graceful exit 0 PASS. Sync had zero recipients, so network delivery is NOT PROVEN.
+  `C:\Users\david\Momentum-10-Release-QA-20260926\servers-fixed\26.2\dedicated-server-pass.log`
+  SHA-256: `52659C5200FA105F973C99353BDAAB236B69FFA40B5FA7AA126AEDBBF87DB3D9`.
+- Production packaging guard excludes QA classes and bundled/required Controlify SDK.
+  Guard regression fixtures: 10 checks across both targets PASS.
+- Controlify 3.5.3 emitted an SDL3 native 3.4.12 versus Java binding 3.4.14 warning
+  on Windows; SDL initialization completed, but no physical controllers were present.
+  Offline-account/Realms and Windows system-information warnings remain in QA logs.
+- Physical controller input and two-real-player/full-modpack acceptance: NOT PROVEN.
+- User approved coordinated core/Momentum repair and publication on 2026-09-26;
+  authorization is not evidence that unrun player checks passed.
 
-## Before Upload
+## Publication Gate
 
-- Run `tools\qa\Test-Automobility.ps1 -Rebuild` against the final staged artifacts.
-- Keep limited beta coverage explicit; do not claim full ecosystem/player acceptance.
-- Confirm canonical source and issue URLs are anonymously reachable; preserve the
-  upstream attribution and MIT notices.
-- Upload only after approval, using the exact JAR and metadata in this record.
-
-## After Upload
-
-- 2026-09-19: anonymous API metadata and downloaded CDN size/SHA-256/SHA-512 all
-  matched the artifact above. Receipt: `dist/publication-NwM5Z0cU.json`.
-- Matching source: Offchunk branch `fix/automobility-34-no-animal-passengers-26.2`.
-- Download the public file and compare size, SHA-256 and SHA-512.
-- Verify anonymous Modrinth metadata, CDN and Maven availability before dependants.
+Run `tools\qa\Test-Automobility.ps1 -Rebuild` with the final staged artifacts.
+Publish core first, then Momentum with its actual public dependency ID. Verify anonymous
+listed metadata, a fresh CDN download, size and both hashes. Never overwrite a published version.

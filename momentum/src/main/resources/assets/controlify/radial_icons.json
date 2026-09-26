@@ -1,0 +1,6 @@
+{
+  "momentum:cruise_control": {"model": "minecraft:compass"},
+  "momentum:cruise_increase": {"model": "minecraft:lime_dye"},
+  "momentum:cruise_decrease": {"model": "minecraft:red_dye"},
+  "momentum:cruise_resume": {"model": "minecraft:clock"}
+}
