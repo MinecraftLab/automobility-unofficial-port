@@ -1,11 +1,12 @@
 # Changelog
 
-## Automobility 0.5.0-unofficial.36 - local candidate (not published)
+## Automobility 0.5.0-unofficial.36 - 2026-09-26 (BETA; 26.1.2/26.2)
 
 - Refresh stationary vehicle body height after terrain/chunk/view changes and frame/wheel metadata updates.
 - Preserve remote driver displacement authority and existing movement/interpolation rules.
 - Short-circuit redundant collision intersections; differential tests retain the original collision results.
-- Matching P&P RC18 is pinned to the exact .36 artifact. Momentum .10 and RIA .8 binaries remain unchanged.
+- Public artifact identity is recorded in the target-specific release record. Historical RC18/RIA .8 candidate evidence is not the current public addon list; use the shared ecosystem matrix and live dependency check.
+- Minecraft 26.3 has its own matching build; all supported targets and exact addon dependencies are checked through [the shared release policy](docs/release/ECOSYSTEM_PARITY.md).
 - Client verification and renewed player acceptance are separate gates; no measured FPS gain is claimed.
 
 

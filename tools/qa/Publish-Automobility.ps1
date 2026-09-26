@@ -15,6 +15,7 @@ Get-Content -LiteralPath (Join-Path $root 'gradle.properties') | ForEach-Object 
 }
 $target = $properties.minecraft_version
 $version = "$($properties.mod_version)+$target"
+& (Join-Path $root 'tools/qa/Test-EcosystemParity.ps1') -RepositoryRoot $root -PendingMinecraft $target
 if ($target -notin @('26.1.2', '26.2') -or $properties.mod_version -ne '0.5.0-unofficial.36') {
     throw 'This publication recipe is scoped to the reviewed .36 release targets only.'
 }
@@ -144,7 +145,7 @@ $receipt = [ordered]@{
     version_number = $version; url = "https://modrinth.com/mod/automobility-unofficial-port/version/$releaseId"
     artifact = $file.Name; size = $size; sha256 = $sha256; sha512 = $sha512
     anonymous_api_and_cdn = 'PASS'; source_commit = $commit
-    manual_gameplay = 'Extended driving and two-real-player acceptance NOT PROVEN for .36; see production-only runtime evidence.'
+    manual_gameplay = 'See committed release record for target-scoped player acceptance; physical-controller, two-real-player and exhaustive lifecycle coverage NOT PROVEN.'
 }
 $receipt | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $root "dist/publication-$releaseId.json") -Encoding utf8
 $receipt | ConvertTo-Json
