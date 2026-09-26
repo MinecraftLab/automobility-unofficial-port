@@ -15,9 +15,15 @@ Get-Content -LiteralPath (Join-Path $root 'gradle.properties') | ForEach-Object 
 }
 $target = $properties.minecraft_version
 $version = "$($properties.mod_version)+$target"
-if ($target -notin @('26.1.2', '26.2') -or $properties.mod_version -ne '0.5.0-unofficial.34') {
-    throw 'This publication recipe is scoped to the reviewed .34 release targets only.'
+if ($target -notin @('26.1.2', '26.2') -or $properties.mod_version -ne '0.5.0-unofficial.36') {
+    throw 'This publication recipe is scoped to the reviewed .36 release targets only.'
 }
+$dirty = @(& git -C $root status --porcelain --untracked-files=normal)
+if ($LASTEXITCODE -ne 0 -or $dirty.Count) { throw 'Commit the exact release source before publishing.' }
+$branch = & git -C $root branch --show-current
+$commit = & git -C $root rev-parse HEAD
+$remoteRef = & git -C $root ls-remote origin "refs/heads/$branch"
+if ($LASTEXITCODE -ne 0 -or !$remoteRef -or $remoteRef.Split()[0] -ne $commit) { throw 'Release source is not verified on the public remote.' }
 $record = Get-Content -Raw -LiteralPath (Join-Path $root "MODRINTH_RELEASE_$target.md")
 function Record-Field([string] $Name, [string] $Pattern) {
     $matchesFound = [regex]::Matches($record, $Pattern)
@@ -137,7 +143,8 @@ $receipt = [ordered]@{
     checked_at = [DateTimeOffset]::UtcNow.ToString('o'); version_id = $releaseId
     version_number = $version; url = "https://modrinth.com/mod/automobility-unofficial-port/version/$releaseId"
     artifact = $file.Name; size = $size; sha256 = $sha256; sha512 = $sha512
-    anonymous_api_and_cdn = 'PASS'; manual_gameplay = 'NOT PROVEN for .34'
+    anonymous_api_and_cdn = 'PASS'; source_commit = $commit
+    manual_gameplay = 'Extended driving and two-real-player acceptance NOT PROVEN for .36; see production-only runtime evidence.'
 }
 $receipt | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $root "dist/publication-$releaseId.json") -Encoding utf8
 $receipt | ConvertTo-Json

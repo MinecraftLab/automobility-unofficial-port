@@ -13,6 +13,8 @@
     "ShovelItemAccess"
   ],
   "client": [
+    "ClientChunkCacheTerrainMixin",
+    "ClientLevelTerrainMixin",
     "ClientPacketListenerMixin",
     "LocalPlayerMixin"
   ],
