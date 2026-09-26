@@ -30,12 +30,12 @@ Cruise control disengages when braking, drifting, reversing, leaving the driver 
 
 ## Supported Versions
 
-Matching Fabric builds are available for Minecraft Java 26.1.x and 26.2. Install the Momentum file that matches both your Minecraft version and the Automobility port file.
+Matching Fabric builds are available for Minecraft Java 26.1.x, 26.2 and 26.3. Install the Momentum file that matches both your Minecraft version and the Automobility port file.
 
 ## Requirements
 
 - Fabric Loader and Fabric API
-- [Automobility: Unofficial Port](https://modrinth.com/mod/automobility-unofficial-port) `0.5.0-unofficial.29` or newer on both the client and server
+- [Automobility: Unofficial Port](https://modrinth.com/mod/automobility-unofficial-port) on both client and server, matching the minimum version and exact Minecraft target declared by the selected Momentum file
 - Java 25 or newer
 
 Momentum is required on both the client and server in multiplayer. Movement, steering, drift, and cruise settings are controlled by the server; HUD, camera, and key preferences remain local to each client.
@@ -48,8 +48,7 @@ Reloads and preset changes are synchronized immediately with every compatible co
 
 - YetAnotherConfigLib (YACL) enables the in-game options screen.
 - Mod Menu exposes the Momentum options button when YACL is also installed.
-- Controlify `3.0.2` or newer adds native controller bindings, contextual guide hints,
-  and radial-menu actions for cruise control. Momentum remains fully usable without it.
+- Compatible Controlify builds add controller bindings, contextual guide hints and radial-menu actions. Tested API families are version-specific, not a promise of compatibility with arbitrary future SDKs. Older-target Momentum .10 builds support the tested 3.0.2/3.5.3 families; 26.3 modern 3.5.3 support is in the new .11 candidate, not in its public .10 baseline. Check that candidate's release status before installing. Physical-controller gameplay is a separate validation. Momentum remains usable without Controlify.
 
 ## Compatibility
 

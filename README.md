@@ -2,14 +2,12 @@
 
 # Automobility: Unofficial Port
 
-> **26.3 development branch:** unpublished Automobility and Momentum candidates,
-> tested together with a separate RIAutomobility 26.3 candidate. See
-> [PORTING_26.3.md](PORTING_26.3.md) and
-> [PORTING_MOMENTUM_26.3.md](PORTING_MOMENTUM_26.3.md) for exact evidence and limits.
-> The combined build/release-integrity gate is configured and passing for 26.3.
-> Manual driving and two-player acceptance remain open; other optional addons and
-> Controlify are not covered. Release-support information below describes the
-> existing public 26.1.x/26.2 releases, not a published 26.3 release.
+> **26.3 parity branch:** public .34 / Momentum .10 / RIA .6 remain available.
+> This checkout prepares Automobility .36 and Momentum .11; these new candidates
+> passed the final requested player test on 2026-09-26; publication is pending. See
+> [current parity status](docs/release/PARITY_26.3.md) and the
+> [shared release policy](docs/release/ECOSYSTEM_PARITY.md).
+> Historical accepted 26.3 port evidence remains in [PORTING_26.3.md](PORTING_26.3.md).
 
 This repository is an unofficial Fabric port/fork of [Automobility](https://modrinth.com/mod/automobility) by [FoundationGames](https://github.com/FoundationGames/Automobility) for current Minecraft Java 26.x releases. The `main` branch targets 26.1.x and is built and smoke-tested on 26.1.2; the `port/26.2` branch targets 26.2. It is not affiliated with or endorsed by FoundationGames unless stated otherwise by the upstream maintainers.
 
@@ -18,10 +16,10 @@ Automobility adds customizable and functional vehicles, automobile parts, attach
 **Automobility is currently in BETA.** This port should also be treated as beta until it has wider public testing.
 
 ## Available for Fabric
-- Supports Minecraft Java **26.1.x** and **26.2** through separate matching builds
+- Supports Minecraft Java **26.1.x**, **26.2** and **26.3** through separate matching builds
 - 26.1.x release builds are smoke-tested on **26.1.2**
 - Requires **[Fabric API](https://modrinth.com/mod/fabric-api)** matching the Minecraft build
-- Requires Fabric Loader **0.19.2+ for 26.1.x** or **0.19.3+ for 26.2**
+- Requires Fabric Loader **0.19.3+ for current 26.1.x/26.2 builds** or **0.19.5+ for 26.3**
 - Requires Java **25 or newer**
 - Optional Fabric controller support through **[Controlify](https://modrinth.com/mod/controlify)**
 

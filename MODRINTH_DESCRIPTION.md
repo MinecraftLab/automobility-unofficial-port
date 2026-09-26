@@ -17,11 +17,11 @@ This is an unofficial fork/port. It is not affiliated with or endorsed by Founda
 
 ## Supported Versions
 
-The port supports Minecraft Java 26.1.x and 26.2 on Fabric through separate matching files. The 26.1.x build is built and smoke-tested on 26.1.2; the 26.2 build is tested on 26.2.
+The port supports Minecraft Java 26.1.x, 26.2 and 26.3 on Fabric through separate matching files. The 26.1.x build is built and smoke-tested on 26.1.2. Always select the file for your Minecraft version; a 26.2 JAR is not a 26.3 port.
 
 ### Requirements
 
-- A matching Minecraft Java 26.1.x or 26.2 build
+- A matching Minecraft Java 26.1.x, 26.2 or 26.3 build
 - Fabric Loader version required by the selected file
 - Fabric API
 - Java 25 or newer
@@ -33,6 +33,8 @@ The port supports Minecraft Java 26.1.x and 26.2 on Fabric through separate matc
 ### Related Addons
 
 - [Momentum for Automobility: Unofficial Port](https://modrinth.com/mod/momentum-for-automobility-unofficial-port) is an optional addon for this port that adds smoother handling, cruise control, brake/drift input sync, and a compact speed HUD. If used in multiplayer, install it on both the client and the server.
+- [RIAutomobility: Unofficial Port](https://modrinth.com/mod/riautomobility-unofficial-port) adds vehicles, seats and lorry cargo through matching target-specific builds.
+- Pumps & Pistons and its Automobility adapter, and Autoradio, use separate compatibility/release lanes. Their current 26.1.2/26.2 support does not imply a 26.3 version. Roadworks remains separate.
 
 ## Status
 

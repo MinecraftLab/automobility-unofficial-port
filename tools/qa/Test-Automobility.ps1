@@ -307,7 +307,8 @@ function Assert-FabricJar {
             $_ -match '(?i)(^|/)(\.git|\.github|gradle|build|run|dist)(/|$)' -or
             $_ -match '(?i)\.(java|kt|kts|ps1|bat|cmd|gradle)$' -or
             $_ -match '(?i)(^|/)(gradle\.properties|gradlew)$' -or
-            $_ -match '(AnimalBoardingQa|Ecosystem263Qa|Showcase263Qa|Client263Qa|ClientDrivingQa|RemoteInterpolationQa)'
+            $_ -match '(AnimalBoardingQa|Ecosystem263Qa|Showcase263Qa|Client263Qa|ClientDrivingQa|RemoteInterpolationQa|Parity263Qa|ControlifyIntegrationQa|RenderObserver)' -or
+            $_ -match '^(org/junit/|org/objectweb/asm/|dev/rosenvik/qa/)'
         })
         Assert-True ($forbiddenEntries.Count -eq 0) "$artifactName contains development-only files: $($forbiddenEntries -join ', ')"
 
@@ -456,6 +457,8 @@ Assert-True `
     -Message '-CiBuildVerification may only be used in a CI environment.'
 
 $properties = Read-GradleProperties -Path (Join-Path $root 'gradle.properties')
+& (Join-Path $root 'tools/qa/Test-EcosystemParity.ps1') -RepositoryRoot $root -LocalOnly
+& (Join-Path $root 'tools/qa/Test-EcosystemParityUnit.ps1')
 foreach ($requiredProperty in @('minecraft_version', 'fabric_version', 'fabric_api_version', 'mod_version', 'momentum_version', 'momentum_automobility_min_version', 'archives_base_name')) {
     Assert-True ($properties.ContainsKey($requiredProperty)) "Missing Gradle property: $requiredProperty"
 }

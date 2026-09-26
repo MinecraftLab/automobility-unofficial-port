@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "milestone": "core36-modern-controlify-parity",
+  "projects": {
+    "automobility": "B6d5S1wQ",
+    "momentum": "pOgpsBUs",
+    "riautomobility": "OZ1lM8wy"
+  },
+  "targets": [
+    { "minecraft": "26.1.2", "automobility": "0.5.0-unofficial.36", "momentum": "0.1.11-unofficial.10", "riautomobility": "0.1.0-unofficial.6" },
+    { "minecraft": "26.2", "automobility": "0.5.0-unofficial.36", "momentum": "0.1.11-unofficial.10", "riautomobility": "0.1.0-unofficial.6" },
+    { "minecraft": "26.3", "automobility": "0.5.0-unofficial.36", "momentum": "0.1.11-unofficial.11", "riautomobility": "0.1.0-unofficial.6" }
+  ],
+  "scope": "Required desired public versions, NOT a claim that candidates passed runtime/manual acceptance. Version numbers may differ where a previously published binary needs a new fix. RIA .8 seat-key candidates for older targets remain a separate pending milestone.",
+  "excluded": [
+    { "project": "Pumps & Pistons / Automobility adapter", "reason": "No 26.3 port in this milestone; never infer support from the core update." },
+    { "project": "Autoradio", "reason": "No 26.3 port in this milestone." },
+    { "project": "Roadworks", "reason": "Separate development and acceptance lane." }
+  ]
+}

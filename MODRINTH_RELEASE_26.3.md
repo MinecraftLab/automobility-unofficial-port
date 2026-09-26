@@ -1,72 +1,43 @@
-# Automobility 26.3 beta release
+# Automobility .36 for Minecraft 26.3
 
 > **Target-scoped release record:** Only for minecraft_version=26.3.
+> Prior public .34 evidence is preserved in docs/release/core34-26.3-published.md.
 
-Status: PUBLISHED AND ANONYMOUSLY VERIFIED (2026-09-19).
-The user accepted the local-driver turning correction in the 4859E013 candidate.
-The newer 9DF5ACCF candidate retains that correction and also fixes remote-vehicle
-interpolation; its real-client packet-handler regression passed 46 checks.
-The user then confirmed "ano vše ok" after being asked to test cruise control,
-G seat switching and cargo in the final candidate. Those requested checks are
-accepted. Two-physical-player, exhaustive crafting/persistence and controller
-coverage remain NOT PROVEN, not inferred from this confirmation.
-See PORTING_26.3.md for the exact evidence and remaining limits.
+Status: MANUALLY ACCEPTED, NOT YET PUBLISHED. Final player acceptance: 2026-09-26.
 
-- Version number: `0.5.0-unofficial.34+26.3`
+- Version number: `0.5.0-unofficial.36+26.3`
 - Version type: `beta`
-- Game versions: `26.3`
-- Loaders: `Fabric`
-- Environment: client and server, required on both
-- Source: https://git.offchunk.com/Offchunk/automobility-unofficial-port
-- Issues: https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues
-- Required dependency: Fabric API
-- Optional dependency: matching Momentum and RIAutomobility builds
-- Controlify: optional adapter retained, runtime support for 26.3 not proven
+- Local JAR: `dist\release-candidate-0.5.0-unofficial.36\automobility-0.5.0-unofficial.36+26.3-fabric.jar`
+- Size: `1419185` bytes
+- SHA-256: `63C4A547764254663B6DD53D3594E1AF761BE8B5B86D4E250A36E9612315BC3A`
+- SHA-512: `E2AC7921EC829184AFE30306348B20D7B086DE4ABC06716CA10A49F5D3FCD8F740572EECF5388167B93CB1A670B5D77A6AA19EEE62E216F45CFFA0DB665E0B5A`
 
-## Upload file
+## Version Changelog
 
-- Local JAR: `dist\release-candidate-0.5.0-unofficial.34\automobility-0.5.0-unofficial.34+26.3-fabric.jar`
-- Size: `1401851` bytes
-- SHA-256: `9DF5ACCF8E744D4904BFEE6CFD953AE6ADB3F80032AFCCECB3E02B798A4BBE1C`
-- SHA-512: `C020FE5B6E448F48A7E4FEA466058DE1D366F7156BD2AB6C0BF41D9F5396E17095275F88E61C2BF956D3C34ABA7C49EDB0A1B22BA4EA01F92F4652403E4ECF37`
+```markdown
+Minecraft 26.3 parity update: refresh parked-car terrain after block, chunk, view, frame and wheel changes. Avoid redundant collision intersections while preserving collision results and remote-driver authority.
 
-The older D0731665 GUI candidate is retained in
-`dist/previous-candidates/gui-before-final-release-20260919`; the 4859E013 steering
-candidate also remains historical evidence, not an upload target. The accepted
-interpolation candidate was copied byte-for-byte to the canonical release path.
-Do not upload the separate test-only client-driving QA JAR.
+Support the tested Controlify 3.5.3 API with modern contextual guides and optional controller integration. Use Momentum .11 for Minecraft 26.3; the older public .10 for this target lacks this modern API integration.
 
-## Changes and evidence
+Retain the accepted Minecraft 26.3 local-driver rotation and remote interpolation fixes, no-animal boarding, persistence and security fixes. Existing RIA .6 for 26.3 remains the compatibility target; verify its dependency metadata at publication. No artwork or saved-data format changes.
 
-Ports .34 animal exclusion, security, persistence and position-sync fixes to
-Minecraft 26.3. Migrates SDL input, rendering signatures, block APIs and the paver's
-registry-driven shovel transformations. No artwork changes.
-Client QA additionally fixes invisible mechanic category titles and assembler
-statistics text; compiled-render-call regression tests cover both corrections.
-Fixes stepped local-driver camera rotation with the 26.3 passenger tick order.
-Restores remote-vehicle smoothing through the new 26.3 interpolation API while
-preserving hard/relative teleports and local-driver authority.
+Requires Java 25, Fabric Loader 0.19.5+ and matching Fabric API 0.161.0+26.3. No 26.3 support for Pumps & Pistons, its adapter, Autoradio or Roadworks is implied.
+```
 
-Final technical evidence: 101 core + 43 Momentum tests, all passing; packaged
-server animal/core/ecosystem/RIA and ExamplePack checks passing; 46 real-client
-packet-handler checks passing. The client-only fixture is absent from production.
+## Evidence and remaining gates
 
-See PORTING_26.3.md for exact tests and limitations. Build/server checks do not prove
-visual rendering, real-player driving, multiplayer or addon acceptance. Never
-replace the already-published 26.1.x/26.2 files with this target-specific JAR.
+133 core and 46 Momentum unit tests passed with zero failures/errors/skips.
+New tests cover terrain/collision parity, compiled client mixin targets, actual
+Controlify SDK linkage and modern resources. Existing 26.3 driving/interpolation
+regressions remain enabled. No measured FPS improvement is claimed.
 
-## Verified publication
-
-- Modrinth: [WgNM3r8h](https://modrinth.com/mod/automobility-unofficial-port/version/WgNM3r8h).
-- Published: `2026-09-19T19:06:51.618187Z`; status `listed`, channel `beta`.
-- Exact target: Fabric, Minecraft `26.3`, environment `client_and_server`.
-- [Public JAR](https://cdn.modrinth.com/data/B6d5S1wQ/versions/WgNM3r8h/automobility-0.5.0-unofficial.34%2B26.3-fabric.jar).
-- Anonymous API, version page HTTP 200 and fresh CDN download verified; size,
-  SHA-256 and SHA-512 match the accepted file above.
-- [Release source](https://git.offchunk.com/Offchunk/automobility-unofficial-port/commit/9d831488a49a4bb5e167e64894167c5dc1d9aae5) is public on Offchunk.
-- Dependencies: Fabric API required; matching Momentum and RIA projects optional.
-- Final no-cache build: 101 core + 43 Momentum tests, zero failures/errors/skips,
-  and byte-identical production output. Prior runtime/manual receipts are retained.
-
-No older public file was replaced. Test fixtures, normal Minecraft profiles and
-production servers were not included in this publication.
+Exact runtime and final artifact evidence is tracked in docs/release/PARITY_26.3.md.
+All six final packaged runtime runs passed with exit 0 and exact loaded-origin
+hashes: dedicated regression, NONE/MODERN title and world clients, and world server.
+Local build success is not player acceptance or public availability. Physical
+controller, two-real-player and exhaustive lifecycle coverage remain NOT PROVEN.
+The user accepted the requested final production-only manual test on 2026-09-26:
+turning/camera, cruise C/R, G seats, lorry cargo and animals near cars. Exact tested
+artifacts and the isolated manual profile are recorded in docs/release/PARITY_26.3.md.
+Do not replace the published .34 artifact. Publish core before Momentum and align
+the existing RIA dependency only after compatibility qualification.

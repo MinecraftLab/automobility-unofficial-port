@@ -9,14 +9,15 @@ Momentum changes Automobility vehicle movement feel and adds a compact driving d
 - Fabric Loader 0.19.5+
 - Fabric API 0.161.0+26.3 or newer for this Minecraft target
 - Java 25 or newer
-- The Minecraft 26.3 build of Automobility `0.5.0-unofficial.34` or newer
+- The Minecraft 26.3 build of Automobility `0.5.0-unofficial.36` or newer
 
 ## Optional
 - YACL `3.9.6+26.3-fabric` for the in-game options screen
 - Mod Menu `21.0.0-beta.1` exposes Momentum's options button when YACL is also installed
-- The optional Controlify adapter is retained, but **Controlify on 26.3 is not verified**:
-  no public Fabric 26.3 build was available when checked on 2026-09-19. Do not install a
-  26.2 Controlify JAR into 26.3 or override its Minecraft dependency.
+- This Momentum .11 candidate ports the modern adapter for Controlify `3.5.3+mc26.3`.
+  SDK linkage and resources have regression tests; current runtime/player status is
+  tracked in [parity qualification](../docs/release/PARITY_26.3.md). Do not install a
+  26.2 Controlify JAR into 26.3 or override its Minecraft dependency. Neither SDK is bundled.
 
 ## Minecraft 26.3 input compatibility
 

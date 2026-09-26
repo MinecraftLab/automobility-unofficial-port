@@ -159,11 +159,16 @@ public class FabricPlatform implements Platform {
     }
 
     private AutomobileController createControlifyController() {
+        if (io.github.foundationgames.automobility.fabric.controller.controlify.ControlifyApiFamily.detect(getClass().getClassLoader())
+                == io.github.foundationgames.automobility.fabric.controller.controlify.ControlifyApiFamily.UNSUPPORTED) {
+            Automobility.LOG.warn("Unsupported Controlify public API; retaining keyboard automobile controls.");
+            return AutomobileController.INCOMPATIBLE;
+        }
         try {
             return (AutomobileController) Class.forName("io.github.foundationgames.automobility.fabric.controller.controlify.ControlifyController")
                     .getConstructor()
                     .newInstance();
-        } catch (ReflectiveOperationException ex) {
+        } catch (ReflectiveOperationException | LinkageError ex) {
             Automobility.LOG.warn("Controlify is loaded, but Automobility could not initialize Controlify support", ex);
             return AutomobileController.INCOMPATIBLE;
         }

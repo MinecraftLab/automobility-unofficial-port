@@ -14,6 +14,9 @@ repositories {
     mavenCentral()
 }
 
+val modernControlifySdk = configurations.create("modernControlifySdk")
+val legacyControlifySdk = configurations.create("legacyControlifySdk")
+
 dependencies {
     minecraft("com.mojang:minecraft:${rootProject.providers.gradleProperty("minecraft_version").get()}")
 
@@ -26,10 +29,19 @@ dependencies {
 
     compileOnly("maven.modrinth:yacl:${rootProject.providers.gradleProperty("yacl_version").get()}")
     compileOnly("com.terraformersmc:modmenu:${rootProject.providers.gradleProperty("modmenu_version").get()}")
-    compileOnly("dev.isxander:controlify:${rootProject.providers.gradleProperty("controlify_version").get()}-fabric") {
+    add(modernControlifySdk.name, "maven.modrinth:controlify:${rootProject.providers.gradleProperty("controlify_modern_version").get()}") {
         isTransitive = false
     }
+    add(legacyControlifySdk.name, "dev.isxander:controlify:${rootProject.providers.gradleProperty("controlify_version").get()}-fabric") {
+        isTransitive = false
+    }
+    compileOnly(files(modernControlifySdk))
     testImplementation("net.fabricmc:fabric-loader-junit:${rootProject.providers.gradleProperty("fabric_version").get()}")
+}
+
+val legacyControlify = sourceSets.create("legacyControlify") {
+    compileClasspath += sourceSets.main.get().output +
+            (sourceSets.main.get().compileClasspath - modernControlifySdk) + legacyControlifySdk
 }
 
 version = "${rootProject.providers.gradleProperty("momentum_version").get()}+${rootProject.providers.gradleProperty("minecraft_version").get()}-fabric"
@@ -59,6 +71,9 @@ loom {
 }
 
 tasks {
+    named<Jar>("jar") {
+        from(legacyControlify.output)
+    }
     withType<JavaCompile> {
         options.encoding = "UTF-8"
         options.release.set(25)

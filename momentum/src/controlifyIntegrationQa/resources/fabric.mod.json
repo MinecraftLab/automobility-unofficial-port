@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "momentum_controlify_integration_qa",
+  "version": "1.0.0",
+  "name": "Momentum Controlify Integration QA (test only)",
+  "description": "Explicit opt-in isolated registration and resource reload probe. Not a production mod.",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["io.github.milkucha.momentum.qa.ControlifyIntegrationQa"]
+  },
+  "mixins": ["momentum-controlify-integration-qa.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "fabric-api": "*",
+    "minecraft": "26.3",
+    "java": ">=25",
+    "automobility": "*",
+    "momentum": "*"
+  }
+}

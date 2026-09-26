@@ -1,5 +1,21 @@
 # Changelog
 
+## Automobility .36 / Momentum .11 for 26.3 - local candidates
+
+- Port the newer parked-car terrain refresh and collision short-circuit fixes.
+- Preserve the accepted 26.3 driver rotation and remote interpolation paths.
+- Support the tested Controlify 3.5.3 API in core and Momentum, with contextual
+  guides/radial items and separately compiled legacy adapters. Neither SDK is bundled.
+- Momentum receives a new .11 version because the public .10+26.3 binary did not
+  contain modern API support; existing .10 builds for older targets already do.
+- Add a shared three-target version/dependency matrix and fail-closed parity gate.
+- No 26.3 P&P, adapter, Autoradio or Roadworks port is included.
+- 179 unit tests pass. Runtime, current player acceptance and publication are
+  separate gates recorded in docs/release/PARITY_26.3.md.
+
+Historical entries below describe earlier candidates; authoritative public .34
+and Momentum .10 evidence is preserved in docs/release/*-26.3-published.md.
+
 ## 0.5.0-unofficial.34 - 2026-09-12 (UNPUBLISHED CANDIDATE)
 
 ### Fixed

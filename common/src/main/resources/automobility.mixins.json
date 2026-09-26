@@ -12,6 +12,8 @@
     "ServerGamePacketListenerImplMixin"
   ],
   "client": [
+    "ClientChunkCacheTerrainMixin",
+    "ClientLevelTerrainMixin",
     "ClientPacketListenerMixin",
     "LocalPlayerMixin"
   ],
