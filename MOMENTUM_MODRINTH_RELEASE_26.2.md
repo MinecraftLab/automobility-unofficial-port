@@ -4,10 +4,24 @@
 > `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
 > files in this branch are retained only as historical snapshots.
 
-**Status (2026-09-26): READY FOR LIMITED BETA; NOT YET PUBLISHED.**
+**Status (2026-09-26): PUBLISHED AND ANONYMOUSLY VERIFIED LIMITED BETA.**
 Final artifact, unit-test, client integration and dedicated-server gates passed.
 Physical-controller, real two-player driving and full-modpack acceptance remain NOT PROVEN.
 Previous published .34 and rejected Momentum .10 artifacts remain preserved in staging/history.
+
+## Published identity
+
+- Public version: [0.1.11-unofficial.10+26.2](https://modrinth.com/mod/momentum-for-automobility-unofficial-port/version/ls11xw68), ID `ls11xw68`.
+- Published UTC: `2026-09-26T11:35:49.044538Z`; anonymous verification UTC: `2026-09-26T11:35:49.9427262Z`.
+- Status/type/loader/target: `listed` / `beta` / `fabric` / `26.2`.
+- Source: [exact artifact commit](https://git.offchunk.com/Offchunk/automobility-unofficial-port/commit/f4e6023d5001249c3c3339a7d155fccf6fc1f8e2).
+- Public metadata and dependencies matched the reviewed four-artifact plan.
+  Fresh anonymous CDN download matched the size, SHA-256 and SHA-512 below.
+- Required core dependency: public Automobility .35 version `FQjdppQu` for 26.2.
+- Local publication evidence: `C:\Users\david\Momentum-10-Release-QA-20260926\momentum-26.2-public-version.json`
+  (SHA-256 `95C38E2E3892FF102270D0449815857E706DD3D698A5B6B547CB4B7B7B66B7A1`) and
+  `momentum-26.2-public-verification.json` (SHA-256 `A9A0A6789DE5F61A88A5B91F5D72500E9A34B8472613873ABD6A1FDB93961CBC`).
+- Other Minecraft versions, RIA and project-wide descriptions were not changed.
 
 ## Project
 
