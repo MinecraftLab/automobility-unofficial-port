@@ -1,5 +1,37 @@
 # Changelog
 
+## Automobility 0.5.0-unofficial.35 / Momentum 0.1.11-unofficial.10 - 2026-09-26 (BETA)
+
+Target-specific Fabric builds for Minecraft Java 26.1.2 and 26.2. Momentum `.10`
+requires the matching Automobility `.35` core; this entry does not change other
+Minecraft release lines or their requirements.
+
+### Fixed and changed
+
+- Split the optional core and Momentum controller integrations into separate
+  adapters for the tested Controlify `3.0.2` and `3.5.3` SDK/API families. Existing
+  binding IDs are preserved; compatibility with arbitrary future SDKs is not promised.
+- Replaced removed modern guide/radial APIs with contextual-guide resources and
+  four Momentum radial-menu items: set/cancel cruise, increase, decrease, and resume.
+- Kept Controlify entirely optional and neither SDK bundled. Unknown API families
+  disable the optional integration while retaining keyboard controls; physical
+  controller buttons remain unassigned by default.
+- Retained the legacy Controlify integration through its separately compiled adapter.
+
+### Verification status
+
+- Both targets passed the final clean no-cache build/artifact gate and **119 tests
+  each** (82 core, 37 Momentum), with 0 failures and 0 skipped tests. Regression
+  coverage includes both real SDK families, controller-call linkage, and guide/radial
+  resources; QA fixtures are excluded from production JARs.
+- Target-specific runtime matrices are recorded in the [26.1.2 release record](MOMENTUM_MODRINTH_RELEASE_26.1.2.md)
+  and [26.2 release record](MOMENTUM_MODRINTH_RELEASE_26.2.md), not inferred
+  from successful builds. Fresh physical-controller gameplay, two-real-player
+  driving, and full-modpack acceptance remain **NOT PROVEN** for these betas.
+- Earlier gameplay/modpack reports are historical evidence, not acceptance of
+  this release. Publication and public-download identity are tracked by each
+  target-specific release record.
+
 ## 0.5.0-unofficial.34 - 2026-09-19 (BETA)
 
 ### Fixed

@@ -30,12 +30,15 @@ Cruise control disengages when braking, drifting, reversing, leaving the driver 
 
 ## Supported Versions
 
-Matching Fabric builds are available for Minecraft Java 26.1.x and 26.2. Install the Momentum file that matches both your Minecraft version and the Automobility port file.
+The September 26 Momentum `.10` beta release line targets Minecraft Java **26.1.2**
+and **26.2**, with a separate Fabric file for each. Install the Momentum and
+Automobility files for the same Minecraft target. Other Minecraft releases have
+separate files and dependency requirements.
 
 ## Requirements
 
 - Fabric Loader and Fabric API
-- [Automobility: Unofficial Port](https://modrinth.com/mod/automobility-unofficial-port) `0.5.0-unofficial.29` or newer on both the client and server
+- [Automobility: Unofficial Port](https://modrinth.com/mod/automobility-unofficial-port) `0.5.0-unofficial.35` for the matching Minecraft target, on both client and server, for Momentum `.10` on 26.1.2 or 26.2
 - Java 25 or newer
 
 Momentum is required on both the client and server in multiplayer. Movement, steering, drift, and cruise settings are controlled by the server; HUD, camera, and key preferences remain local to each client.
@@ -48,11 +51,25 @@ Reloads and preset changes are synchronized immediately with every compatible co
 
 - YetAnotherConfigLib (YACL) enables the in-game options screen.
 - Mod Menu exposes the Momentum options button when YACL is also installed.
-- Controlify `3.0.2` or newer adds native controller bindings, contextual guide hints,
-  and radial-menu actions for cruise control. Momentum remains fully usable without it.
+- Controlify `3.0.2` or `3.5.3`, using its matching Minecraft build, adds native
+  controller bindings, contextual guide hints, and four radial-menu cruise actions.
+  These are the exact SDK/API versions covered by the build and regression checks;
+  arbitrary newer SDKs are not promised compatible. Neither SDK is bundled.
+
+Controlify remains optional. Separate adapters preserve existing binding IDs;
+unknown API families disable the optional integration and retain keyboard controls.
 
 ## Compatibility
 
-The port has been tested in singleplayer and on a multiplayer Fabric 26.1.2 server with a large mod set, including common performance, world-generation, mapping, voice-chat, controller, rendering, shader, and quality-of-life mods. This does not guarantee compatibility with every modpack. Include logs and a full mod list when reporting an issue.
+Earlier port versions were tested in singleplayer and on a multiplayer Fabric
+26.1.2 server with a large set of performance, world-generation, mapping, voice-chat,
+controller, rendering, shader, and quality-of-life mods. Those reports are historical,
+not fresh acceptance of the September 26 betas or a guarantee for every modpack.
+
+The new build gate passed **119 tests per target** (82 core, 37 Momentum) on
+26.1.2 and 26.2. Target-specific runtime results are recorded separately; a successful
+build is not a runtime pass. Fresh physical-controller gameplay, two-real-player
+driving, and full-modpack acceptance remain **NOT PROVEN**. Include logs and a full
+mod list when reporting an issue.
 
 This project is not affiliated with or endorsed by the upstream Momentum maintainer unless stated otherwise by that maintainer. Report bugs specific to this port on this project's issue tracker rather than upstream support channels.

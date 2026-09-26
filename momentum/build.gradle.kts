@@ -14,6 +14,9 @@ repositories {
     mavenCentral()
 }
 
+val modernControlifySdk = configurations.create("modernControlifySdk")
+val legacyControlifySdk = configurations.create("legacyControlifySdk")
+
 dependencies {
     minecraft("com.mojang:minecraft:${rootProject.providers.gradleProperty("minecraft_version").get()}")
 
@@ -26,10 +29,31 @@ dependencies {
 
     compileOnly("dev.isxander:yet-another-config-lib:${rootProject.providers.gradleProperty("yacl_version").get()}")
     compileOnly("com.terraformersmc:modmenu:${rootProject.providers.gradleProperty("modmenu_version").get()}")
-    compileOnly("dev.isxander:controlify:${rootProject.providers.gradleProperty("controlify_version").get()}-fabric") {
+    add(modernControlifySdk.name, "maven.modrinth:controlify:${rootProject.providers.gradleProperty("controlify_modern_version").get()}") {
         isTransitive = false
     }
+    add(legacyControlifySdk.name, "dev.isxander:controlify:${rootProject.providers.gradleProperty("controlify_version").get()}-fabric") {
+        isTransitive = false
+    }
+    compileOnly(files(modernControlifySdk))
     testImplementation("net.fabricmc:fabric-loader-junit:${rootProject.providers.gradleProperty("fabric_version").get()}")
+}
+
+val legacyControlify = sourceSets.create("legacyControlify") {
+    compileClasspath += sourceSets.main.get().output +
+            (sourceSets.main.get().compileClasspath - modernControlifySdk) + legacyControlifySdk
+}
+
+// Opt-in integration probe; never part of either production artifact.
+val controlifyIntegrationQa = sourceSets.create("controlifyIntegrationQa") {
+    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+    runtimeClasspath += output + compileClasspath
+}
+
+tasks.register<Jar>("controlifyIntegrationQaJar") {
+    from(controlifyIntegrationQa.output)
+    archiveFileName.set("momentum-controlify-integration-qa.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("qa"))
 }
 
 version = "${rootProject.providers.gradleProperty("momentum_version").get()}+${rootProject.providers.gradleProperty("minecraft_version").get()}-fabric"
@@ -59,6 +83,9 @@ loom {
 }
 
 tasks {
+    named<Jar>("jar") {
+        from(legacyControlify.output)
+    }
     withType<JavaCompile> {
         options.encoding = "UTF-8"
         options.release.set(25)
@@ -83,7 +110,9 @@ tasks {
     }
 
     withType<Jar> {
-        destinationDirectory = rootDir.resolve(project.name).resolve("build").resolve("libs")
+        destinationDirectory = layout.buildDirectory.dir(
+            if (name == "controlifyIntegrationQaJar") "qa" else "libs"
+        )
     }
 
     withType<Test> {

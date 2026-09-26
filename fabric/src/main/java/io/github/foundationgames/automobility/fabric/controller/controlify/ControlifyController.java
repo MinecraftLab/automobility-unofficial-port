@@ -10,6 +10,10 @@ import io.github.foundationgames.automobility.controller.AutomobileController;
 
 public class ControlifyController implements AutomobileController {
     static InputBindingSupplier accelerateBinding, brakeBinding, driftBinding;
+
+    static void clearBindings() {
+        accelerateBinding = brakeBinding = driftBinding = null;
+    }
     private ContinuousRumbleEffect maxChargeRumble = null, boostingRumble = null, offRoadRumble = null;
 
     @Override
@@ -29,11 +33,11 @@ public class ControlifyController implements AutomobileController {
 
     @Override
     public boolean inControllerMode() {
-        return ControlifyApi.get().currentInputMode().isController();
+        return ControlifyCompat.isInitialized() && ControlifyApi.get().currentInputMode().isController();
     }
 
     private boolean isDown(InputBindingSupplier binding) {
-        return inControllerMode() && ControlifyApi.get().getCurrentController()
+        return binding != null && inControllerMode() && ControlifyApi.get().getCurrentController()
                 .map(binding::on)
                 .map(InputBinding::digitalNow)
                 .orElse(false);
@@ -41,6 +45,7 @@ public class ControlifyController implements AutomobileController {
 
     @Override
     public void crashRumble() {
+        if (!ControlifyCompat.isInitialized()) return;
         ControlifyApi.get().getCurrentController().ifPresent(controller -> {
             controller.rumble().ifPresent(c -> c.rumbleManager().play(
                     BasicRumbleEffect.byTime(
@@ -53,6 +58,7 @@ public class ControlifyController implements AutomobileController {
 
     @Override
     public void groundThudRumble() {
+        if (!ControlifyCompat.isInitialized()) return;
         ControlifyApi.get().getCurrentController().ifPresent(controller -> {
             controller.rumble().ifPresent(c -> c.rumbleManager().play(
                     BasicRumbleEffect.constant(0.1f, 0.3f, 3)
@@ -62,6 +68,7 @@ public class ControlifyController implements AutomobileController {
 
     @Override
     public void driftChargeRumble() {
+        if (!ControlifyCompat.isInitialized()) return;
         ControlifyApi.get().getCurrentController().ifPresent(controller -> {
             controller.rumble().ifPresent(c -> c.rumbleManager().play(
                     BasicRumbleEffect.byTime(
@@ -74,6 +81,7 @@ public class ControlifyController implements AutomobileController {
 
     @Override
     public void updateMaxChargeRumbleState(boolean maxCharge) {
+        if (!ControlifyCompat.isInitialized()) return;
         if (maxCharge) {
             if (maxChargeRumble != null && !maxChargeRumble.isFinished())
                 return;
@@ -90,6 +98,7 @@ public class ControlifyController implements AutomobileController {
 
     @Override
     public void updateBoostingRumbleState(boolean boosting, float boostPower) {
+        if (!ControlifyCompat.isInitialized()) return;
         if (boosting) {
             if (boostingRumble != null && !boostingRumble.isFinished())
                 return;
@@ -106,6 +115,7 @@ public class ControlifyController implements AutomobileController {
 
     @Override
     public void updateOffRoadRumbleState(boolean inOffRoad) {
+        if (!ControlifyCompat.isInitialized()) return;
         if (inOffRoad) {
             if (offRoadRumble != null && !offRoadRumble.isFinished())
                 return;

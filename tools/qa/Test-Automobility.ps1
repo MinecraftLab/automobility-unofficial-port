@@ -310,6 +310,17 @@ function Assert-FabricJar {
         })
         Assert-True ($forbiddenEntries.Count -eq 0) "$artifactName contains development-only files: $($forbiddenEntries -join ', ')"
 
+        $qaEntries = @($entryNames | Where-Object {
+            $_ -match '(?i)(^|/)(qa|gametest|test)(/|$)' -or
+            $_ -match '(AnimalBoardingQa|ClientDrivingQa|RemoteInterpolationQa|ControlifyIntegrationQa)'
+        })
+        Assert-True ($qaEntries.Count -eq 0) "$artifactName contains opt-in QA fixtures: $($qaEntries -join ', ')"
+        $bundledControlify = @($entryNames | Where-Object {
+            $_ -match '^dev/isxander/controlify/' -or
+            $_ -match '(?i)^META-INF/jars/.*controlify.*\.jar$'
+        })
+        Assert-True ($bundledControlify.Count -eq 0) "$artifactName must not bundle either compile-only Controlify SDK."
+
         $manifestEntries = @($archive.Entries | Where-Object { $_.FullName -ceq 'fabric.mod.json' })
         Assert-True ($manifestEntries.Count -eq 1) "$artifactName must contain exactly one fabric.mod.json."
         $manifestBytes = Get-ZipEntryBytes -Entry $manifestEntries[0]
@@ -325,6 +336,7 @@ function Assert-FabricJar {
         Assert-True ($manifest.depends.java -eq '>=25') "$artifactName must require Java 25 or newer."
         Assert-True ($manifest.depends.fabricloader -eq ">=$($Properties.fabric_version)") "$artifactName has an unexpected Fabric Loader dependency."
         Assert-True ($manifest.depends.'fabric-api' -eq ">=$($Properties.fabric_api_version)") "$artifactName has an unexpected Fabric API dependency."
+        Assert-True ($null -eq $manifest.depends.PSObject.Properties['controlify']) "$artifactName must keep Controlify optional."
 
         if ($ExpectedId -eq 'automobility') {
             Assert-True ($manifest.name -eq 'Automobility: Unofficial Port') "$artifactName has an unexpected display name."
