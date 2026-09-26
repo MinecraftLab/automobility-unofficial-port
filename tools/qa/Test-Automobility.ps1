@@ -467,6 +467,8 @@ Assert-True `
     -Message '-CiBuildVerification may only be used in a CI environment.'
 
 $properties = Read-GradleProperties -Path (Join-Path $root 'gradle.properties')
+& (Join-Path $root 'tools/qa/Test-EcosystemParity.ps1') -RepositoryRoot $root -LocalOnly
+& (Join-Path $root 'tools/qa/Test-EcosystemParityUnit.ps1')
 foreach ($requiredProperty in @('minecraft_version', 'fabric_version', 'fabric_api_version', 'mod_version', 'momentum_version', 'momentum_automobility_min_version', 'archives_base_name')) {
     Assert-True ($properties.ContainsKey($requiredProperty)) "Missing Gradle property: $requiredProperty"
 }
