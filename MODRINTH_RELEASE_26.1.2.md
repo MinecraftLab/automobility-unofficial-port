@@ -4,10 +4,23 @@
 > `minecraft_version` in `gradle.properties` and the default QA gate passes. Other target
 > files in this branch are retained only as historical snapshots.
 
-**Status (2026-09-26): READY FOR LIMITED BETA; NOT YET PUBLISHED.**
+**Status (2026-09-26): PUBLISHED AND ANONYMOUSLY VERIFIED LIMITED BETA.**
 Final artifact, unit-test, client integration and dedicated-server gates passed.
 Physical-controller, real two-player driving and full-modpack acceptance remain NOT PROVEN.
 Previous published .34 and rejected Momentum .10 artifacts remain preserved in staging/history.
+
+## Published identity
+
+- Public version: [0.5.0-unofficial.35+26.1.2](https://modrinth.com/mod/automobility-unofficial-port/version/BlluSTtp), ID `BlluSTtp`.
+- Published UTC: `2026-09-26T11:35:42.957233Z`; anonymous verification UTC: `2026-09-26T11:35:43.990223Z`.
+- Status/type/loader/target: `listed` / `beta` / `fabric` / `26.1.2`.
+- Source: [exact artifact commit](https://git.offchunk.com/Offchunk/automobility-unofficial-port/commit/2576fe029ead805810a5e2a7c0ed6c74fadab8c0).
+- Public metadata and dependencies matched the reviewed four-artifact plan.
+  Fresh anonymous CDN download matched the size, SHA-256 and SHA-512 below.
+- Local publication evidence: `C:\Users\david\Momentum-10-Release-QA-20260926\automobility-26.1.2-public-version.json`
+  (SHA-256 `183DBFEE197639AE42A9703FAA7672C8468794BC8CD2E6125DB0F8EA614BF719`) and
+  `automobility-26.1.2-public-verification.json` (SHA-256 `E400C3FD07C729B51B576F0FAC65F2D90865EBC9834572AB694CF5E48BE5A0FB`).
+- Other Minecraft versions, RIA and project-wide descriptions were not changed.
 
 ## Project
 
