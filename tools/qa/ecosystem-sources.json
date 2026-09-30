@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://git.offchunk.com/Offchunk/automobility-unofficial-port.git",
+  "targets": [
+    { "minecraft": "26.1.2", "ref": "refs/heads/release/rosenvik-auto36-26.1.2", "momentumAutomobilityMinVersion": "0.5.0-unofficial.35" },
+    { "minecraft": "26.2", "ref": "refs/heads/release/rosenvik-auto36-26.2", "momentumAutomobilityMinVersion": "0.5.0-unofficial.35" },
+    { "minecraft": "26.3", "ref": "refs/heads/port/26.3", "momentumAutomobilityMinVersion": "0.5.0-unofficial.36" }
+  ],
+  "sharedFiles": [
+    "tools/qa/ecosystem-matrix.json",
+    "tools/qa/EcosystemParity.psm1",
+    "tools/qa/Test-EcosystemParity.ps1",
+    "tools/qa/Test-EcosystemParityUnit.ps1",
+    "docs/release/ECOSYSTEM_PARITY.md",
+    "tools/qa/ecosystem-sources.json",
+    "tools/qa/EcosystemSources.psm1",
+    "tools/qa/Test-EcosystemSources.ps1",
+    "tools/qa/Test-EcosystemSourcesUnit.ps1",
+    "tools/qa/ecosystem-public-artifacts.json",
+    "tools/qa/EcosystemPublicArtifacts.psm1",
+    "tools/qa/Test-EcosystemPublicRelease.ps1",
+    "tools/qa/Test-EcosystemPublicArtifactsUnit.ps1",
+    "tools/qa/Invoke-EcosystemCi.ps1",
+    "tools/qa/EcosystemCi.psm1",
+    "tools/qa/Test-EcosystemCiUnit.ps1",
+    ".forgejo/workflows/ecosystem.yml"
+  ],
+  "scope": "Source policy and optional clean build verification only. RIA is an external public artifact, not built by this source repository. This gate never publishes or grants runtime/manual/release acceptance."
+}

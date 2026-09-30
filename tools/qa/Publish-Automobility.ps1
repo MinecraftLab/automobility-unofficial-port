@@ -6,6 +6,7 @@ param(
 )
 
 # Default is read-only preflight. Never replaces/deletes an existing version.
+# This is a core-only recipe, never the three-target ecosystem finish gate.
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath $RepositoryRoot).Path
@@ -15,6 +16,7 @@ Get-Content -LiteralPath (Join-Path $root 'gradle.properties') | ForEach-Object 
 }
 $target = $properties.minecraft_version
 $version = "$($properties.mod_version)+$target"
+Write-Host 'CORE_ONLY_NOT_COMPLETE: this recipe does not publish addons or verify the complete public ecosystem.'
 & (Join-Path $root 'tools/qa/Test-EcosystemParity.ps1') -RepositoryRoot $root -PendingMinecraft $target
 if ($target -notin @('26.1.2', '26.2') -or $properties.mod_version -ne '0.5.0-unofficial.36') {
     throw 'This publication recipe is scoped to the reviewed .36 release targets only.'
@@ -110,6 +112,7 @@ try {
         Write-Host "Exact version already exists; no write: $releaseId"
     } elseif (-not $Publish) {
         Write-Host "Preflight PASS: $version; $($file.Length) bytes; owner $($user.username). Publishing disabled."
+        Write-Host 'CORE_ONLY_NOT_COMPLETE: a successful core preflight is not ecosystem completion or release authorization.'
         return
     } else {
         $form = [Net.Http.MultipartFormDataContent]::new()
@@ -141,11 +144,16 @@ if ((Get-Item -LiteralPath $download).Length -ne $size -or
     (Get-FileHash -LiteralPath $download -Algorithm SHA256).Hash -ne $sha256 -or
     (Get-FileHash -LiteralPath $download -Algorithm SHA512).Hash -ne $sha512) { throw 'Anonymous CDN download differs from exact candidate.' }
 $receipt = [ordered]@{
+    status = 'CORE_ONLY_NOT_COMPLETE'; ecosystem_complete = $false
     checked_at = [DateTimeOffset]::UtcNow.ToString('o'); version_id = $releaseId
     version_number = $version; url = "https://modrinth.com/mod/automobility-unofficial-port/version/$releaseId"
     artifact = $file.Name; size = $size; sha256 = $sha256; sha512 = $sha512
     anonymous_api_and_cdn = 'PASS'; source_commit = $commit
+    scope = 'This Automobility core artifact only. No Momentum/RIA publication or complete three-target source/public verification is claimed.'
+    ecosystem_finish_gate = 'tools/qa/Test-EcosystemPublicRelease.ps1 -RepositoryRoot <checkout> -OutputDirectory <new-evidence-directory>'
+    ecosystem_finish_note = 'After all authorized uploads, reviewed public-pin updates and addon dependency updates, run the full public finish gate without waivers. Invoke-EcosystemCi.ps1 additionally requires all three source builds; neither gate grants new manual acceptance.'
     manual_gameplay = 'See committed release record for target-scoped player acceptance; physical-controller, two-real-player and exhaustive lifecycle coverage NOT PROVEN.'
 }
 $receipt | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $root "dist/publication-$releaseId.json") -Encoding utf8
 $receipt | ConvertTo-Json
+Write-Host 'CORE_ONLY_NOT_COMPLETE: verify all nine public artifacts with Test-EcosystemPublicRelease.ps1 after the remaining release steps.'
