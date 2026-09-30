@@ -2,6 +2,20 @@
 
 # Automobility - Unofficial 26.x Port
 
+<!-- offchunk-player-links:start -->
+## For players
+
+| Project | Website & guides | Downloads | Report a bug |
+| --- | --- | --- | --- |
+| Automobility: Unofficial Port | [Offchunk](https://offchunk.com/mods/automobility) | [Modrinth releases](https://modrinth.com/mod/automobility-unofficial-port/versions) | [Issues](https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues) |
+| Momentum: Unofficial Port | [Offchunk](https://offchunk.com/mods/momentum) | [Modrinth releases](https://modrinth.com/mod/momentum-for-automobility-unofficial-port/versions) | [Issues](https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues) |
+
+Choose the release for your Minecraft version and follow its listed requirements. Source archives are not installable mod JARs.
+This issue tracker is shared: include the mod name in your report.
+
+Include your mod, Minecraft and loader versions, what happened and how to reproduce it. For setup questions or private logs, use [Offchunk Help](https://offchunk.com/help); do not post passwords or access tokens in public issues.
+<!-- offchunk-player-links:end -->
+
 Maintained source and issue tracking have moved to [Offchunk Forgejo](https://git.offchunk.com/Offchunk/automobility-unofficial-port).
 
 This repository is an unofficial Fabric port/fork of [Automobility](https://modrinth.com/mod/automobility) by [FoundationGames](https://github.com/FoundationGames/Automobility) for current Minecraft Java 26.x releases. The `main` branch targets 26.1.x and is built and smoke-tested on 26.1.2; the `port/26.2` branch targets 26.2. It is not affiliated with or endorsed by FoundationGames unless stated otherwise by the upstream maintainers.

@@ -1,5 +1,18 @@
 # Momentum for Automobility - Unofficial 26.x Port
 
+<!-- offchunk-player-links:start -->
+## For players
+
+| Project | Website & guides | Downloads | Report a bug |
+| --- | --- | --- | --- |
+| Momentum: Unofficial Port | [Offchunk](https://offchunk.com/mods/momentum) | [Modrinth releases](https://modrinth.com/mod/momentum-for-automobility-unofficial-port/versions) | [Issues](https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues) |
+
+Choose the release for your Minecraft version and follow its listed requirements. Source archives are not installable mod JARs.
+This issue tracker is shared: include the mod name in your report.
+
+Include your mod, Minecraft and loader versions, what happened and how to reproduce it. For setup questions or private logs, use [Offchunk Help](https://offchunk.com/help); do not post passwords or access tokens in public issues.
+<!-- offchunk-player-links:end -->
+
 This subproject is an unofficial Fabric port of [Momentum for Automobility](https://modrinth.com/mod/momentum-for-automobility) by milkucha. Public Fabric builds are available for Minecraft Java 26.1.2 and 26.2; use the JAR that matches the Minecraft version on both the client and server.
 
 Momentum changes Automobility's acceleration, coasting, braking, steering and drift feel, and adds cruise control plus a compact speed HUD.
