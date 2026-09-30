@@ -1,4 +1,17 @@
 # Canonical endings: reproducible .36 metadata and exact public Momentum .10 resources.
+# Preserve the already published Windows resource bytes on every build host.
+# Do not renormalize these release lanes or rewrite their accepted JAR hashes.
+common/src/main/resources/** text=auto eol=crlf
+fabric/src/main/resources/** text=auto eol=crlf
+momentum/src/main/resources/** text=auto eol=crlf
+LICENSE text eol=crlf
+NOTICE.md text eol=crlf
+THIRD_PARTY_LICENSES/obj-0.4.0-LICENSE.txt text eol=crlf
+# Historical translations contain mixed endings that are part of the public bytes.
+common/src/main/resources/assets/automobility/lang/de_de.json -text
+common/src/main/resources/assets/automobility/lang/vi_vn.json -text
+common/src/main/resources/assets/automobility/lang/zh_tw.json -text
+# Reviewed LF exceptions; the older core Controlify guide remains CRLF.
 common/src/main/resources/automobility.mixins.json text eol=lf
 momentum/src/main/resources/assets/controlify/radial_icons.json text eol=lf
 momentum/src/main/resources/assets/controlify/contextual/guide/in_game.json text eol=lf
