@@ -79,6 +79,14 @@ still verifies production JAR size, SHA-256 and SHA-512 against committed releas
 records; it does not require ignored local staging JARs. The default local gate
 still requires those staging JARs before uploading.
 
+These accepted releases include historical CRLF resource/license bytes and three
+mixed-ending translations. Each lane's `.gitattributes` preserves those exact
+published bytes on Linux as well as Windows, with reviewed LF exceptions. The
+26.3 core Controlify guide is an additional LF exception; older guides are CRLF.
+Do not run broad renormalization or change accepted artifact pins to make CI pass.
+The coordinator additionally joins all six freshly built core/Momentum artifacts
+to the downloaded public artifacts by target, filename, size and both hashes.
+
 The public gate anonymously checks the latest listed Fabric versions and required
 core dependencies, rejecting stale/cross-target exact pins. It then downloads all
 nine pinned files from their exact HTTPS Modrinth CDN addresses and verifies byte
