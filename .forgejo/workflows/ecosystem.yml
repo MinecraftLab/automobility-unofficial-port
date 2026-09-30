@@ -1,0 +1,73 @@
+name: Ecosystem release verification
+
+on:
+  push:
+    branches:
+      - main
+      - release/rosenvik-auto36-26.1.2
+      - release/rosenvik-auto36-26.2
+      - port/26.3
+  workflow_dispatch:
+
+# No pull_request/pull_request_target trigger: this repository-scoped runner only
+# executes trusted owner pushes/manual runs, never public fork contributions.
+concurrency:
+  group: automobility-ecosystem
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Three source lanes and nine public artifacts
+    runs-on: automobility-ci
+    timeout-minutes: 90
+    env:
+      CI: 'true'
+      GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2'
+    steps:
+      - name: Verify the isolated job boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -S /var/run/docker.sock
+          test ! -S /run/podman/podman.sock
+          test ! -e /etc/forgejo
+          test ! -e /srv/forgejo
+          test ! -e /srv/minecraft
+          test "$(cat /sys/fs/cgroup/memory.max)" = 3221225472
+          test "$(cat /sys/fs/cgroup/memory.swap.max)" = 0
+          test "$(cat /sys/fs/cgroup/pids.max)" = 384
+          test "$(cat /sys/fs/cgroup/cpu.max)" = '200000 100000'
+          test "$(awk '/^CapEff:/ {print $2}' /proc/self/status)" = 0000000000000000
+          test "$(awk '/^NoNewPrivs:/ {print $2}' /proc/self/status)" = 1
+          echo 'Job isolation checks passed: rootless engine, no production mounts/socket, 2 CPU, 3 GiB, no swap, no capabilities.'
+      - name: Snapshot the reviewed controller from Offchunk
+        shell: bash
+        run: |
+          set -euo pipefail
+          repository=https://git.offchunk.com/Offchunk/automobility-unofficial-port.git
+          controller_sha=$(git ls-remote --exit-code "$repository" refs/heads/port/26.3 | cut -f1)
+          [[ "$controller_sha" =~ ^[0-9a-f]{40}$ ]]
+          git init controller
+          git -C controller -c core.autocrlf=false fetch --depth=1 "$repository" "$controller_sha"
+          git -C controller -c core.autocrlf=false checkout --detach FETCH_HEAD
+          test "$(git -C controller rev-parse HEAD)" = "$controller_sha"
+          echo "Reviewed controller commit: $controller_sha"
+      - name: Build every source lane and verify the complete public release
+        shell: pwsh
+        run: ./controller/tools/qa/Invoke-EcosystemCi.ps1 -RepositoryRoot ./controller -OutputDirectory ./evidence
+      - name: Archive verification evidence even on failure
+        if: always()
+        uses: https://data.forgejo.org/actions/upload-artifact@c6a3b2bd78b3985e4b2f15397fec357f0fd808de
+        with:
+          name: ecosystem-verification
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            evidence/*.json
+            evidence/*.log
+            evidence/sources/*.json
+            evidence/sources/**/*.log
+            evidence/sources/**/build/test-results/**/*.xml
+            evidence/sources/**/build/reports/**
+            evidence/sources/**/build/libs/*.jar
+            evidence/public/**
