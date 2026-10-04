@@ -6,6 +6,8 @@ import net.minecraft.world.inventory.PlayerEnderChestContainer;
 public interface EnderChestContainerDuck {
     void automobility$setActiveAttachment(BaseChestRearAttachment attachment);
 
+    boolean automobility$isActiveAttachment(BaseChestRearAttachment attachment);
+
     static EnderChestContainerDuck of(PlayerEnderChestContainer inv) {
         return (EnderChestContainerDuck) inv;
     }

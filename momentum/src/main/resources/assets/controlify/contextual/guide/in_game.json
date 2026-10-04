@@ -1,0 +1,8 @@
+{
+  "rules": [
+    {"for": "momentum:cruise_control", "where": "right", "if": "momentum:driving_automobile", "then": {"translate": "key.momentum.cruise_control"}},
+    {"for": "momentum:cruise_increase", "where": "right", "if": {"all_of": ["momentum:driving_automobile", "momentum:cruise_active"]}, "then": {"translate": "key.momentum.cruise_increase"}},
+    {"for": "momentum:cruise_decrease", "where": "right", "if": {"all_of": ["momentum:driving_automobile", "momentum:cruise_active"]}, "then": {"translate": "key.momentum.cruise_decrease"}},
+    {"for": "momentum:cruise_resume", "where": "right", "if": {"all_of": ["momentum:driving_automobile", "momentum:cruise_resumable"]}, "then": {"translate": "key.momentum.cruise_resume"}}
+  ]
+}

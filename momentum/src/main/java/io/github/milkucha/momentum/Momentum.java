@@ -1,9 +1,13 @@
 package io.github.milkucha.momentum;
 
+import io.github.milkucha.momentum.command.MomentumCommands;
 import io.github.milkucha.momentum.network.KeyStatePacket;
 import io.github.milkucha.momentum.network.GameplayConfigPacket;
+import io.github.milkucha.momentum.network.GameplayConfigSync;
 import io.github.milkucha.momentum.network.VehicleInputPacket;
 import io.github.milkucha.momentum.network.ServerKeyState;
+import io.github.milkucha.momentum.config.MomentumConfig;
+import io.github.foundationgames.automobility.entity.AutomobileEntity;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -30,20 +34,28 @@ public class Momentum implements ModInitializer {
         PayloadTypeRegistry.serverboundPlay().register(KeyStatePacket.TYPE, KeyStatePacket.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(GameplayConfigPacket.TYPE, GameplayConfigPacket.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VehicleInputPacket.TYPE, VehicleInputPacket.CODEC);
+        MomentumCommands.register();
 
-        // Receive key state from client and store it per-player.
-        // Runs on the Netty network thread - ServerKeyState uses ConcurrentHashMap.
+        // Observe every accepted brake edge on the server thread. Sampling only once
+        // per vehicle tick would lose a release followed by a press in that same tick.
         ServerPlayNetworking.registerGlobalReceiver(KeyStatePacket.TYPE, (payload, context) ->
-            ServerKeyState.set(context.player().getUUID(), payload.brake(), payload.drift()));
+            context.server().execute(() -> {
+                var player = context.player();
+                if (context.server().getPlayerList().getPlayer(player.getUUID()) != player) return;
+                ServerKeyState.set(player.getUUID(), payload.brake(), payload.drift());
+                if (player.getVehicle() instanceof AutomobileEntity automobile && !automobile.isRemoved()
+                        && automobile.level() == player.level() && automobile.isDriving(player)) {
+                    var config = MomentumConfig.gameplay();
+                    automobile.setAdditionalBrakeInput(
+                            config.enabled && config.movement.enabled && payload.brake());
+                }
+            }));
 
         // Clear state on disconnect so a reconnecting player starts clean.
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
             ServerKeyState.remove(handler.player.getUUID()));
 
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            if (ServerPlayNetworking.canSend(handler.player, GameplayConfigPacket.TYPE)) {
-                ServerPlayNetworking.send(handler.player, GameplayConfigPacket.current());
-            }
-        });
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
+                GameplayConfigSync.sendTo(handler.player));
     }
 }

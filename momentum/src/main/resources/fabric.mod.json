@@ -2,9 +2,14 @@
   "schemaVersion": 1,
   "id": "momentum",
   "version": "${version}",
-  "name": "Momentum for Automobility",
-  "description": "An Automobility addon that improves car movement feel and adds a better HUD.",
+  "name": "Momentum for Automobility: Unofficial Port",
+  "description": "Unofficial Automobility addon port that improves vehicle movement feel and adds a compact driving HUD.",
   "authors": ["milkucha"],
+  "contact": {
+    "homepage": "https://modrinth.com/mod/momentum-for-automobility-unofficial-port",
+    "sources": "https://git.offchunk.com/Offchunk/automobility-unofficial-port",
+    "issues": "https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues"
+  },
   "license": "MIT",
   "icon": "momentum_icon.png",
   "environment": "*",
@@ -14,6 +19,9 @@
     ],
     "client": [
       "io.github.milkucha.momentum.MomentumClient"
+    ],
+    "controlify": [
+      "io.github.milkucha.momentum.controlify.MomentumControlifyCompat"
     ],
     "modmenu": [
       "io.github.milkucha.momentum.modmenu.MomentumModMenuImpl"
@@ -30,6 +38,7 @@
     "automobility": ">=${automobility_version}"
   },
   "suggests": {
+    "controlify": ">=3.0.2",
     "modmenu": "*",
     "yet_another_config_lib_v3": "*"
   }

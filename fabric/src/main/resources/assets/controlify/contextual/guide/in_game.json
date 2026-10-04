@@ -1,0 +1,7 @@
+{
+  "rules": [
+    {"for": "automobility:accelerate_automobile", "where": "left", "if": "automobility:driving_automobile", "then": {"translate": "controlify.binding.automobility.accelerate_automobile"}},
+    {"for": "automobility:brake_automobile", "where": "left", "if": "automobility:driving_automobile", "then": {"translate": "controlify.binding.automobility.brake_automobile"}},
+    {"for": "automobility:drift_automobile", "where": "left", "if": "automobility:driving_automobile", "then": {"translate": "controlify.binding.automobility.drift_automobile"}}
+  ]
+}

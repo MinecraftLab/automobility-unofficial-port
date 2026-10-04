@@ -28,8 +28,8 @@ public record AutomobileWheel(
 
     public static final Codec<AutomobileWheel> DIRECT_CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.BOOL.optionalFieldOf("_empty", false).forGetter(AutomobileWheel::empty),
-            Codec.FLOAT.fieldOf("size").forGetter(AutomobileWheel::size),
-            Codec.FLOAT.fieldOf("grip").forGetter(AutomobileWheel::grip),
+            AutomobileCodecs.WHEEL_SIZE.fieldOf("size").forGetter(AutomobileWheel::size),
+            AutomobileCodecs.WHEEL_GRIP.fieldOf("grip").forGetter(AutomobileWheel::grip),
             WheelModel.CODEC.fieldOf("display").forGetter(AutomobileWheel::model)
     ).apply(inst, AutomobileWheel::new));
     public static final Codec<ResourceKey<AutomobileWheel>> CODEC = ResourceKey.codec(REGISTRY);
@@ -114,7 +114,7 @@ public record AutomobileWheel(
         Identifier modelId
     ) {
         public static final Codec<WheelModel> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-                Codec.FLOAT.fieldOf("radius").forGetter(WheelModel::radius),
+                AutomobileCodecs.WHEEL_RADIUS.fieldOf("radius").forGetter(WheelModel::radius),
                 Codec.FLOAT.fieldOf("width").forGetter(WheelModel::width),
                 Identifier.CODEC.fieldOf("texture").forGetter(WheelModel::texture),
                 Identifier.CODEC.fieldOf("model").forGetter(WheelModel::modelId)

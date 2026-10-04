@@ -24,6 +24,13 @@ Automobility adds customizable and functional vehicles, automobile parts, attach
 
 **Automobility is currently in BETA.** This port should also be treated as beta until it has wider public testing.
 
+
+## Matching Beta releases
+
+This source snapshot targets **Minecraft 26.1.2**. Automobility and optional Momentum use **1.0.0-beta.1**, each for that same target. P&P **1.10.4-beta.1** contains its optional vehicle integration. Update selected gameplay mods together on server and clients; keep older profiles on their original matching files. See [this release](docs/releases/momentum-1.0.0-beta.1-26.1.2.md).
+
+With the default controls, hold **S** to brake. Keeping it held after stopping keeps the car stopped. **Release S and press it again to reverse.** Momentum can show a configurable reminder.
+
 ## Available for Fabric
 - Supports Minecraft Java **26.1.x** and **26.2** through separate matching builds
 - 26.1.x release builds are smoke-tested on **26.1.2**

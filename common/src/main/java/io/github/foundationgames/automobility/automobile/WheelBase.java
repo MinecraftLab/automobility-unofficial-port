@@ -60,7 +60,7 @@ public record WheelBase(List<WheelPos> wheels) {
         public static final Codec<WheelPos> CODEC = RecordCodecBuilder.create(inst -> inst.group(
                 Codec.FLOAT.fieldOf("forward").forGetter(WheelPos::forward),
                 Codec.FLOAT.fieldOf("right").forGetter(WheelPos::right),
-                Codec.FLOAT.fieldOf("scale").forGetter(WheelPos::scale),
+                AutomobileCodecs.WHEEL_SCALE.fieldOf("scale").forGetter(WheelPos::scale),
                 Codec.FLOAT.fieldOf("yaw").forGetter(WheelPos::yaw),
                 WheelEnd.CODEC.fieldOf("end").forGetter(WheelPos::end),
                 WheelSide.CODEC.fieldOf("side").forGetter(WheelPos::side)
