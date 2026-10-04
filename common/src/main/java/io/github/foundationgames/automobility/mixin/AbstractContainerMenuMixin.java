@@ -17,10 +17,7 @@ public class AbstractContainerMenuMixin {
             at = @At("HEAD"), cancellable = true)
     private static void automobility$spoofAutomobileAttachmentScreens(ContainerLevelAccess context, Player player, Block block, CallbackInfoReturnable<Boolean> cir) {
         if (context instanceof AutomobileContainerLevelAccess ctx) {
-            boolean isClose = ctx.evaluate((world, pos) -> (player.blockPosition().distSqr(pos) < 64), true);
-            if (isClose && ctx.getAttachmentBlockState().is(block)) {
-                cir.setReturnValue(true);
-            }
+            cir.setReturnValue(ctx.isValidFor(player) && ctx.getAttachmentBlockState().is(block));
         }
     }
 }

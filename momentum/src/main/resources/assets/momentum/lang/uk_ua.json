@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "Безпечний рух заднім ходом",
+  "hint.momentum.reverse_release.action": "Відпустіть гальмо, а потім натисніть його знову, щоб їхати назад.",
+  "option.hud.reverse_release_hint.name": "Підказка перед заднім ходом",
+  "option.hud.reverse_release_hint.desc": "Нагадує лише водієві відпустити гальмо перед рухом назад. Не змінює керування автомобілем.",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "Ручне гальмо (дрифт)",

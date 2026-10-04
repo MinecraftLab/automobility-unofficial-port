@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "Reverse safety",
+  "hint.momentum.reverse_release.action": "Release the brake, then press again to reverse.",
+  "option.hud.reverse_release_hint.name": "Reverse-release hint",
+  "option.hud.reverse_release_hint.desc": "Show a driver-only reminder to release the brake before reversing. Does not change driving controls.",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "Handbrake (Drift)",

@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "Безопасный задний ход",
+  "hint.momentum.reverse_release.action": "Отпустите тормоз, затем нажмите его снова, чтобы ехать назад.",
+  "option.hud.reverse_release_hint.name": "Подсказка перед задним ходом",
+  "option.hud.reverse_release_hint.desc": "Напоминает только водителю отпустить тормоз перед движением назад. Не меняет управление автомобилем.",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "Ручной тормоз (дрифт)",

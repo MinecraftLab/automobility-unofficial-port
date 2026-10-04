@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "Marcha à ré segura",
+  "hint.momentum.reverse_release.action": "Solte o freio e acione-o novamente para dar ré.",
+  "option.hud.reverse_release_hint.name": "Lembrete antes de dar ré",
+  "option.hud.reverse_release_hint.desc": "Lembra apenas o motorista de soltar o freio antes de dar ré. Não altera os controles de direção.",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "Freio de mão (derrapagem)",

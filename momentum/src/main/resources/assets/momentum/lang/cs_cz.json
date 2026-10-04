@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "Bezpečné couvání",
+  "hint.momentum.reverse_release.action": "Pusť brzdu a znovu ji stiskni pro couvání.",
+  "option.hud.reverse_release_hint.name": "Nápověda před couváním",
+  "option.hud.reverse_release_hint.desc": "Pouze řidiči připomene, aby před couváním pustil brzdu. Nemění ovládání jízdy.",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "Ruční brzda (drift)",

@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "Bezpieczne cofanie",
+  "hint.momentum.reverse_release.action": "Zwolnij hamulec, a następnie naciśnij go ponownie, aby cofać.",
+  "option.hud.reverse_release_hint.name": "Przypomnienie przed cofaniem",
+  "option.hud.reverse_release_hint.desc": "Przypomina tylko kierowcy, aby zwolnił hamulec przed cofaniem. Nie zmienia sterowania pojazdem.",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "Hamulec ręczny (drift)",

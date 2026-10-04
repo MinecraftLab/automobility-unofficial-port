@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "सुरक्षित रिवर्स",
+  "hint.momentum.reverse_release.action": "पीछे चलने के लिए ब्रेक छोड़ें, फिर दोबारा दबाएँ।",
+  "option.hud.reverse_release_hint.name": "रिवर्स से पहले ब्रेक छोड़ने का संकेत",
+  "option.hud.reverse_release_hint.desc": "केवल चालक को रिवर्स से पहले ब्रेक छोड़ने की याद दिलाएँ। इससे वाहन के नियंत्रण नहीं बदलते।",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "हैंडब्रेक (ड्रिफ्ट)",

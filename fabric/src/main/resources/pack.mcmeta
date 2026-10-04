@@ -1,0 +1,20 @@
+{
+  "pack": {
+    "description": "automobility",
+    "min_format": [
+      88,
+      0
+    ],
+    "max_format": [
+      107,
+      1
+    ]
+  },
+  "language": {
+    "ur_pk": {
+      "name": "اردو",
+      "region": "پاکستان",
+      "bidirectional": true
+    }
+  }
+}

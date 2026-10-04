@@ -40,7 +40,11 @@ public class SingleSlotScreenHandler extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        return true;
+        return this.inventory.stillValid(player);
+    }
+
+    public boolean uses(Container container) {
+        return this.inventory == container;
     }
 
     public ItemStack quickMoveStack(Player player, int fromSlotId) {

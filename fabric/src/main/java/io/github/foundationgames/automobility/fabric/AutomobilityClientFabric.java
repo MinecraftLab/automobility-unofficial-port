@@ -15,6 +15,7 @@ import io.github.foundationgames.automobility.fabric.resource.FabricObjLoader;
 import io.github.foundationgames.automobility.particle.AutomobilityParticles;
 import io.github.foundationgames.automobility.particle.DriftSmokeParticle;
 import io.github.foundationgames.automobility.screen.AutoMechanicTableScreen;
+import io.github.foundationgames.automobility.screen.GarageScreen;
 import io.github.foundationgames.automobility.screen.AutomobileHud;
 import io.github.foundationgames.automobility.screen.SingleSlotScreen;
 import io.github.foundationgames.automobility.sound.AutomobileSoundInstance;
@@ -56,6 +57,7 @@ public class AutomobilityClientFabric implements ClientModInitializer {
         clientResources.registerReloadListener(FabricAutomobileModels.INSTANCE);
 
         MenuScreens.register(Automobility.AUTO_MECHANIC_SCREEN.require(), AutoMechanicTableScreen::new);
+        MenuScreens.register(Automobility.GARAGE_SCREEN.require(), GarageScreen::new);
         MenuScreens.register(Automobility.SINGLE_SLOT_SCREEN.require(), SingleSlotScreen::new);
         BlockEntityRenderers.register(AutomobilityBlocks.AUTOMOBILE_ASSEMBLER_ENTITY.require(), AutomobileAssemblerBlockEntityRenderer::new);
         EntityRendererRegistry.register(AutomobilityEntities.AUTOMOBILE.require(), AutomobileEntityRenderer::new);

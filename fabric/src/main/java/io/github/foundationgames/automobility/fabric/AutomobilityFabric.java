@@ -7,6 +7,8 @@ import io.github.foundationgames.automobility.util.RegistryQueue;
 import io.github.foundationgames.automobility.util.network.AutomobilityPacketPayload;
 import io.github.foundationgames.automobility.util.network.CommonPackets;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
+import io.github.foundationgames.automobility.entity.GarageService;
 import net.fabricmc.fabric.api.event.registry.DynamicRegistries;
 import net.fabricmc.fabric.api.event.registry.DynamicRegistrySetupCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -19,6 +21,8 @@ public class AutomobilityFabric implements ModInitializer {
     @Override
     public void onInitialize() {
         FabricPlatform.init();
+        GarageService.setEngineIntegrationPresent(FabricLoader.getInstance().isModLoaded("pumps_and_pistons_automobility")
+                || FabricLoader.getInstance().isModLoaded("powerworks"));
         Automobility.initDynamicRegistries(new Automobility.DynamicRegistryRegistrar() {
             @Override
             public <T> void accept(ResourceKey<Registry<T>> key, Codec<T> codec, DefaultRegistrar<T> defaults) {

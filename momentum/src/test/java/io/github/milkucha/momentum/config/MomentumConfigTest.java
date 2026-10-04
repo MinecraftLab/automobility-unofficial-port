@@ -35,6 +35,29 @@ class MomentumConfigTest {
     }
 
     @Test
+    void oldConfigWithoutReverseHintEnablesItWithoutChangingRemapsOrPosition() {
+        var config = new Gson().fromJson("""
+                {"configRevision":1,"brakeKey":71,"driftKey":72,
+                 "barHud":{"enabled":true,"x":134,"y":55}}
+                """, MomentumConfig.class);
+        config.sanitize();
+        assertTrue(config.barHud.reverseReleaseHint);
+        assertEquals(71, config.brakeKey);
+        assertEquals(72, config.driftKey);
+        assertEquals(134, config.barHud.x);
+        assertEquals(55, config.barHud.y);
+    }
+
+    @Test
+    void disabledReverseHintSurvivesConfigRoundtripAndSanitization() {
+        var config = new MomentumConfig();
+        config.barHud.reverseReleaseHint = false;
+        var reloaded = new Gson().fromJson(new Gson().toJson(config), MomentumConfig.class);
+        reloaded.sanitize();
+        assertFalse(reloaded.barHud.reverseReleaseHint);
+    }
+
+    @Test
     void cruiseTargetStepIsBoundedForSafeLiveSync() {
         var config = new MomentumConfig();
         config.cruise.targetStepKmh = 100f;

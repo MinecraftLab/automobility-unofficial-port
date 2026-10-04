@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "安全な後退",
+  "hint.momentum.reverse_release.action": "ブレーキを離してから、もう一度押すと後退できます。",
+  "option.hud.reverse_release_hint.name": "後退前のブレーキ解除ヒント",
+  "option.hud.reverse_release_hint.desc": "運転者にのみ、後退前にブレーキを離すよう案内を表示します。運転操作は変更しません。",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "ハンドブレーキ（ドリフト）",

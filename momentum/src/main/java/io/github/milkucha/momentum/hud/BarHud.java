@@ -89,6 +89,11 @@ public class BarHud {
             renderCompactDashboard(graphics, client, b, panel, originX, originY,
                     speedKmh, engineKmh, cruiseActive, cruiseColor,
                     b.barColor, b.textColor);
+            if (panel.width() >= DashboardHudLayout.COMPACT_WIDTH
+                    && panel.height() >= DashboardHudLayout.COMPACT_HEIGHT) {
+                ReverseReleaseHintHud.render(graphics, client, auto, b,
+                        screenW, screenH, originX, originY);
+            }
             return;
         }
 

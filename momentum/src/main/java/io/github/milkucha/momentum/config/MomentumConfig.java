@@ -184,6 +184,8 @@ public class MomentumConfig {
         // Draw a stable speed panel plus an aligned cruise pod in compact dashboard chrome.
         // Disable only to retain the legacy text-above-bars layout.
         public boolean compactDashboard = true;
+        // Driver-only read-only reminder when the shared reverse guard awaits release.
+        public boolean reverseReleaseHint = true;
         // Explicit default keeps the complete dashboard cluster at the bottom left.
         // A negative X remains available for legacy/right-edge anchoring in custom configs.
         public int   x            = 12;
