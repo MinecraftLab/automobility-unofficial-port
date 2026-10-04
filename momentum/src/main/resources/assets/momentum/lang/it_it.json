@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "Retromarcia sicura",
+  "hint.momentum.reverse_release.action": "Rilascia il freno, poi azionalo di nuovo per andare in retromarcia.",
+  "config.momentum.option.hud.reverse_release_hint.name": "Promemoria prima della retromarcia",
+  "config.momentum.option.hud.reverse_release_hint.description": "Ricorda solo al conducente di rilasciare il freno prima della retromarcia. Non modifica i comandi di guida.",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "Freno a mano (derapata)",

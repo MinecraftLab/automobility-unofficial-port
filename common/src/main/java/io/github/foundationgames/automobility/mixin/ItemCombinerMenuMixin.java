@@ -23,10 +23,8 @@ public abstract class ItemCombinerMenuMixin {
             at = @At("HEAD"), cancellable = true)
     private void automobility$allowSmithingMenuAutomobileSpoof(Player player, CallbackInfoReturnable<Boolean> cir) {
         if (this.access instanceof AutomobileContainerLevelAccess access) {
-            boolean isClose = access.evaluate((world, pos) -> (player.blockPosition().distSqr(pos) < 64), true);
-            if (isClose && this.isValidBlock(access.getAttachmentBlockState())) {
-                cir.setReturnValue(true);
-            }
+            cir.setReturnValue(access.isValidFor(player)
+                    && this.isValidBlock(access.getAttachmentBlockState()));
         }
     }
 }

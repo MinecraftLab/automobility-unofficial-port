@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "Sicheres Rückwärtsfahren",
+  "hint.momentum.reverse_release.action": "Löse die Bremse und betätige sie erneut, um rückwärtszufahren.",
+  "config.momentum.option.hud.reverse_release_hint.name": "Hinweis vor dem Rückwärtsfahren",
+  "config.momentum.option.hud.reverse_release_hint.description": "Erinnert nur den Fahrer daran, die Bremse vor dem Rückwärtsfahren zu lösen. Ändert die Fahrsteuerung nicht.",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "Handbremse (Drift)",

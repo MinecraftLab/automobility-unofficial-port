@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "Lùi xe an toàn",
+  "hint.momentum.reverse_release.action": "Nhả phanh, rồi nhấn lại để lùi xe.",
+  "config.momentum.option.hud.reverse_release_hint.name": "Nhắc nhả phanh trước khi lùi",
+  "config.momentum.option.hud.reverse_release_hint.description": "Chỉ nhắc người lái nhả phanh trước khi lùi xe. Không thay đổi cách điều khiển xe.",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "Phanh tay (Lướt)",

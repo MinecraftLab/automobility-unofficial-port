@@ -18,6 +18,7 @@ import io.github.foundationgames.automobility.item.AutomobileComponentItem;
 import io.github.foundationgames.automobility.item.AutomobilityItems;
 import io.github.foundationgames.automobility.platform.Platform;
 import io.github.foundationgames.automobility.screen.AutoMechanicTableScreen;
+import io.github.foundationgames.automobility.screen.GarageScreen;
 import io.github.foundationgames.automobility.screen.MenuScreenRegistrar;
 import io.github.foundationgames.automobility.screen.SingleSlotScreen;
 import io.github.foundationgames.automobility.sound.AutomobileSoundInstance;
@@ -123,6 +124,7 @@ public class AutomobilityClient {
 
     public static void initMenuScreens(MenuScreenRegistrar screens) {
         screens.accept(Automobility.AUTO_MECHANIC_SCREEN, AutoMechanicTableScreen::new);
+        screens.accept(Automobility.GARAGE_SCREEN, GarageScreen::new);
         screens.accept(Automobility.SINGLE_SLOT_SCREEN, SingleSlotScreen::new);
     }
 

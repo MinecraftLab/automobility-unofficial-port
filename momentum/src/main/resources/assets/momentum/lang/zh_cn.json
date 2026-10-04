@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "安全倒车",
+  "hint.momentum.reverse_release.action": "先松开刹车，再次按下即可倒车。",
+  "config.momentum.option.hud.reverse_release_hint.name": "倒车前松开刹车提示",
+  "config.momentum.option.hud.reverse_release_hint.description": "仅向驾驶员显示倒车前松开刹车的提醒。不会改变驾驶操作。",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "手刹（漂移）",

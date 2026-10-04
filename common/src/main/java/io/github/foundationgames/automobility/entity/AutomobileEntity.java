@@ -65,6 +65,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.ambient.AmbientCreature;
+import net.minecraft.world.entity.animal.AgeableWaterCreature;
+import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.fish.WaterAnimal;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -97,6 +100,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -117,6 +121,11 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     private RearAttachment rearAttachment;
     private FrontAttachment frontAttachment;
+    private @Nullable Identifier unresolvedFrameId;
+    private @Nullable Identifier unresolvedWheelId;
+    private @Nullable Identifier unresolvedEngineId;
+    private @Nullable CompoundTag unresolvedRearAttachmentData;
+    private @Nullable CompoundTag unresolvedFrontAttachmentData;
 
     private final AutomobileStats stats = new AutomobileStats();
 
@@ -128,7 +137,15 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private static final int UNMANNED_COAST_SETTLE_MAX_TICKS = 120;
     private static final int POST_UNMANNED_COAST_GRACE_TICKS = 60;
 
-    public final Input input = new Input();
+    public final Input input = new Input(this);
+    private final ReverseBrakeGuard reverseBrakeGuard = new ReverseBrakeGuard();
+    private @Nullable UUID reverseBrakeDriver;
+    private boolean reverseBrakeHadDriver;
+    private long reverseBrakeContextTick = Long.MIN_VALUE;
+    private long reverseBrakeInputCaptureTick = Long.MIN_VALUE;
+    private long reverseBrakeTickEnd = Long.MIN_VALUE;
+    private double reverseBrakeEndX, reverseBrakeEndY, reverseBrakeEndZ;
+    private @Nullable ResourceKey<Level> reverseBrakeEndDimension;
     private boolean prevHoldDrift = input.holdingDrift;
 
     private long clientTime;
@@ -142,9 +159,11 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private static final int CLIENT_SYNC_INTERVAL = 4;
     private static final int SERVER_SYNC_INTERVAL = 4;
     private static final int MAX_CLIENT_SYNCS_PER_TICK = 2;
+    private static final int CLIENT_INPUT_TIMEOUT_TICKS = 20;
     private int clientSyncTicks = CLIENT_SYNC_INTERVAL;
     private int serverSyncTicks = 0;
     private long lastClientSyncTick = Long.MIN_VALUE;
+    private long lastAcceptedClientInputTick = Long.MIN_VALUE;
     private int clientSyncsThisTick = 0;
 
     public final List<HitboxEntity> hitboxes = new ArrayList<>();
@@ -183,6 +202,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private float lastWheelAngle = 0;
 
     private final Displacement displacement = new AutomobileEntity.Displacement();
+    private transient boolean clientAuthoritativePositionRefresh = false;
+    private transient boolean clientRelativePositionRefresh = false;
 
     private boolean drifting = false;
     private boolean burningOut = false;
@@ -251,22 +272,60 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void readSyncStateData(FriendlyByteBuf buf) {
-        boostTimer = buf.readInt();
-        steering = buf.readFloat();
-        wheelAngle = buf.readFloat();
-        turboCharge = buf.readInt();
-        engineSpeed = buf.readFloat();
-        boostSpeed = buf.readFloat();
+        int syncedBoostTimer = buf.readInt();
+        float syncedSteering = buf.readFloat();
+        float syncedWheelAngle = buf.readFloat();
+        int syncedTurboCharge = buf.readInt();
+        float syncedEngineSpeed = buf.readFloat();
+        float syncedBoostSpeed = buf.readFloat();
         double syncedX = buf.readDouble();
         double syncedY = buf.readDouble();
         double syncedZ = buf.readDouble();
         float syncedYaw = buf.readFloat();
-        input.readPacket(buf);
+        var syncedInput = new Input();
+        syncedInput.readPacket(buf);
 
-        setDrifting(buf.readBoolean());
-        setBurningOut(buf.readBoolean());
+        boolean syncedDrifting = buf.readBoolean();
+        boolean syncedBurningOut = buf.readBoolean();
 
-        this.displacement.readSyncData(buf, !this.level().isClientSide());
+        // Serverbound legacy packets are input envelopes, not authoritative snapshots. Keep this
+        // guard even though CommonPackets now calls applyClientInputState directly, so another mod
+        // cannot accidentally reintroduce client-authored physics through this public method.
+        if (!this.level().isClientSide()) {
+            buf.skipBytes(Double.BYTES + (4 * Float.BYTES));
+            applyClientInputState(
+                    syncedInput.accelerating,
+                    syncedInput.braking,
+                    syncedInput.steering,
+                    syncedInput.holdingDrift,
+                    syncedInput.holdingHorn
+            );
+            return;
+        }
+
+        boostTimer = syncedBoostTimer;
+        steering = syncedSteering;
+        wheelAngle = syncedWheelAngle;
+        turboCharge = syncedTurboCharge;
+        engineSpeed = syncedEngineSpeed;
+        boostSpeed = syncedBoostSpeed;
+
+        if (!(this.getControllingPassenger() instanceof Player player && player.isLocalPlayer())) {
+            input.setInputs(
+                    syncedInput.accelerating,
+                    syncedInput.braking,
+                    syncedInput.steering,
+                    syncedInput.holdingDrift,
+                    syncedInput.holdingHorn
+            );
+        }
+
+        setDrifting(syncedDrifting);
+        setBurningOut(syncedBurningOut);
+
+        boolean hadSyncedDisplacement = this.displacement.hasSyncedData();
+        Vec3 positionBeforeStoppedSync = this.position();
+        this.displacement.readSyncData(buf, false);
 
         if (this.level().isClientSide()) {
             boolean stoppedSync = boostTimer == 0 && Math.abs(engineSpeed) < 1.0E-4f && Math.abs(boostSpeed) < 1.0E-4f && !input.accelerating && !input.braking;
@@ -284,6 +343,10 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
                 this.setPos(syncedX, syncedY, syncedZ);
                 this.setYRot(syncedYaw);
                 this.syncPacketPositionCodec(syncedX, syncedY, syncedZ);
+                if (hadSyncedDisplacement
+                        && AutomobilePositionUpdatePolicy.positionChanged(positionBeforeStoppedSync, this.position())) {
+                    this.clientOnAuthoritativePositionApplied(positionBeforeStoppedSync);
+                }
             }
 
             if (stoppedSync) {
@@ -296,28 +359,67 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         this.dataLerpTicks = CLIENT_SYNC_INTERVAL;
     }
 
+    public boolean applyClientInputState(boolean accelerating, boolean braking, float inputSteering,
+                                         boolean holdingDrift, boolean holdingHorn) {
+        if (this.level().isClientSide() || !Float.isFinite(inputSteering)) {
+            return false;
+        }
+
+        // A packet for a new driver must not inherit the old driver's freshness/context.
+        refreshReverseBrakeContext();
+        this.lastAcceptedClientInputTick = this.level().getGameTime();
+        return this.input.setInputs(
+                accelerating,
+                braking,
+                Mth.clamp(inputSteering, -1, 1),
+                holdingDrift,
+                holdingHorn
+        );
+    }
+
     @Override
     public void readAdditionalSaveData(ValueInput nbt) {
         var reg = nbt.lookup();
         var frameId = Identifier.tryParse(nbt.getStringOr("frame", ""));
         var wheelId = Identifier.tryParse(nbt.getStringOr("wheels", ""));
         var engineId = Identifier.tryParse(nbt.getStringOr("engine", ""));
+        var frameEntry = frameId != null
+                ? reg.lookupOrThrow(AutomobileFrame.REGISTRY).get(ResourceKey.create(AutomobileFrame.REGISTRY, frameId))
+                : Optional.<Holder.Reference<AutomobileFrame>>empty();
+        var wheelEntry = wheelId != null
+                ? reg.lookupOrThrow(AutomobileWheel.REGISTRY).get(ResourceKey.create(AutomobileWheel.REGISTRY, wheelId))
+                : Optional.<Holder.Reference<AutomobileWheel>>empty();
+        var engineEntry = engineId != null
+                ? reg.lookupOrThrow(AutomobileEngine.REGISTRY).get(ResourceKey.create(AutomobileEngine.REGISTRY, engineId))
+                : Optional.<Holder.Reference<AutomobileEngine>>empty();
         setComponents(
-                frameId != null ? reg.lookupOrThrow(AutomobileFrame.REGISTRY).get(ResourceKey.create(AutomobileFrame.REGISTRY, frameId))
-                        .map(r -> (Holder<AutomobileFrame>)r).orElseGet(() -> Holder.direct(AutomobileFrame.EMPTY)) : Holder.direct(AutomobileFrame.EMPTY),
-                wheelId != null ? reg.lookupOrThrow(AutomobileWheel.REGISTRY).get(ResourceKey.create(AutomobileWheel.REGISTRY, wheelId))
-                        .map(r -> (Holder<AutomobileWheel>)r).orElseGet(() -> Holder.direct(AutomobileWheel.EMPTY)) : Holder.direct(AutomobileWheel.EMPTY),
-                engineId != null ? reg.lookupOrThrow(AutomobileEngine.REGISTRY).get(ResourceKey.create(AutomobileEngine.REGISTRY, engineId))
-                        .map(r -> (Holder<AutomobileEngine>)r).orElseGet(() -> Holder.direct(AutomobileEngine.EMPTY)) : Holder.direct(AutomobileEngine.EMPTY)
+                frameEntry.<Holder<AutomobileFrame>>map(r -> r).orElseGet(() -> Holder.direct(AutomobileFrame.EMPTY)),
+                wheelEntry.<Holder<AutomobileWheel>>map(r -> r).orElseGet(() -> Holder.direct(AutomobileWheel.EMPTY)),
+                engineEntry.<Holder<AutomobileEngine>>map(r -> r).orElseGet(() -> Holder.direct(AutomobileEngine.EMPTY))
         );
+        this.unresolvedFrameId = frameId != null && frameEntry.isEmpty() ? frameId : null;
+        this.unresolvedWheelId = wheelId != null && wheelEntry.isEmpty() ? wheelId : null;
+        this.unresolvedEngineId = engineId != null && engineEntry.isEmpty() ? engineId : null;
 
         var rAtt = nbt.read("rearAttachment", CompoundTag.CODEC).orElseGet(CompoundTag::new);
-        setRearAttachment(RearAttachment.fromNbt(rAtt));
-        rearAttachment.readNbt(rAtt, this.level().registryAccess());
+        var rearType = RearAttachment.fromNbt(rAtt);
+        if (rearType != null) {
+            setRearAttachment(rearType);
+            rearAttachment.readNbt(rAtt, this.level().registryAccess());
+        } else {
+            setRearAttachment(RearAttachmentType.EMPTY);
+            this.unresolvedRearAttachmentData = AutomobileComponentPersistence.unresolvedAttachmentData(rAtt, false);
+        }
 
         var fAtt = nbt.read("frontAttachment", CompoundTag.CODEC).orElseGet(CompoundTag::new);
-        setFrontAttachment(FrontAttachment.fromNbt(fAtt));
-        frontAttachment.readNbt(fAtt, this.level().registryAccess());
+        var frontType = FrontAttachment.fromNbt(fAtt);
+        if (frontType != null) {
+            setFrontAttachment(frontType);
+            frontAttachment.readNbt(fAtt, this.level().registryAccess());
+        } else {
+            setFrontAttachment(FrontAttachmentType.EMPTY);
+            this.unresolvedFrontAttachmentData = AutomobileComponentPersistence.unresolvedAttachmentData(fAtt, false);
+        }
 
         engineSpeed = nbt.getFloatOr("engineSpeed", engineSpeed);
         boostSpeed = nbt.getFloatOr("boostSpeed", boostSpeed);
@@ -341,6 +443,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         input.steering = nbt.getFloatOr("steeringInput", input.steering);
         input.holdingDrift = nbt.getBooleanOr("holdingDrift", input.holdingDrift);
         input.holdingHorn = nbt.getBooleanOr("holdingHorn", input.holdingHorn);
+        reverseBrakeGuard.restoreUntrustedInput(input.accelerating, input.braking);
         fallTicks = nbt.getIntOr("fallTicks", fallTicks);
         despawnTime = nbt.getIntOr("despawnTime", despawnTime);
         despawnCountdown = nbt.getIntOr("despawnCountdown", despawnCountdown);
@@ -349,11 +452,16 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     @Override
     public void addAdditionalSaveData(ValueOutput nbt) {
-        this.entityData.get(FRAME_TYPE).unwrapKey().ifPresent(k -> nbt.putString("frame", k.identifier().toString()));
-        this.entityData.get(WHEEL_TYPE).unwrapKey().ifPresent(k -> nbt.putString("wheels", k.identifier().toString()));
-        this.entityData.get(ENGINE_TYPE).unwrapKey().ifPresent(k -> nbt.putString("engine", k.identifier().toString()));
-        nbt.store("rearAttachment", CompoundTag.CODEC, rearAttachment.toNbt());
-        nbt.store("frontAttachment", CompoundTag.CODEC, frontAttachment.toNbt());
+        var frameId = AutomobileComponentPersistence.idToSave(this.entityData.get(FRAME_TYPE), this.unresolvedFrameId);
+        var wheelId = AutomobileComponentPersistence.idToSave(this.entityData.get(WHEEL_TYPE), this.unresolvedWheelId);
+        var engineId = AutomobileComponentPersistence.idToSave(this.entityData.get(ENGINE_TYPE), this.unresolvedEngineId);
+        if (frameId != null) nbt.putString("frame", frameId.toString());
+        if (wheelId != null) nbt.putString("wheels", wheelId.toString());
+        if (engineId != null) nbt.putString("engine", engineId.toString());
+        nbt.store("rearAttachment", CompoundTag.CODEC, AutomobileComponentPersistence.attachmentDataToSave(
+                rearAttachment.toNbt(), this.unresolvedRearAttachmentData));
+        nbt.store("frontAttachment", CompoundTag.CODEC, AutomobileComponentPersistence.attachmentDataToSave(
+                frontAttachment.toNbt(), this.unresolvedFrontAttachmentData));
         nbt.putFloat("engineSpeed", engineSpeed);
         nbt.putFloat("boostSpeed", boostSpeed);
         nbt.putInt("boostTimer", boostTimer);
@@ -585,6 +693,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (rearAttachment == null) {
             return;
         }
+        this.unresolvedRearAttachmentData = null;
         if (this.rearAttachment == null || this.rearAttachment.type != rearAttachment) {
             if (this.rearAttachment != null) {
                 this.rearAttachment.onRemoved();
@@ -605,6 +714,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (frontAttachment == null) {
             return;
         }
+        this.unresolvedFrontAttachmentData = null;
         if (this.frontAttachment == null || this.frontAttachment.type != frontAttachment) {
             if (this.frontAttachment != null) {
                 this.frontAttachment.onRemoved();
@@ -616,6 +726,10 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void setComponents(Holder<AutomobileFrame> frame, Holder<AutomobileWheel> wheel, Holder<AutomobileEngine> engine) {
+        reverseBrakeGuard.interrupt();
+        this.unresolvedFrameId = null;
+        this.unresolvedWheelId = null;
+        this.unresolvedEngineId = null;
         this.entityData.set(FRAME_TYPE, frame);
         this.entityData.set(WHEEL_TYPE, wheel);
         this.entityData.set(ENGINE_TYPE, engine);
@@ -624,6 +738,15 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         this.size = getFrame().makeBounds();
         this.displacement.applyWheelbase(getFrame().model().wheelBase());
         this.refreshDimensions();
+    }
+
+    /** A service operation must never erase unresolved datapack identifiers. */
+    public GarageService.Components garageComponents() {
+        if (this.unresolvedFrameId != null || this.unresolvedWheelId != null || this.unresolvedEngineId != null) {
+            return null;
+        }
+        return new GarageService.Components(this.entityData.get(FRAME_TYPE),
+                this.entityData.get(WHEEL_TYPE), this.entityData.get(ENGINE_TYPE));
     }
 
     public void verifyHitboxesFor(AutomobileFrame frame) {
@@ -812,6 +935,16 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.lastMeasuredPos = this.position();
         }
 
+        if (!this.level().isClientSide()) {
+            // Also release animals restored from older saves or mounted by a forced command.
+            // The immutable passenger list remains safe to iterate as riders dismount.
+            for (Entity passenger : this.getPassengers()) {
+                if (isAnimalPassenger(passenger)) {
+                    passenger.stopRiding();
+                }
+            }
+        }
+
         if (lastWheelAngle != wheelAngle) markDirty();
         lastWheelAngle = wheelAngle;
 
@@ -825,6 +958,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (!(this.isVehicle() || this.isDriving(this.getFirstPassenger()) || fAttDriving)) {
             input.clearInputs();
         }
+        expireStaleClientInput();
 
         if (this.jumpCooldown > 0) {
             this.jumpCooldown--;
@@ -843,6 +977,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         lerpAutomobileData();
         positionTrackingTick();
         collisionStateTick();
+        prepareReverseBrakeIntent();
         steeringTick();
         driftingTick();
         burnoutTick();
@@ -858,6 +993,10 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         this.updateHitboxPositions();
         if (!level().isClientSide()) {
             this.resolveRecentDismountHitboxOverlap();
+
+            // syncData runs before the common displacementTick below. Keep an already-dirty
+            // stationary automobile from emitting its pre-teleport absolute render Y here.
+            this.displacement.resetVerticalAfterPositionChange(this.getY());
 
             var tailPos = this.getTailPos();
             var currentDimension = this.level().dimension();
@@ -887,7 +1026,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
                 var touchingEntities = this.level().getEntities(this, this.getBoundingBox().inflate(0.2, 0, 0.2), EntitySelector.pushableBy(this));
                 for (Entity entity : touchingEntities) {
                     if (!entity.hasPassenger(this)) {
-                        if (!entity.isPassenger() && entity.getBbWidth() <= this.getBbWidth() && entity instanceof Mob && !(entity instanceof WaterAnimal)) {
+                        if (!entity.isPassenger() && entity.getBbWidth() <= this.getBbWidth() && entity instanceof Mob && this.canAddPassenger(entity)) {
                             entity.startRiding(this);
                         }
                     }
@@ -935,11 +1074,32 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             }
         }
 
-        displacementTick(first || (this.position().subtract(prevPos).length() > 0 || this.getYRot() != this.yRotO));
+        boolean authoritativePositionRefresh = this.clientAuthoritativePositionRefresh;
+        boolean relativePositionRefresh = this.clientRelativePositionRefresh;
+        boolean packetPositionRefresh = authoritativePositionRefresh || relativePositionRefresh;
+        this.clientAuthoritativePositionRefresh = false;
+        this.clientRelativePositionRefresh = false;
+        if (authoritativePositionRefresh) {
+            // A component sync may arrive on either side of an absolute vanilla position packet.
+            // Resolve both orderings to the entity's authoritative Y before any local terrain scan.
+            this.displacement.resetVerticalAfterPositionChange(this.getY());
+        }
+        displacementTick(AutomobileDisplacementUpdatePolicy.shouldUpdate(
+                first,
+                packetPositionRefresh,
+                prevPos,
+                this.position(),
+                this.getYRot() != this.yRotO
+        ));
         if (!this.level().isClientSide()) {
             this.previousServerTickEndPosition = this.position();
             this.previousServerTickEndDimension = this.level().dimension();
         }
+        reverseBrakeTickEnd = this.level().getGameTime();
+        reverseBrakeEndX = this.getX();
+        reverseBrakeEndY = this.getY();
+        reverseBrakeEndZ = this.getZ();
+        reverseBrakeEndDimension = this.level().dimension();
     }
 
     public void positionTrackingTick() {
@@ -956,6 +1116,39 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
             this.lerpTicks--;
         }
+    }
+
+    /** Reconciles render-only state after vanilla applies an absolute clientbound position. */
+    public void clientOnAuthoritativePositionApplied(Vec3 previousPosition) {
+        if (!this.level().isClientSide()
+                || !AutomobilePositionUpdatePolicy.positionChanged(previousPosition, this.position())
+                || !this.displacement.translateVerticalAfterPositionChange(previousPosition.y, this.getY())) {
+            return;
+        }
+
+        // An absolute vanilla correction supersedes any target left by Automobility's movement sync.
+        this.lerpTicks = 0;
+        this.trackedX = this.getX();
+        this.trackedY = this.getY();
+        this.trackedZ = this.getZ();
+        this.trackedYaw = this.getYRot();
+        this.clientAuthoritativePositionRefresh = true;
+    }
+
+    /**
+     * Keeps locally calculated body displacement attached to an unoccupied automobile when
+     * vanilla applies a relative movement packet between entity ticks. This deliberately leaves
+     * Automobility's interpolation target intact for ordinary driving.
+     */
+    public void clientOnRelativePositionApplied(Vec3 previousPosition) {
+        if (!this.level().isClientSide()
+                || !this.usesLocalDisplacement()
+                || !AutomobilePositionUpdatePolicy.positionChanged(previousPosition, this.position())
+                || !this.displacement.translateVerticalAfterPositionChange(previousPosition.y, this.getY())) {
+            return;
+        }
+
+        this.clientRelativePositionRefresh = true;
     }
 
     public void markDirty() {
@@ -998,7 +1191,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void updateEngineSpeed(float speed) {
-         if (!this.isLocalInstanceAuthoritative()) {
+         if (!this.simulatesPhysicsState()) {
              return;
          }
 
@@ -1006,14 +1199,29 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void updateBoostSpeed(float speed) {
-        if (!this.isLocalInstanceAuthoritative()) {
+        if (!this.simulatesPhysicsState()) {
             return;
         }
 
         this.boostSpeed = speed;
     }
 
+    /**
+     * The server owns gameplay-relevant speed state even while vanilla's validated vehicle move
+     * packet remains the spatial authority for .31. Fully server-authoritative positioning needs
+     * a correction/prediction protocol and is intentionally deferred until it can be tested with
+     * two real clients without changing driving feel.
+     */
+    private boolean simulatesPhysicsState() {
+        return !this.level().isClientSide() || this.isLocalInstanceAuthoritative();
+    }
+
     public void movementTick() {
+        // PW may temporarily mask input fields at HEAD. prepare is idempotent for the raw
+        // field capture within this game tick; accepted input edges are recorded separately.
+        prepareReverseBrakeIntent();
+        Vec3 serverObservedMovement = this.level().isClientSide() ? Vec3.ZERO : this.getMeasuredMovement();
+
         // Handles boosting
         lastBoostSpeed = boostSpeed;
         if (boostTimer > 0) {
@@ -1033,8 +1241,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
         // Get block below's friction
         var blockBelow = BlockPos.containing(getX(), getY() - 0.05, getZ());
-        this.grip = 1 - ((Mth.clamp((level().getBlockState(blockBelow).getBlock().getFriction() - 0.6f) / 0.4f, 0, 1) * (1 - stats.getGrip() * 0.8f)));
-        this.grip *= this.grip;
+        this.grip = stats.calculateSurfaceGrip(
+                (level().getBlockState(blockBelow).getBlock().getFriction() - 0.6f) / 0.4f);
 
         // Bounce on gel
         if (this.automobileOnGround && this.jumpCooldown <= 0 && level().getBlockState(this.blockPosition()).getBlock() instanceof LaunchGelBlock) {
@@ -1076,7 +1284,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
         // Handle braking/reverse
         if (input.braking) {
-            this.updateEngineSpeed(Math.max(this.engineSpeed - 0.15f, -0.25f));
+            this.updateEngineSpeed(Math.max(this.engineSpeed - 0.15f, brakingSpeedFloor()));
         }
         // Handle when the automobile is rolling to a stop
         if (!input.accelerating && !input.braking) {
@@ -1157,18 +1365,20 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (this.isLocalInstanceAuthoritative()) {
             this.setDeltaMovement(cumulative);
         }
-        this.markHurt();
-        this.hurtMarked = true;
-
         lastVelocity = cumulative;
 
         // Damage and launch entities that are hit by a moving automobile
-        if (Math.abs(hSpeed) > 0.2) {
-            runOverEntities(cumulative);
+        if (!this.level().isClientSide()) {
+            runOverEntities(AutomobileImpactPolicy.boundedVelocityForDamage(cumulative, serverObservedMovement));
         }
     }
 
     public void runOverEntities(Vec3 velocity) {
+        float impactSpeed = AutomobileImpactPolicy.speedForDamage(velocity);
+        if (impactSpeed == 0) {
+            return;
+        }
+
         var entitiesToHit = new HashSet<LivingEntity>();
         var velAdd = velocity.add(0, 0.1, 0).scale(3);
 
@@ -1184,9 +1394,28 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
 
         entitiesToHit.forEach(e -> {
-            AutomobilityEntities.automobileDamageSource(level()).ifPresent(dmg -> e.hurt(dmg, hSpeed * 10));
+            AutomobilityEntities.automobileDamageSource(level()).ifPresent(dmg -> e.hurt(dmg, impactSpeed * 10));
             e.push(velAdd.x, velAdd.y, velAdd.z);
         });
+    }
+
+    private void expireStaleClientInput() {
+        if (this.level().isClientSide()
+                || !(this.getFirstPassenger() instanceof Player player)
+                || !this.isDriving(player)
+                || AutomobileClientInputPolicy.isFresh(
+                        this.lastAcceptedClientInputTick,
+                        this.level().getGameTime(),
+                        CLIENT_INPUT_TIMEOUT_TICKS)) {
+            return;
+        }
+
+        reverseBrakeGuard.interrupt();
+        if (this.input.accelerating || this.input.braking || this.input.steering != 0
+                || this.input.holdingDrift || this.input.holdingHorn) {
+            this.input.clearInputs();
+            this.markDirty();
+        }
     }
 
     public void receiveVehicleCollisions() {
@@ -1398,7 +1627,10 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.displacement.preTick();
 
             if (this.usesLocalDisplacement()) {
-                if (tick) {
+                var terrainRevisions = this.level() instanceof AutomobileTerrainRevisions.Source source
+                        ? source.automobility$terrainRevisions() : null;
+                boolean terrainChanged = this.displacement.shouldRefreshTerrain(terrainRevisions, this.getX(), this.getZ());
+                if (tick || terrainChanged) {
                     this.displacement.otherColliders.clear();
                     this.accumulateCollisionAreas(this.displacement.otherColliders);
 
@@ -1408,13 +1640,18 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
                 if (level().getBlockState(this.blockPosition()).getBlock() instanceof AutomobileAssemblerBlock) {
                     this.displacement.lastVertical = this.displacement.verticalTarget = (this.getY() - this.getWheels().model().radius() / 16);
                 }
-            } else if (!this.displacement.hasSyncedData()) {
-                this.displacement.snapTo(this.getY(), new Quaternionf());
+            } else {
+                // Do not replace a remote driver's authoritative displacement with a local
+                // terrain scan. If control changes later, recalculate the local terrain once.
+                this.displacement.invalidateTerrain();
+                if (!this.displacement.hasSyncedData()) {
+                    this.displacement.snapTo(this.getY(), new Quaternionf());
+                }
             }
 
             this.displacement.postTick();
         } else {
-            this.displacement.lastVertical = this.displacement.currVertical = this.displacement.verticalTarget = this.getY();
+            this.displacement.resetVerticalAfterPositionChange(this.getY());
         }
     }
 
@@ -1441,30 +1678,33 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         var floorCuboid = Shapes.create(floorBox);
         var wallCuboid = Shapes.create(wallBox);
         var stepWallCuboid = wallCuboid.move(0, this.maxUpStep() - 0.05, 0);
-        boolean wallHit = false;
-        boolean stepWallHit = false;
+        var collisionState = new AutomobileCollisionState(groundCuboid, floorCuboid, wallCuboid, stepWallCuboid);
         var shapeCtx = CollisionContext.of(this);
         if (this.level().hasChunksAt(start, end)) {
             var pos = new BlockPos.MutableBlockPos();
-            for(int x = start.getX(); x <= end.getX(); ++x) {
+            blockScan: for(int x = start.getX(); x <= end.getX(); ++x) {
                 for(int y = start.getY(); y <= end.getY(); ++y) {
                     for(int z = start.getZ(); z <= end.getZ(); ++z) {
                         pos.set(x, y, z);
                         var state = this.level().getBlockState(pos);
-                        var blockShape = state.getCollisionShape(this.level(), pos, shapeCtx).move(pos.getX(), pos.getY(), pos.getZ());
-                        this.automobileOnGround |= Shapes.joinIsNotEmpty(blockShape, groundCuboid, BooleanOp.AND);
-                        this.isFloorDirectlyBelow |= Shapes.joinIsNotEmpty(blockShape, floorCuboid, BooleanOp.AND);
-                        wallHit |= Shapes.joinIsNotEmpty(blockShape, wallCuboid, BooleanOp.AND);
-                        stepWallHit |= Shapes.joinIsNotEmpty(blockShape, stepWallCuboid, BooleanOp.AND);
+                        collisionState.addLocalShape(state.getCollisionShape(this.level(), pos, shapeCtx), x, y, z);
+                        // Keep flags visible to subsequent entity-aware collision-shape callbacks.
+                        this.automobileOnGround = collisionState.blockGround();
+                        this.isFloorDirectlyBelow = collisionState.floorDirectlyBelow();
+                        if (collisionState.complete()) {
+                            break blockScan;
+                        }
                     }
                 }
             }
         }
-        this.touchingWall = (wallHit && stepWallHit);
-
-        var otherColliders = new HashSet<CollisionArea>();
-        this.accumulateCollisionAreas(otherColliders);
-        this.automobileOnGround |= otherColliders.stream().anyMatch(col -> col.boxIntersects(groundBox));
+        this.isFloorDirectlyBelow = collisionState.floorDirectlyBelow();
+        this.touchingWall = collisionState.touchingWall();
+        this.automobileOnGround = collisionState.onGround(() -> {
+            var otherColliders = new HashSet<CollisionArea>();
+            this.accumulateCollisionAreas(otherColliders);
+            return otherColliders.stream().anyMatch(col -> col.boxIntersects(groundBox));
+        });
     }
 
     public void lerpTo(double x, double y, double z, float yaw, float pitch, int interpolationSteps) {
@@ -1491,12 +1731,112 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
     }
 
+    /**
+     * Supplies an additional raw backward pedal, such as Momentum's configurable brake key.
+     * Call for each accepted input edge, and before movement sampling; drift/handbrake is not
+     * a backward pedal. The base mod does not depend on the optional input provider.
+     */
+    public void setAdditionalBrakeInput(boolean held) {
+        boolean valid = refreshReverseBrakeContext();
+        reverseBrakeGuard.acceptAdditionalBrake(held, valid, reverseBrakeSignedSpeed());
+    }
+
+    /** Samples raw intent before external engines apply their temporary propulsion masks. */
+    public void prepareReverseBrakeIntent() {
+        boolean valid = refreshReverseBrakeContext();
+        long tick = this.level().getGameTime();
+        if (reverseBrakeInputCaptureTick != tick) {
+            reverseBrakeInputCaptureTick = tick;
+            // Mob front controllers write public fields directly. Player raw intent is owned
+            // exclusively by the accepted Input setters: fuel/energy mixins can mask these
+            // fields before tick HEAD without the player physically releasing a pedal.
+            if (valid && !(this.getFirstPassenger() instanceof Player)) {
+                reverseBrakeGuard.acceptBaseInput(input.accelerating, input.braking,
+                        true, reverseBrakeSignedSpeed());
+            }
+        }
+        reverseBrakeGuard.sample(valid, reverseBrakeSignedSpeed());
+    }
+
+    /** Allocation-free optional external-engine bridge: raw backward=1, reverse blocked=2. */
+    public int prepareReverseDriveIntent(boolean additionalBrakeHeld) {
+        setAdditionalBrakeInput(additionalBrakeHeld);
+        prepareReverseBrakeIntent();
+        return (rawBrakePedalHeld() ? 1 : 0) | (waitingForReverseRelease() ? 2 : 0);
+    }
+
+    /** Combined valid raw pedal intent, never an external engine's temporary input mask. */
+    public boolean rawBrakePedalHeld() {
+        return reverseBrakeGuard.brakeHeld();
+    }
+
+    public boolean waitingForReverseRelease() {
+        return reverseBrakeGuard.waitingForRelease();
+    }
+
+    /** Negative propulsion is permitted only after a genuine release of the brake pedal. */
+    public float brakingSpeedFloor() {
+        return reverseBrakeGuard.speedFloor();
+    }
+
+    private void acceptRawBaseInput(boolean forward, boolean backward) {
+        boolean valid = refreshReverseBrakeContext();
+        reverseBrakeInputCaptureTick = this.level().getGameTime();
+        reverseBrakeGuard.acceptBaseInput(forward, backward, valid, reverseBrakeSignedSpeed());
+    }
+
+    private boolean refreshReverseBrakeContext() {
+        var driver = this.getFirstPassenger();
+        var attachment = this.getFrontAttachment();
+        boolean driving = driver != null && (this.isDriving(driver)
+                || attachment != null && attachment.isProvidingAlternativeInputs(this, driver));
+        UUID driverId = driving ? driver.getUUID() : null;
+        long tick = this.level().getGameTime();
+        boolean driverChanged = !Objects.equals(driverId, reverseBrakeDriver);
+        if (driverChanged) {
+            if (reverseBrakeHadDriver) {
+                reverseBrakeGuard.interrupt();
+                if (!this.level().isClientSide()) lastAcceptedClientInputTick = Long.MIN_VALUE;
+            }
+            reverseBrakeDriver = driverId;
+            reverseBrakeHadDriver |= driving;
+            reverseBrakeInputCaptureTick = Long.MIN_VALUE;
+        }
+        if (reverseBrakeContextTick != tick) {
+            boolean tickGap = reverseBrakeContextTick != Long.MIN_VALUE
+                    && tick != reverseBrakeContextTick + 1;
+            boolean movedBetweenTicks = false;
+            if (reverseBrakeTickEnd != Long.MIN_VALUE) {
+                double x = this.getX() - reverseBrakeEndX;
+                double y = this.getY() - reverseBrakeEndY;
+                double z = this.getZ() - reverseBrakeEndZ;
+                movedBetweenTicks = !Objects.equals(this.level().dimension(), reverseBrakeEndDimension)
+                        || !Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)
+                        || x * x + y * y + z * z > 16;
+            }
+            if (tickGap || movedBetweenTicks) reverseBrakeGuard.interrupt();
+            reverseBrakeContextTick = tick;
+        }
+        return driving && !this.isRemoved() && (this.level().isClientSide()
+                || !(driver instanceof Player)
+                || AutomobileClientInputPolicy.isFresh(lastAcceptedClientInputTick, tick, CLIENT_INPUT_TIMEOUT_TICKS));
+    }
+
+    private double reverseBrakeSignedSpeed() {
+        if (!Float.isFinite(engineSpeed) || !Float.isFinite(hSpeed)) return Double.NaN;
+        var velocity = this.getDeltaMovement();
+        double heading = Math.toRadians(-this.getYRot());
+        double observed = velocity.x * Math.sin(heading) + velocity.z * Math.cos(heading);
+        if (!Double.isFinite(observed)) return Double.NaN;
+        return Math.max(Math.max(engineSpeed, hSpeed), observed);
+    }
+
     public void boost(float power, int time) {
         if (power > boostPower || time > boostTimer) {
             boostTimer = time;
             boostPower = power;
         }
-        if (this.isLocalInstanceAuthoritative()) {
+        if (this.simulatesPhysicsState()) {
             this.updateEngineSpeed(Math.max(this.engineSpeed, this.stats.getComfortableSpeed() * 0.5f));
         }
 
@@ -1642,7 +1982,14 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     @Override
     protected boolean canAddPassenger(Entity passenger) {
-        return this.hasSpaceForPassengers();
+        return !isAnimalPassenger(passenger) && this.hasSpaceForPassengers();
+    }
+
+    private static boolean isAnimalPassenger(Entity passenger) {
+        return passenger instanceof Animal
+                || passenger instanceof WaterAnimal
+                || passenger instanceof AgeableWaterCreature
+                || passenger instanceof AmbientCreature;
     }
 
     @Override
@@ -1701,6 +2048,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     private void stabilizeAfterDriverDismount(boolean shouldCoastAfterDriverDismount) {
+        reverseBrakeGuard.interrupt();
         this.input.clearInputs();
         this.boostSpeed = 0;
         this.lastBoostSpeed = 0;
@@ -2083,11 +2431,9 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
         var pos = new BlockPos.MutableBlockPos();
         double maxDismountHeight = this.getBoundingBox().maxY + 0.75;
-        Vec3 fallbackDismountPos = null;
         float preferredSide = passenger.getMainArm() == HumanoidArm.RIGHT ? 90 : -90;
-        float[] sideOffsets = new float[] { preferredSide, -preferredSide };
 
-        for (float sideOffset : sideOffsets) {
+        for (float sideOffset : DismountSearchPolicy.yawOffsets(preferredSide)) {
             float yaw = this.getYRot() + sideOffset;
             var dir = Entity.getCollisionHorizontalEscapeVector(maxWidth + 0.75, passenger.getBbWidth(), yaw);
 
@@ -2095,20 +2441,6 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
                     dir.x() + getX(),
                     dir.y() + this.displacement.getVertical(1),
                     dir.z() + getZ());
-
-            pos.set(scanPos.x(), scanPos.y(), scanPos.z());
-            while (true) {
-                double height = this.level().getBlockFloorHeight(pos);
-                if (pos.getY() + height > maxDismountHeight) break;
-
-                if (DismountHelper.isBlockFloorValid(height) && fallbackDismountPos == null) {
-                    fallbackDismountPos = new Vec3(scanPos.x(), (double)pos.getY() + height, scanPos.z());
-                    break;
-                }
-
-                pos.move(Direction.UP);
-                if (pos.getY() > maxDismountHeight) break;
-            }
 
             for (var pose : passenger.getDismountPoses()) {
                 pos.set(scanPos.x(), scanPos.y(), scanPos.z());
@@ -2132,13 +2464,19 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             }
         }
 
-        if (fallbackDismountPos != null) {
-            return fallbackDismountPos;
+        var fallback = new Vec3(
+                this.getX(),
+                Math.max(this.getBoundingBox().maxY, this.getY() + maxHeight),
+                this.getZ()
+        );
+        for (var pose : passenger.getDismountPoses()) {
+            var bounds = passenger.getLocalBoundsForPose(pose);
+            if (DismountHelper.canDismountTo(this.level(), passenger, bounds.move(fallback))) {
+                passenger.setPose(pose);
+                return fallback;
+            }
         }
-
-        float yaw = this.getYRot() + preferredSide;
-        var dir = Entity.getCollisionHorizontalEscapeVector(maxWidth + 1.0, passenger.getBbWidth(), yaw);
-        return new Vec3(this.getX() + dir.x(), this.getY() + maxHeight, this.getZ() + dir.z());
+        return fallback;
     }
 
     private boolean canCollideWithAutomobile(Entity entity) {
@@ -2189,6 +2527,9 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
         if (FRAME_TYPE.equals(data) || WHEEL_TYPE.equals(data) || ENGINE_TYPE.equals(data)) {
             this.stats.from(getFrame(), getWheels(), getEngine());
+        }
+        if (FRAME_TYPE.equals(data) || WHEEL_TYPE.equals(data)) {
+            this.displacement.invalidateTerrain();
         }
     }
 
@@ -2311,6 +2652,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         private final Quaternionf currAngular = new Quaternionf();
         private final Quaternionf angularTarget = new Quaternionf();
         private final List<Vec3> scanPoints = new ArrayList<>();
+        private final AutomobileTerrainRevisions.Sample terrainSample = new AutomobileTerrainRevisions.Sample();
+        private double terrainScanRadius;
         public final Set<CollisionArea> otherColliders = new HashSet<>();
         private boolean hasSyncedData = false;
 
@@ -2524,9 +2867,21 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
         public void applyWheelbase(WheelBase wheelBase) {
             this.scanPoints.clear();
+            this.terrainScanRadius = 0;
             for (WheelBase.WheelPos pos : wheelBase.wheels()) if (pos.end() != WheelBase.WheelEnd.NONE) {
-                this.scanPoints.add(new Vec3(pos.right() / 16, 0, pos.forward() / 16));
+                var point = new Vec3(pos.right() / 16, 0, pos.forward() / 16);
+                this.scanPoints.add(point);
+                this.terrainScanRadius = Math.max(this.terrainScanRadius, point.length());
             }
+            this.invalidateTerrain();
+        }
+
+        boolean shouldRefreshTerrain(AutomobileTerrainRevisions revisions, double x, double z) {
+            return this.terrainSample.shouldRefresh(revisions, x, z, this.terrainScanRadius);
+        }
+
+        void invalidateTerrain() {
+            this.terrainSample.invalidate();
         }
 
         public void writeSyncData(FriendlyByteBuf buf) {
@@ -2564,6 +2919,40 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.angularTarget.set(angular);
         }
 
+        boolean translateVerticalAfterPositionChange(double previousEntityY, double currentEntityY) {
+            if (!Double.isFinite(currentEntityY)) {
+                return false;
+            }
+
+            double deltaY = currentEntityY - previousEntityY;
+            double translatedLast = this.lastVertical + deltaY;
+            double translatedCurrent = this.currVertical + deltaY;
+            double translatedTarget = this.verticalTarget + deltaY;
+            if (!Double.isFinite(previousEntityY)
+                    || !Double.isFinite(deltaY)
+                    || !Double.isFinite(translatedLast)
+                    || !Double.isFinite(translatedCurrent)
+                    || !Double.isFinite(translatedTarget)) {
+                return this.resetVerticalAfterPositionChange(currentEntityY);
+            }
+
+            this.lastVertical = translatedLast;
+            this.currVertical = translatedCurrent;
+            this.verticalTarget = translatedTarget;
+            return true;
+        }
+
+        boolean resetVerticalAfterPositionChange(double currentEntityY) {
+            if (!Double.isFinite(currentEntityY)) {
+                return false;
+            }
+
+            this.lastVertical = currentEntityY;
+            this.currVertical = currentEntityY;
+            this.verticalTarget = currentEntityY;
+            return true;
+        }
+
         public double getVertical(float tickDelta) {
             return Mth.lerp(tickDelta, lastVertical, currVertical);
         }
@@ -2578,6 +2967,16 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public static class Input {
+        private final @Nullable AutomobileEntity owner;
+
+        public Input() {
+            this.owner = null;
+        }
+
+        private Input(AutomobileEntity owner) {
+            this.owner = owner;
+        }
+
         public boolean accelerating, braking, holdingDrift, holdingHorn;
         public float steering;
 
@@ -2593,6 +2992,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.steering = (left ? -1 : 0) + (right ? 1 : 0);
             this.holdingDrift = space;
             this.holdingHorn = ctrl;
+            if (owner != null) owner.acceptRawBaseInput(fwd, back);
 
             return changed;
         }
@@ -2606,6 +3006,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.steering = side;
             this.holdingDrift = space;
             this.holdingHorn = ctrl;
+            if (owner != null) owner.acceptRawBaseInput(fwd, back);
 
             return changed;
         }

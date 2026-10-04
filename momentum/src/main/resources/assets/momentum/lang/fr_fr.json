@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "Marche arrière sécurisée",
+  "hint.momentum.reverse_release.action": "Relâchez le frein, puis actionnez-le à nouveau pour reculer.",
+  "config.momentum.option.hud.reverse_release_hint.name": "Rappel avant la marche arrière",
+  "config.momentum.option.hud.reverse_release_hint.description": "Rappelle uniquement au conducteur de relâcher le frein avant de reculer. Ne modifie pas les commandes de conduite.",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "Frein à main (dérapage)",

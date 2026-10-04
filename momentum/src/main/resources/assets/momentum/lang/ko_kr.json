@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "안전한 후진",
+  "hint.momentum.reverse_release.action": "브레이크를 놓은 다음 다시 눌러 후진하세요.",
+  "config.momentum.option.hud.reverse_release_hint.name": "후진 전 브레이크 해제 안내",
+  "config.momentum.option.hud.reverse_release_hint.description": "운전자에게만 후진 전에 브레이크를 놓으라는 안내를 표시합니다. 운전 조작은 변경하지 않습니다.",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "핸드브레이크(드리프트)",

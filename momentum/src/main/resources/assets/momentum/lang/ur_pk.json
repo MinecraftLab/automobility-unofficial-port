@@ -1,4 +1,8 @@
 {
+  "hint.momentum.reverse_release.title": "محفوظ ریورس",
+  "hint.momentum.reverse_release.action": "ریورس کرنے کے لیے بریک چھوڑیں، پھر اسے دوبارہ دبائیں۔",
+  "config.momentum.option.hud.reverse_release_hint.name": "ریورس سے پہلے بریک چھوڑنے کی یاد دہانی",
+  "config.momentum.option.hud.reverse_release_hint.description": "صرف ڈرائیور کو ریورس سے پہلے بریک چھوڑنے کی یاد دہانی دکھائیں۔ اس سے گاڑی کے کنٹرول تبدیل نہیں ہوتے۔",
   "key.category.momentum.momentum": "Momentum",
   "key.categories.momentum": "Momentum",
   "key.momentum.handbrake_drift": "ہینڈ بریک (ڈرفٹ)",

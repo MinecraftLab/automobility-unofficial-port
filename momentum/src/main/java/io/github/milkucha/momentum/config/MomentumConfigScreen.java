@@ -183,6 +183,9 @@ public class MomentumConfigScreen {
                         .option(boolOpt("hud.compact_dashboard",
                                 def.barHud.compactDashboard,
                                 () -> cfg.barHud.compactDashboard, v -> cfg.barHud.compactDashboard = v))
+                        .option(boolOpt("hud.reverse_release_hint",
+                                def.barHud.reverseReleaseHint,
+                                () -> cfg.barHud.reverseReleaseHint, v -> cfg.barHud.reverseReleaseHint = v))
                         .option(intOpt("hud.total_width",
                                 def.barHud.totalWidth,
                                 () -> cfg.barHud.totalWidth, v -> cfg.barHud.totalWidth = v, 24, 500, 1))
