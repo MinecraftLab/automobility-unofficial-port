@@ -21,10 +21,15 @@ public class PlayerEnderChestContainerMixin implements EnderChestContainerDuck {
         this.automobility$activeAttachment = attachment;
     }
 
+    @Override
+    public boolean automobility$isActiveAttachment(BaseChestRearAttachment attachment) {
+        return this.automobility$activeAttachment == attachment;
+    }
+
     @Inject(method = "stillValid", at = @At("HEAD"), cancellable = true)
     private void automobility$allowPlayerUseWithAttachment(Player player, CallbackInfoReturnable<Boolean> cir) {
         if (this.automobility$activeAttachment != null) {
-            cir.setReturnValue(true);
+            cir.setReturnValue(this.automobility$activeAttachment.isMenuValid(player));
         }
     }
 

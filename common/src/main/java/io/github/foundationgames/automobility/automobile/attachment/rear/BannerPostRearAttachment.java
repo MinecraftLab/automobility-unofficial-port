@@ -9,6 +9,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.Containers;
 import net.minecraft.world.MenuProvider;
@@ -36,6 +37,17 @@ public class BannerPostRearAttachment extends RearAttachment {
             super.setItem(slot, stack);
 
             BannerPostRearAttachment.this.setFromItem(stack);
+        }
+
+        @Override
+        public boolean stillValid(Player player) {
+            return AttachmentMenuValidity.isValid(
+                    BannerPostRearAttachment.this.wasRemoved(),
+                    BannerPostRearAttachment.this.automobile().isAlive(),
+                    player.level() == BannerPostRearAttachment.this.automobile().level(),
+                    BannerPostRearAttachment.this.automobile().getRearAttachment() == BannerPostRearAttachment.this,
+                    player.distanceToSqr(BannerPostRearAttachment.this.automobile())
+            );
         }
     };
 
@@ -97,8 +109,16 @@ public class BannerPostRearAttachment extends RearAttachment {
     public void onRemoved() {
         super.onRemoved();
 
-        var pos = this.pos();
-        Containers.dropItemStack(this.world(), pos.x, pos.y, pos.z, this.inventory.getItem(0));
+        if (this.world() instanceof ServerLevel level) {
+            level.players().forEach(player -> {
+                if (player.containerMenu instanceof SingleSlotScreenHandler menu && menu.uses(this.inventory)) {
+                    player.closeContainer();
+                }
+            });
+
+            var pos = this.pos();
+            Containers.dropItemStack(this.world(), pos.x, pos.y, pos.z, this.inventory.removeItemNoUpdate(0));
+        }
     }
 
     @Override

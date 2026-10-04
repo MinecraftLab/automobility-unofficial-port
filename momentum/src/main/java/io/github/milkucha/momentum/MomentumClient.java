@@ -23,8 +23,10 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 import org.lwjgl.glfw.GLFW;
 
 public class MomentumClient implements ClientModInitializer {
@@ -81,7 +83,7 @@ public class MomentumClient implements ClientModInitializer {
                 }));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             MomentumConfig.clearServerGameplayConfig();
-            MomentumCruiseControl.deactivate();
+            MomentumCruiseControl.clearSession();
             MomentumBrakeState.brakeHeld = false;
             MomentumDriftState.driftKeyHeld = false;
             pktBrake = false;
@@ -117,6 +119,24 @@ public class MomentumClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_C,
                 MOMENTUM_CATEGORY
         ));
+        KeyMapping cruiseIncreaseKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key.momentum.cruise_increase",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_PAGE_UP,
+                MOMENTUM_CATEGORY
+        ));
+        KeyMapping cruiseDecreaseKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key.momentum.cruise_decrease",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_PAGE_DOWN,
+                MOMENTUM_CATEGORY
+        ));
+        KeyMapping cruiseResumeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key.momentum.cruise_resume",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_R,
+                MOMENTUM_CATEGORY
+        ));
 
         // ── HUD rendering ─────────────────────────────────────────────────────
 
@@ -150,7 +170,7 @@ public class MomentumClient implements ClientModInitializer {
             }
 
             if (!locallyDriving) {
-                MomentumCruiseControl.deactivate();
+                MomentumCruiseControl.clearSession();
             }
 
             // Send key state to server whenever any value changes.
@@ -167,24 +187,53 @@ public class MomentumClient implements ClientModInitializer {
         // ── Per-tick effects ──────────────────────────────────────────────────
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            boolean cruisePressed = cruiseKey.consumeClick();
+            MomentumControllerInput.ActionSnapshot controllerActions = MomentumControllerInput.poll();
+            boolean cruisePressed = cruiseKey.consumeClick() || controllerActions.cruiseToggle();
+            boolean cruiseIncreasePressed = cruiseIncreaseKey.consumeClick() || controllerActions.cruiseIncrease();
+            boolean cruiseDecreasePressed = cruiseDecreaseKey.consumeClick() || controllerActions.cruiseDecrease();
+            boolean cruiseResumePressed = cruiseResumeKey.consumeClick() || controllerActions.cruiseResume();
             if (cruisePressed && client.screen == null && client.player != null) {
                 if (client.player.getVehicle() instanceof AutomobileEntity auto && auto.isDriving(client.player)) {
-                    boolean active = MomentumCruiseControl.toggle(auto);
-                    if (active) {
-                        client.player.sendOverlayMessage(Component.literal(String.format("[Momentum] Cruise %.0f km/h", MomentumCruiseControl.getTargetKmh())));
-                    } else {
-                        client.player.sendOverlayMessage(Component.literal("[Momentum] Cruise off"));
-                    }
+                    handleCruiseResult(client, MomentumCruiseControl.toggle(auto), 1.20f);
                 } else {
-                    MomentumCruiseControl.deactivate();
-                    client.player.sendOverlayMessage(Component.literal("[Momentum] Cruise off"));
+                    MomentumCruiseControl.clearSession();
+                    handleCruiseResult(client,
+                            new MomentumCruiseControl.ActionResult(
+                                    MomentumCruiseControl.Action.UNAVAILABLE, 0f, 0f),
+                            0.70f);
                 }
+            }
+
+            if (client.screen == null && client.player != null
+                    && client.player.getVehicle() instanceof AutomobileEntity auto
+                    && auto.isDriving(client.player)) {
+                if (cruiseIncreasePressed) {
+                    handleCruiseResult(client, MomentumCruiseControl.adjustTarget(auto, 1), 1.45f);
+                }
+                if (cruiseDecreasePressed) {
+                    handleCruiseResult(client, MomentumCruiseControl.adjustTarget(auto, -1), 0.90f);
+                }
+                if (cruiseResumePressed) {
+                    handleCruiseResult(client, MomentumCruiseControl.resume(auto), 1.30f);
+                }
+            } else if (client.screen == null && client.player != null
+                    && (cruiseIncreasePressed || cruiseDecreasePressed || cruiseResumePressed)) {
+                handleCruiseResult(client,
+                        new MomentumCruiseControl.ActionResult(
+                                MomentumCruiseControl.Action.UNAVAILABLE, 0f, 0f),
+                        0.70f);
+            }
+
+            MomentumCruiseControl.CancellationReason cancellation =
+                    MomentumCruiseControl.consumeCancellationReason();
+            if (cancellation != MomentumCruiseControl.CancellationReason.NONE && client.player != null) {
+                client.player.sendOverlayMessage(Component.translatable("message.momentum.cruise_cancelled"));
+                playCruiseTone(client, 0.70f);
             }
 
             if (reloadKey.consumeClick() && client.player != null) {
                 MomentumConfig.reload();
-                client.player.sendOverlayMessage(Component.literal("[Momentum] Config reloaded"));
+                client.player.sendOverlayMessage(Component.translatable("message.momentum.config_reloaded"));
             }
             if (openOptionsKey != null && openOptionsKey.consumeClick()) {
                 client.execute(() -> {
@@ -194,7 +243,8 @@ public class MomentumClient implements ClientModInitializer {
                         client.setScreen((net.minecraft.client.gui.screens.Screen) create.invoke(null, client.screen));
                     } catch (ReflectiveOperationException | LinkageError e) {
                         if (client.player != null) {
-                            client.player.sendOverlayMessage(Component.literal("[Momentum] Config screen unavailable"));
+                            client.player.sendOverlayMessage(Component.translatable(
+                                    "message.momentum.config_screen_unavailable"));
                         }
                     }
                 });
@@ -305,6 +355,56 @@ public class MomentumClient implements ClientModInitializer {
         brakeZoomVelocity                  = 0f;
         prevHSpeed                         = 0f;
         MomentumBrakeState.brakeZoomOffset = 0f;
+    }
+
+    private static void handleCruiseResult(Minecraft client,
+                                           MomentumCruiseControl.ActionResult result,
+                                           float successPitch) {
+        if (client.player == null) return;
+
+        Component message;
+        float pitch = successPitch;
+        switch (result.action()) {
+            case ENGAGED -> message = Component.translatable(
+                    "message.momentum.cruise_enabled", roundedSpeed(result.targetKmh()));
+            case DISENGAGED -> {
+                message = Component.translatable("message.momentum.cruise_disabled");
+                pitch = 0.75f;
+            }
+            case RESUMED -> message = Component.translatable(
+                    "message.momentum.cruise_resumed", roundedSpeed(result.targetKmh()));
+            case ADJUSTED, ALREADY_ACTIVE -> message = Component.translatable(
+                    "message.momentum.cruise_adjusted", roundedSpeed(result.targetKmh()));
+            case TOO_SLOW -> {
+                message = Component.translatable(
+                        "message.momentum.cruise_too_slow", roundedSpeed(result.minimumKmh()));
+                pitch = 0.70f;
+            }
+            case NOT_ACTIVE -> {
+                message = Component.translatable("message.momentum.cruise_not_active");
+                pitch = 0.70f;
+            }
+            case NO_SAVED_TARGET -> {
+                message = Component.translatable("message.momentum.cruise_no_saved_speed");
+                pitch = 0.70f;
+            }
+            case UNAVAILABLE -> {
+                message = Component.translatable("message.momentum.cruise_unavailable");
+                pitch = 0.70f;
+            }
+            default -> throw new IllegalStateException("Unhandled cruise action " + result.action());
+        }
+
+        client.player.sendOverlayMessage(message);
+        playCruiseTone(client, pitch);
+    }
+
+    private static String roundedSpeed(float speedKmh) {
+        return Integer.toString(Math.round(speedKmh));
+    }
+
+    private static void playCruiseTone(Minecraft client, float pitch) {
+        client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, pitch));
     }
 
     /**

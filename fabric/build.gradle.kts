@@ -14,6 +14,10 @@ repositories {
     maven { url = uri("https://maven.isxander.dev/releases") }
 }
 
+// Compile the two optional API families separately; neither SDK is bundled.
+val modernControlifySdk = configurations.create("modernControlifySdk")
+val legacyControlifySdk = configurations.create("legacyControlifySdk")
+
 dependencies {
     minecraft("com.mojang:minecraft:${rootProject.providers.gradleProperty("minecraft_version").get()}")
 
@@ -25,11 +29,33 @@ dependencies {
     include("de.javagl:obj:0.4.0")
 
     // Controlify
-    compileOnly("dev.isxander:controlify:${rootProject.providers.gradleProperty("controlify_version").get()}-fabric") {
+    add(modernControlifySdk.name, "maven.modrinth:controlify:${rootProject.providers.gradleProperty("controlify_modern_version").get()}") {
         isTransitive = false
     }
+    add(legacyControlifySdk.name, "dev.isxander:controlify:${rootProject.providers.gradleProperty("controlify_version").get()}-fabric") {
+        isTransitive = false
+    }
+    compileOnly(files(modernControlifySdk))
 
     implementation(project.project(":common").sourceSets.getByName("main").output)
+}
+
+// Explicit opt-in fixture, deliberately separate from the production artifact.
+val animalBoardingQa = sourceSets.create("animalBoardingQa") {
+    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+    runtimeClasspath += output + compileClasspath
+}
+
+val legacyControlify = sourceSets.create("legacyControlify") {
+    compileClasspath += sourceSets.main.get().output +
+            (sourceSets.main.get().compileClasspath - modernControlifySdk) + legacyControlifySdk
+}
+
+tasks.register<Jar>("animalBoardingQaJar") {
+    dependsOn(tasks.named(animalBoardingQa.classesTaskName))
+    from(animalBoardingQa.output)
+    archiveFileName.set("automobility-animal-boarding-qa.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("qa"))
 }
 
 val automobilityLiteClientExcludes = listOf(
@@ -80,17 +106,30 @@ tasks {
 
     withType<Test> {
         useJUnitPlatform()
+        doFirst {
+            systemProperty("controlify.modern.jar", modernControlifySdk.singleFile.absolutePath)
+            systemProperty("controlify.legacy.jar", legacyControlifySdk.singleFile.absolutePath)
+        }
     }
 
     // put all artifacts in the right directory
     withType<Jar> {
-        destinationDirectory = rootDir.resolve(project.name).resolve("build").resolve("libs")
+        destinationDirectory = layout.buildDirectory.dir(
+            if (name == "animalBoardingQaJar") "qa" else "libs"
+        )
+    }
+
+    named<Jar>("jar") {
+        from(legacyControlify.output)
+        from(rootDir.resolve("THIRD_PARTY_LICENSES").resolve("obj-0.4.0-LICENSE.txt")) {
+            into("THIRD_PARTY_LICENSES")
+        }
     }
 
     javadoc { source(project(":common").sourceSets.main.get().allJava) }
 
     processResources {
-        val modVersion = rootProject.providers.gradleProperty("mod_version").get()
+        val modVersion = project.version.toString()
         val loaderVersion = rootProject.providers.gradleProperty("fabric_version").get()
         val fabricApiVersion = rootProject.providers.gradleProperty("fabric_api_version").get()
         inputs.property("version", modVersion)

@@ -9,42 +9,88 @@ public final class MomentumCruiseControl {
 
     private static boolean active = false;
     private static int entityId = -1;
-    private static float targetKmh = 0f;
+    private static final CruiseTargetState TARGET = new CruiseTargetState();
     private static float lastSpeedKmh = 0f;
     private static boolean accelerating = false;
+    private static CancellationReason pendingCancellation = CancellationReason.NONE;
 
     private MomentumCruiseControl() {
     }
 
-    public static boolean toggle(AutomobileEntity auto) {
+    public static ActionResult toggle(AutomobileEntity auto) {
         if (!MomentumConfig.gameplay().enabled || !MomentumConfig.gameplay().cruise.enabled) {
-            deactivate();
-            return false;
+            cancel(CancellationReason.NONE);
+            return result(Action.UNAVAILABLE);
         }
 
         if (active && entityId == auto.getId()) {
-            deactivate();
-            return false;
+            cancel(CancellationReason.NONE);
+            return result(Action.DISENGAGED);
+        }
+
+        if (entityId != -1 && entityId != auto.getId()) {
+            clearSession();
         }
 
         if (isReversing(auto)) {
-            deactivate();
-            return false;
+            cancel(CancellationReason.NONE);
+            return result(Action.UNAVAILABLE);
         }
 
         MomentumConfig.Cruise cruise = MomentumConfig.gameplay().cruise;
         float speed = currentKmh(auto);
         if (speed < cruise.minActivationKmh) {
-            deactivate();
-            return false;
+            cancel(CancellationReason.NONE);
+            return new ActionResult(Action.TOO_SLOW, TARGET.targetKmh(), cruise.minActivationKmh);
         }
 
-        active = true;
-        entityId = auto.getId();
-        targetKmh = clamp(speed, cruise.minActivationKmh, cruise.maxTargetKmh);
+        engage(auto, TARGET.set(speed, cruise.minActivationKmh, cruise.maxTargetKmh), speed);
+        return result(Action.ENGAGED);
+    }
+
+    public static ActionResult resume(AutomobileEntity auto) {
+        MomentumConfig config = MomentumConfig.gameplay();
+        if (!config.enabled || !config.cruise.enabled || isReversing(auto)) {
+            return result(Action.UNAVAILABLE);
+        }
+        if (active && entityId == auto.getId()) {
+            return result(Action.ALREADY_ACTIVE);
+        }
+        if (!TARGET.hasStoredTarget() || entityId != auto.getId()) {
+            if (entityId != -1 && entityId != auto.getId()) {
+                clearSession();
+            }
+            return result(Action.NO_SAVED_TARGET);
+        }
+
+        float speed = currentKmh(auto);
+        if (speed < config.cruise.minActivationKmh) {
+            return new ActionResult(Action.TOO_SLOW, TARGET.targetKmh(), config.cruise.minActivationKmh);
+        }
+
+        float target = TARGET.set(TARGET.targetKmh(),
+                config.cruise.minActivationKmh, config.cruise.maxTargetKmh);
+        engage(auto, target, speed);
+        return result(Action.RESUMED);
+    }
+
+    public static ActionResult adjustTarget(AutomobileEntity auto, int direction) {
+        if (!active || entityId != auto.getId()) {
+            return result(Action.NOT_ACTIVE);
+        }
+        MomentumConfig config = MomentumConfig.gameplay();
+        if (!config.enabled || !config.cruise.enabled) {
+            cancel(CancellationReason.CONFIG_CHANGED);
+            return result(Action.UNAVAILABLE);
+        }
+
+        MomentumConfig.Cruise cruise = config.cruise;
+        float target = TARGET.adjust(Math.signum(direction) * cruise.targetStepKmh,
+                cruise.minActivationKmh, cruise.maxTargetKmh);
+        float speed = currentKmh(auto);
+        accelerating = speed <= target - cruise.resumeThrottleBelowTargetKmh;
         lastSpeedKmh = speed;
-        accelerating = false;
-        return true;
+        return result(Action.ADJUSTED);
     }
 
     public static AdjustedInput adjustInput(AutomobileEntity auto, boolean fwd, boolean back, boolean left, boolean right, boolean space, boolean ctrl) {
@@ -52,12 +98,20 @@ public final class MomentumCruiseControl {
             return null;
         }
         if (!MomentumConfig.gameplay().enabled || !MomentumConfig.gameplay().cruise.enabled || entityId != auto.getId()) {
-            deactivate();
+            cancel(CancellationReason.CONFIG_CHANGED);
             return null;
         }
 
-        if (back || space || MomentumBrakeState.brakeHeld || MomentumDriftState.driftKeyHeld || isReversing(auto)) {
-            deactivate();
+        if (back || MomentumBrakeState.brakeHeld) {
+            cancel(CancellationReason.BRAKE);
+            return null;
+        }
+        if (space || MomentumDriftState.driftKeyHeld) {
+            cancel(CancellationReason.DRIFT);
+            return null;
+        }
+        if (isReversing(auto)) {
+            cancel(CancellationReason.REVERSE);
             return null;
         }
 
@@ -66,18 +120,18 @@ public final class MomentumCruiseControl {
 
         if (lastSpeedKmh >= cruise.impactCancelMinSpeedKmh
                 && lastSpeedKmh - speed >= cruise.impactCancelDropKmh) {
-            deactivate();
+            cancel(CancellationReason.IMPACT);
             return null;
         }
 
         if (fwd) {
-            targetKmh = clamp(Math.max(targetKmh, speed), cruise.minActivationKmh, cruise.maxTargetKmh);
+            TARGET.set(Math.max(TARGET.targetKmh(), speed), cruise.minActivationKmh, cruise.maxTargetKmh);
             accelerating = true;
         } else if (accelerating) {
-            if (speed >= targetKmh - cruise.cutThrottleBelowTargetKmh) {
+            if (speed >= TARGET.targetKmh() - cruise.cutThrottleBelowTargetKmh) {
                 accelerating = false;
             }
-        } else if (speed <= targetKmh - cruise.resumeThrottleBelowTargetKmh) {
+        } else if (speed <= TARGET.targetKmh() - cruise.resumeThrottleBelowTargetKmh) {
             accelerating = true;
         }
 
@@ -88,16 +142,23 @@ public final class MomentumCruiseControl {
     public static void cancelOnImpact(AutomobileEntity auto, float speedKmh) {
         if (active && auto != null && entityId == auto.getId()
                 && speedKmh >= MomentumConfig.gameplay().cruise.impactCancelMinSpeedKmh) {
-            deactivate();
+            cancel(CancellationReason.IMPACT);
         }
     }
 
+    /** Cancels cruise but keeps the set speed available to Resume. */
     public static void deactivate() {
+        cancel(CancellationReason.NONE);
+    }
+
+    /** Clears all state when the driver leaves or the client disconnects. */
+    public static void clearSession() {
         active = false;
         entityId = -1;
-        targetKmh = 0f;
+        TARGET.clear();
         lastSpeedKmh = 0f;
         accelerating = false;
+        pendingCancellation = CancellationReason.NONE;
     }
 
     public static boolean isActive() {
@@ -108,8 +169,12 @@ public final class MomentumCruiseControl {
         return active && auto != null && entityId == auto.getId();
     }
 
+    public static boolean canResumeFor(AutomobileEntity auto) {
+        return !active && auto != null && entityId == auto.getId() && TARGET.hasStoredTarget();
+    }
+
     public static float getTargetKmh() {
-        return targetKmh;
+        return TARGET.targetKmh();
     }
 
     public static boolean isAccelerating() {
@@ -124,8 +189,54 @@ public final class MomentumCruiseControl {
         return auto instanceof SteeringDebugAccessor accessor && accessor.momentum$getEngineSpeed() < -0.02f;
     }
 
-    private static float clamp(float value, float min, float max) {
-        return Math.max(min, Math.min(max, value));
+    public static CancellationReason consumeCancellationReason() {
+        CancellationReason reason = pendingCancellation;
+        pendingCancellation = CancellationReason.NONE;
+        return reason;
+    }
+
+    private static void engage(AutomobileEntity auto, float target, float currentSpeed) {
+        active = true;
+        entityId = auto.getId();
+        lastSpeedKmh = currentSpeed;
+        MomentumConfig.Cruise cruise = MomentumConfig.gameplay().cruise;
+        accelerating = currentSpeed <= target - cruise.resumeThrottleBelowTargetKmh;
+        pendingCancellation = CancellationReason.NONE;
+    }
+
+    private static void cancel(CancellationReason reason) {
+        active = false;
+        lastSpeedKmh = 0f;
+        accelerating = false;
+        pendingCancellation = reason;
+    }
+
+    private static ActionResult result(Action action) {
+        return new ActionResult(action, TARGET.targetKmh(), MomentumConfig.gameplay().cruise.minActivationKmh);
+    }
+
+    public enum Action {
+        ENGAGED,
+        DISENGAGED,
+        RESUMED,
+        ADJUSTED,
+        ALREADY_ACTIVE,
+        TOO_SLOW,
+        UNAVAILABLE,
+        NOT_ACTIVE,
+        NO_SAVED_TARGET
+    }
+
+    public enum CancellationReason {
+        NONE,
+        BRAKE,
+        DRIFT,
+        REVERSE,
+        IMPACT,
+        CONFIG_CHANGED
+    }
+
+    public record ActionResult(Action action, float targetKmh, float minimumKmh) {
     }
 
     public record AdjustedInput(boolean fwd, boolean back, boolean left, boolean right, boolean space, boolean ctrl) {
