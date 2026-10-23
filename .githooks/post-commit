@@ -1,0 +1,14 @@
+#!/bin/sh
+# Installed only in curated Offchunk source checkouts, never in frozen lanes.
+if [ "$(git config --get offchunk.sourceSync)" = "true" ]; then
+  case "$(git symbolic-ref --quiet --short HEAD)" in
+    dev/*)
+      python_path=$(git config --get offchunk.sourceSyncPython)
+      helper_path=$(git config --get offchunk.sourceSyncHelper)
+      "$python_path" -B "$helper_path" checkpoint --repo . || {
+        echo "Offchunk: source commit is saved locally, but remote checkpoint FAILED. Resolve before the next handoff/release." >&2
+        exit 1
+      }
+      ;;
+  esac
+fi
