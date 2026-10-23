@@ -17,12 +17,12 @@ public final class GarageOwnerBootstrap {
     // Target source port: fill only from exact target producer handoffs before build.
     // No historical1.2 or26.2 producer JAR is admitted in this target.
     private static final Map<String,String> QUALIFIED_JARS=Map.of(
-            "pumps_and_pistons","6B129D2D90137E20A217D3E73B188E5871114599E1A9F365FACD9C75829C856F",
-            "pumps_and_pistons_automobility","0471E09A3E5B79C6272C610EC8C27C82C541AF8EC087C87B634FDBA0F2D10666",
-            "powerworks","F55927F398F635EB46D64F6DF75DC0E2190FF3DC15FD3116C40251486A6C4F0D");
+            "pumps_and_pistons","81CD31FEBCFB4A0CBB4BF757A0D54B652D5C6761AEBEB5099CD7F3FD2E056E23",
+            "pumps_and_pistons_automobility","709A17B7D76A1DAA52E0C5422BB769D870D22AF8895C456273E195DF6C1B1952",
+            "powerworks","AE4915EE1A43EB5A007C64A4C705A6ECECF40E521F906202CCF302FF52BB5BA4");
     private record Nested(String parent,String member){}
     private static final Map<String,Nested> QUALIFIED_NESTED=Map.of(
-            "pumps_and_pistons_automobility",new Nested("pumps_and_pistons","META-INF/jars/pumps-and-pistons-automobility-1.11.0-beta.1+26.3.jar"));
+            "pumps_and_pistons_automobility",new Nested("pumps_and_pistons","META-INF/jars/pumps-and-pistons-automobility-1.11.1+26.3.jar"));
     public static void initialize(){
         var loader=FabricLoader.getInstance();var required=new TreeSet<String>();
         if(loader.isModLoaded("pumps_and_pistons")||loader.isModLoaded("pumps_and_pistons_automobility"))required.add("pumps_and_pistons");

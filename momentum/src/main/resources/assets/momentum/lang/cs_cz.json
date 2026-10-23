@@ -44,7 +44,7 @@
   "debug.momentum.no": "ne",
   "config.momentum.title": "Momentum",
   "config.momentum.category.general": "Obecné",
-  "config.momentum.category.drift": "Drift",
+  "config.momentum.category.drift": "Driftovat",
   "config.momentum.category.movement": "Pohyb",
   "config.momentum.category.steering": "Řízení",
   "config.momentum.category.camera": "Kamera",
@@ -221,6 +221,5 @@
   "config.momentum.option.drift.camera_lerp_in.description": "Jak rychle se kamera přesune k vychýlení driftu. Vyšší hodnoty jej sledují ihned, nižší se pohybují plynule.",
   "config.momentum.option.drift.camera_lerp_out.name": "Návrat kamery",
   "config.momentum.option.drift.camera_lerp_out.description": "Jak rychle se kamera po driftu vrátí do středu. Vyšší hodnoty ji vrátí ihned, nižší pomalu.",
-  "config.momentum.option.hud.reverse_release_hint.name": "Nápověda před couváním",
   "config.momentum.option.hud.reverse_release_hint.desc": "Pouze řidiči připomene, aby před couváním pustil brzdu. Nemění ovládání jízdy."
 }

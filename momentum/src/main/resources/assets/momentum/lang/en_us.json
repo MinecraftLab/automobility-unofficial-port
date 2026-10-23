@@ -221,6 +221,5 @@
   "config.momentum.option.drift.camera_lerp_in.description": "How quickly the camera moves toward the drift offset. Higher values follow instantly; lower values move smoothly.",
   "config.momentum.option.drift.camera_lerp_out.name": "Camera Lerp Out",
   "config.momentum.option.drift.camera_lerp_out.description": "How quickly the camera returns to center after drift. Higher values snap back; lower values settle slowly.",
-  "config.momentum.option.hud.reverse_release_hint.name": "Reverse-release hint",
   "config.momentum.option.hud.reverse_release_hint.desc": "Show a driver-only reminder to release the brake before reversing. Does not change driving controls."
 }
