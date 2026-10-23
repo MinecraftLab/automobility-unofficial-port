@@ -4,6 +4,81 @@
   "releases": [
     {
       "product": "automobility",
+      "version": "1.3.1+26.1.2-fabric",
+      "minecraft": "26.1.2",
+      "channel": "release",
+      "modrinth_version_id": null,
+      "publicationState": "SOURCE_TAGGED_ARTIFACT_PINNED_AWAITING_MODRINTH_ID",
+      "source_commit": "b10ef1f6719885e3bb3322d48cdb4bd40649bbed",
+      "source_tree": "ec9f244e6d3217582f3d1e0e20d65503ba19b08a",
+      "tag": "automobility-1.3.1+26.1.2-fabric",
+      "tagObject": "0db0f53f264e5efea529fa058353598a723dc452",
+      "branch": "source/localization717/26.1.2",
+      "files": [
+        {
+          "filename": "automobility-1.3.1+26.1.2-fabric.jar",
+          "sha256": "7022C3C8F29B0D09913A3627851012D6FAE4AE47A6E5C0B2E0371B5BD6B95743",
+          "sha512": "11699BE8E1992F7F7F17622644EB0AECBC4C03EB7E271AF646076B7355F760564E168B8CE1423C51E1312B28C8173E6825C1F14EEBE023486525AB3509025F92",
+          "bytes": 4547568,
+          "url": null
+        }
+      ],
+      "provenance": "Exact stable source parent aa503eaf21a6022d1b16be72a894bbe45dedf47d; reviewed717 locale resources, source-equivalent owner/version constants and Autoradio UI source; exact original artifact assembly recipe in releases/localization717. No fresh Gradle rebuild performed for this source publication.",
+      "source_manifest": "releases/localization717/package.json",
+      "build_status": "NOT_REBUILT_SOURCE_PUBLICATION_ONLY"
+    },
+    {
+      "product": "automobility",
+      "version": "1.3.1+26.2-fabric",
+      "minecraft": "26.2",
+      "channel": "release",
+      "modrinth_version_id": null,
+      "publicationState": "SOURCE_TAGGED_ARTIFACT_PINNED_AWAITING_MODRINTH_ID",
+      "source_commit": "c872eec5174f2a40228b0c94ee1f4e498220b37f",
+      "source_tree": "74857deeb1c1bee245430c7db944a3e56089dac8",
+      "tag": "automobility-1.3.1+26.2-fabric",
+      "tagObject": "efd22d640ba02394d4a3600ea5786595e5829ac0",
+      "branch": "source/localization717/26.2",
+      "files": [
+        {
+          "filename": "automobility-1.3.1+26.2-fabric.jar",
+          "sha256": "2DB413CB3E4E6A706CFD00EB0DECF01F1817414C44C62A23408C5DB2D4367FC0",
+          "sha512": "66C1E7263B75F7704F2FDF23894621EFEC1EA080C667D4CBB139F463CF0FA5F60C70FEFCF88C8906909496FA2CB9D1E65FCB971FBB49FC230A9DF93283A031C7",
+          "bytes": 4559533,
+          "url": null
+        }
+      ],
+      "provenance": "Exact stable source parent 1ef37b22e46292623dd6e4712c00bdffd4aee8d5; reviewed717 locale resources, source-equivalent owner/version constants and Autoradio UI source; exact original artifact assembly recipe in releases/localization717. No fresh Gradle rebuild performed for this source publication.",
+      "source_manifest": "releases/localization717/package.json",
+      "build_status": "NOT_REBUILT_SOURCE_PUBLICATION_ONLY"
+    },
+    {
+      "product": "automobility",
+      "version": "1.3.1+26.3-fabric",
+      "minecraft": "26.3",
+      "channel": "release",
+      "modrinth_version_id": null,
+      "publicationState": "SOURCE_TAGGED_ARTIFACT_PINNED_AWAITING_MODRINTH_ID",
+      "source_commit": "41ab88202f13604d458dd82cb4d99b4cbc89e476",
+      "source_tree": "ce6a9ad0c256a3509102c831f0404235aefa44eb",
+      "tag": "automobility-1.3.1+26.3-fabric",
+      "tagObject": "2657aa98416e7b3cd5c7031ca54d939343238f7f",
+      "branch": "source/localization717/26.3",
+      "files": [
+        {
+          "filename": "automobility-1.3.1+26.3-fabric.jar",
+          "sha256": "D9882909EBE580D7B8FDE02077538DCCCF3E66AC20D5FAF0711F9478F6FB189E",
+          "sha512": "56EFCAB0094E338C8D6D0CBDEF3FB50DD1949A41B007EF2BA890BC9C44885A2D892247B8A50E6906FDBA731A0B4E2EF628B949B2A1A71576D7532C4BE57866BA",
+          "bytes": 4562763,
+          "url": null
+        }
+      ],
+      "provenance": "Exact stable source parent aa15bb5a771bd070f361d61af2256bbd3a67220e; reviewed717 locale resources, source-equivalent owner/version constants and Autoradio UI source; exact original artifact assembly recipe in releases/localization717. No fresh Gradle rebuild performed for this source publication.",
+      "source_manifest": "releases/localization717/package.json",
+      "build_status": "NOT_REBUILT_SOURCE_PUBLICATION_ONLY"
+    },
+    {
+      "product": "automobility",
       "version": "1.0.0-beta.1+26.2",
       "minecraft": "26.2",
       "modrinth_version_id": "Bf9dpNtl",

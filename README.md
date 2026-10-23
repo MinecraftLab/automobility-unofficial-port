@@ -69,3 +69,14 @@ release tree's `LICENSE`, `NOTICE.md`, asset licences and `THIRD_PARTY_LICENSES`
 [Issues](https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues)
 · [Modrinth](https://modrinth.com/mod/automobility-unofficial-port)
 · [Original Automobility](https://github.com/FoundationGames/Automobility)
+
+
+## Localization717 source releases
+
+Immutable release sources (separate from unfinished `dev/*`):
+
+- Minecraft 26.1.2: [`automobility-1.3.1+26.1.2-fabric`](https://git.offchunk.com/Offchunk/automobility-unofficial-port/src/tag/automobility-1.3.1%2B26.1.2-fabric), artifact SHA-256 `7022C3C8F29B0D09913A3627851012D6FAE4AE47A6E5C0B2E0371B5BD6B95743`.
+- Minecraft 26.2: [`automobility-1.3.1+26.2-fabric`](https://git.offchunk.com/Offchunk/automobility-unofficial-port/src/tag/automobility-1.3.1%2B26.2-fabric), artifact SHA-256 `2DB413CB3E4E6A706CFD00EB0DECF01F1817414C44C62A23408C5DB2D4367FC0`.
+- Minecraft 26.3: [`automobility-1.3.1+26.3-fabric`](https://git.offchunk.com/Offchunk/automobility-unofficial-port/src/tag/automobility-1.3.1%2B26.3-fabric), artifact SHA-256 `D9882909EBE580D7B8FDE02077538DCCCF3E66AC20D5FAF0711F9478F6FB189E`.
+
+The full SHA-512, exact source commit and portable717 assembly manifest are linked in [the source index](releases/source-index.json). Modrinth IDs are pending until actual publication; these tags were not freshly Gradle-rebuilt during source export.
