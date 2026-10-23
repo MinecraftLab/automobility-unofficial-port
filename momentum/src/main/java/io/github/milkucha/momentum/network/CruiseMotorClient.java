@@ -12,6 +12,8 @@ public final class CruiseMotorClient {
     private CruiseMotorClient(){}
     public static void initialize(){
         CruiseMotorPrediction.install(CruiseMotorClient::targetFor);
+        io.github.foundationgames.automobility.automobile.driving.VehicleCruiseMotorLimit.installMechanicalCancellation(true,
+                MomentumCruiseControl::cancelOnMechanicalInput);
         ClientPlayConnectionEvents.INIT.register((handler,client)->{long nonce;do{nonce=ThreadLocalRandom.current().nextLong();}while(nonce==0);lease.begin(nonce);connection=handler;requestedCar=null;supported=false;retryAfter=0;continuous=false;forceSyncCar=null;});
         ClientPlayConnectionEvents.JOIN.register((handler,sender,client)->supported=handler==connection&&ClientPlayNetworking.canSend(CruiseMotorRequest.TYPE));
         ClientPlayConnectionEvents.DISCONNECT.register((handler,client)->{if(connection==handler){lease.end();connection=null;requestedCar=null;supported=false;continuous=false;forceSyncCar=null;}});
@@ -30,7 +32,8 @@ public final class CruiseMotorClient {
     }
     private static boolean context(AutomobileEntity car){var c=Minecraft.getInstance();return supported&&connection==c.getConnection()&&c.player!=null&&c.level==car.level()&&c.player.getVehicle()==car&&car.isDriving(c.player)&&car.getFirstPassenger()==c.player;}
     public static boolean update(AutomobileEntity car,float target){
-        if(!context(car)||car.getBoostTimer()>0){cancel();return false;}
+        if(!context(car)||car.getBoostTimer()>0
+                ||!io.github.foundationgames.automobility.automobile.driving.VehicleCruiseMotorLimit.mayEngage(car)){cancel();return false;}
         long now=System.nanoTime();
         if(requestedCar!=null&&(requestedCar!=car||continuous&&(!lease.active(car,now)
                 ||Float.floatToIntBits(continuousTarget)!=Float.floatToIntBits(target))))cancel();
@@ -64,7 +67,7 @@ public final class CruiseMotorClient {
     }
     private static double targetFor(AutomobileEntity car){
         if(!continuous||requestedCar!=car||!context(car)||!MomentumCruiseControl.isActiveFor(car)||!MomentumConfig.gameplay().cruise.enabled
-                ||!car.engineRunning()||MomentumBrakeState.rawBrakeHeld||MomentumBrakeState.brakeHeld||MomentumDriftState.driftKeyHeld
+                ||!car.engineRunning()||!io.github.foundationgames.automobility.automobile.driving.VehicleCruiseMotorLimit.mayEngage(car)||MomentumBrakeState.rawBrakeHeld||MomentumBrakeState.brakeHeld||MomentumDriftState.driftKeyHeld
                 ||car.input.braking||car.rawBrakePedalHeld()||car.input.holdingDrift||car.burningOut()||car.getBoostTimer()>0)return Double.NaN;
         return lease.target(car,System.nanoTime())/72.0;
     }

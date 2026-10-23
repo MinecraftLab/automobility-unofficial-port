@@ -18,6 +18,13 @@ public final class MomentumCruiseControl {
     private MomentumCruiseControl() {
     }
 
+    public static void cancelOnMechanicalInput(AutomobileEntity car,
+            io.github.foundationgames.automobility.automobile.driving.VehicleCruiseMotorLimit.MechanicalReason reason) {
+        if (!active || !sameContext(car)) return;
+        cancel(switch (reason) { case CLUTCH -> CancellationReason.CLUTCH;
+            case NEUTRAL -> CancellationReason.NEUTRAL; case ENGINE_STOPPED -> CancellationReason.ENGINE_STOPPED; });
+    }
+
     public static ActionResult toggle(AutomobileEntity auto) {
         maintainSession(auto);
         if (cancelForStoppedEngine(auto)) return result(Action.UNAVAILABLE);
@@ -186,12 +193,14 @@ public final class MomentumCruiseControl {
     }
 
     public static boolean isActiveFor(AutomobileEntity auto) {
-        if (!isEnabled() || !sameContext(auto) || !auto.engineRunning()) return false;
+        if (!isEnabled() || !sameContext(auto) || !auto.engineRunning()
+                || !io.github.foundationgames.automobility.automobile.driving.VehicleCruiseMotorLimit.mayEngage(auto)) return false;
         return active && sameContext(auto);
     }
 
     public static boolean canResumeFor(AutomobileEntity auto) {
-        if (!isEnabled() || !sameContext(auto) || !auto.engineRunning()) return false;
+        if (!isEnabled() || !sameContext(auto) || !auto.engineRunning()
+                || !io.github.foundationgames.automobility.automobile.driving.VehicleCruiseMotorLimit.mayEngage(auto)) return false;
         return !active && sameContext(auto) && TARGET.hasStoredTarget();
     }
 
@@ -229,7 +238,8 @@ public final class MomentumCruiseControl {
     }
 
     private static boolean cancelForStoppedEngine(AutomobileEntity auto) {
-        if (auto != null && auto.engineRunning()) return false;
+        if (auto != null && auto.engineRunning()
+                && io.github.foundationgames.automobility.automobile.driving.VehicleCruiseMotorLimit.mayEngage(auto)) return false;
         if (auto == null || sameContext(auto)) {
             if (active) cancel(CancellationReason.ENGINE_STOPPED);
         }
@@ -276,7 +286,9 @@ public final class MomentumCruiseControl {
         REVERSE,
         IMPACT,
         CONFIG_CHANGED,
-        ENGINE_STOPPED
+        ENGINE_STOPPED,
+        CLUTCH,
+        NEUTRAL
     }
 
     public record ActionResult(Action action, float targetKmh, float minimumKmh) {

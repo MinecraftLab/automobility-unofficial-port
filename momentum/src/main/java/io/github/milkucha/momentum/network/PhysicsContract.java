@@ -6,7 +6,7 @@ package io.github.milkucha.momentum.network;
  * authoritative gameplay settings.
  */
 public final class PhysicsContract {
-    public static final int REVISION = 4;
+    public static final int REVISION = 5;
 
     private PhysicsContract() {
     }

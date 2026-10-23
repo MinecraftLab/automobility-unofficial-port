@@ -353,6 +353,7 @@ public final class GarageTransferRuntime implements GarageTransferAccess.Authori
         var request=intent.request();if(!state.admission.hold(request.vehicle(),request.transaction()))return new Result(GarageService.Status.RECOVERY_REQUIRED,null);
         state.inTransfer=true;Map<String,Prepared> prepared=Map.of();
         try{
+            if(carrier!=null)io.github.foundationgames.automobility.api.vehicle.VehicleQuiescenceProviders.garageHold(carrier,request.transaction(),request.generation());
             CompoundTag selectedImage;
             if(carrier!=null){
                 selectedImage=request.operation()==Operation.STORE?intent.before():intent.after();
@@ -452,13 +453,17 @@ public final class GarageTransferRuntime implements GarageTransferAccess.Authori
                 if(entry.request().operation()==Operation.STORED_TUNE&&!ownerRaw(entity(entry.before())).equals(ownerRaw(entity(entry.after()))))return false;
                 var actor=actor();if(actor==null||!GaragePlayerExchange.checkpoint(actor,entry,current.decision()==Decision.COMMIT))return false;
                 for(var world:level.getServer().getAllLevels())if(world.getEntity(entry.request().vehicle())!=null)return false;
-                return !state.failure&&receiptIs(resolved)&&roundTrip();
+                boolean checkpointed = !state.failure&&receiptIs(resolved)&&roundTrip();
+                if (checkpointed && current.decision()==Decision.COMMIT) DrivetrainGarageCommit.publish(lease.car, entry.request());
+                return checkpointed;
             }
             if(!receiptIs(resolved)||!liveIs(resolved)||state.failure)return false;
             if(GarageInventoryExchange.present(entry.before())){
                 var actor=actor();if(actor==null||!GaragePlayerExchange.checkpoint(actor,entry,current.decision()==Decision.COMMIT))return false;
             }
-            return checkpointActiveImage(resolved);
+            boolean checkpointed = checkpointActiveImage(resolved);
+            if (checkpointed && current.decision()==Decision.COMMIT) DrivetrainGarageCommit.publish(lease.car, entry.request());
+            return checkpointed;
         }
         boolean checkpointActiveImage(CompoundTag resolved)throws IOException {
             level.save(null,true,false);
@@ -490,7 +495,7 @@ public final class GarageTransferRuntime implements GarageTransferAccess.Authori
     }
     private static ChunkPos chunk(CompoundTag raw)throws IOException {var pos=Vec3.CODEC.parse(NbtOps.INSTANCE,raw.get("Pos")).result().orElseThrow(()->new IOException("Missing raw position"));if(!GarageReturnPlacement.finite(pos)||Math.abs(pos.x)>30_000_000||Math.abs(pos.z)>30_000_000)throw new IOException("Invalid raw position");return new ChunkPos(((int)Math.floor(pos.x))>>4,((int)Math.floor(pos.z))>>4);}
     private static CompoundTag persistentRaw(CompoundTag raw){
-        var out=new CompoundTag();for(var key:List.of("frame","wheels","engine","rearAttachment","frontAttachment","vehicleAccess","vehicleDrivingMode","vehicleEngineSettingsVersion","automaticEngineStart","idleEngineShutdownSeconds","lightsWithEngine","mx5HoodOpen","vehicleLightSettingsVersion","vehicleLightMode","vehicleSignalSettingsVersion","vehicleSignalMode","vehicleSignalAutoCancel","vehicleComfortSignals","vehicleLockSignalConfirmation","unattendedLightsVersion","unattendedLightSeconds","CustomName","CustomNameVisible","Tags"))if(raw.contains(key))out.put(key,raw.get(key).copy());return out;
+        var out=new CompoundTag();for(var key:List.of("frame","wheels","engine","rearAttachment","frontAttachment","vehicleAccess","vehicleDrivingMode","automobility:drivetrain_settings","automobilityAutoradioCarV1","automobilityAutoradioCassetteV1","automobilityCabinCosmeticsV1","automobilityAutoradioAccessoryV1","automobilityCabinTuningV1","vehicleEngineSettingsVersion","automaticEngineStart","idleEngineShutdownSeconds","lightsWithEngine","mx5HoodOpen","vehicleLightSettingsVersion","vehicleLightMode","vehicleSignalSettingsVersion","vehicleSignalMode","vehicleSignalAutoCancel","vehicleComfortSignals","vehicleLockSignalConfirmation","unattendedLightsVersion","unattendedLightSeconds","CustomName","CustomNameVisible","Tags"))if(raw.contains(key))out.put(key,raw.get(key).copy());return out;
     }
     public static CompoundTag ownerRaw(CompoundTag raw){var result=new CompoundTag();for(var key:raw.keySet())if(key.startsWith("AutoFuel")||key.equals("AutoTrip")||key.startsWith("powerworks:"))result.put(key,raw.get(key).copy());return result;}
     public static void tick(MinecraftServer server){
@@ -639,6 +644,7 @@ public final class GarageTransferRuntime implements GarageTransferAccess.Authori
         var frozen=GarageEnginePlan.read(level.registryAccess(),entry);var request=entry.request();
         if(!owners.keySet().equals(frozen.owners().keySet())||!state.admission.hold(request.vehicle(),request.transaction()))return new Result(GarageService.Status.RECOVERY_REQUIRED,null);
         state.inTransfer=true;Map<String,Prepared> prepared=Map.of();try{
+            if(car!=null)io.github.foundationgames.automobility.api.vehicle.VehicleQuiescenceProviders.garageHold(car,request.transaction(),request.generation());
             var selected=recovery&&entry.decision()==Decision.COMMIT?entry.after():entry.before();
             if(car==null)car=materialize(level,request,entity(selected));
             else if(car.level()!=level||car.isRemoved()||level.getEntity(request.vehicle())!=car||!car.getVehicleAccess().isOwner(request.actor())

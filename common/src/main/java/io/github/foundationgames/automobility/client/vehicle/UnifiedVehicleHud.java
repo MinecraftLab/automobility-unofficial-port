@@ -25,7 +25,7 @@ public final class UnifiedVehicleHud {
     private static Object cachedFont;
     private static String cachedLanguage;
     private static int cachedW,cachedH,cachedStatusWidth;
-    private static boolean cachedEnergy;
+    private static boolean cachedEnergy,cachedMechanics;
     private static VehicleHudPlacement.Box panel,hints;
     private static float scale,decorationScale=1;
     private static double cachedGuiScale=Double.NaN;
@@ -46,14 +46,17 @@ public final class UnifiedVehicleHud {
     }
     private static int statusWidth(Minecraft client) {return VehicleStatusHud.maximumContentWidth();}
     private static void resolve(int w,int h,VehicleUiSettings value,boolean energy) {
+        resolve(w,h,value,energy,value.basic().enabled() && riding instanceof AutomobileEntity car && VehicleDrivetrainHud.present(car));
+    }
+    private static void resolve(int w,int h,VehicleUiSettings value,boolean energy,boolean mechanics) {
         var client=Minecraft.getInstance();var language=client.getLanguageManager().getSelected();
         double guiScale=client.getWindow().getGuiScale();
-        if(value.equals(cachedSettings) && cachedFont==client.font && language.equals(cachedLanguage) && cachedW==w && cachedH==h && cachedEnergy==energy && Double.compare(cachedGuiScale,guiScale)==0) return;
-        cachedSettings=value;cachedFont=client.font;cachedLanguage=language;cachedW=w;cachedH=h;cachedEnergy=energy;cachedGuiScale=guiScale;
+        if(value.equals(cachedSettings) && cachedFont==client.font && language.equals(cachedLanguage) && cachedW==w && cachedH==h && cachedEnergy==energy && cachedMechanics==mechanics && Double.compare(cachedGuiScale,guiScale)==0) return;
+        cachedSettings=value;cachedFont=client.font;cachedLanguage=language;cachedW=w;cachedH=h;cachedEnergy=energy;cachedMechanics=mechanics;cachedGuiScale=guiScale;
         decorationScale=VehicleEnergyPresentation.guiScaleCompensation(guiScale);
         cachedStatusWidth=statusWidth(client);
         int logicalWidth=cachedStatusWidth+44;
-        int logicalHeight=VehicleEnergyPresentation.panelHeight(energy);
+        int logicalHeight=VehicleEnergyPresentation.panelHeight(energy)+(mechanics?VehicleDrivetrainHud.HEIGHT:0);
         scale=VehicleEnergyPresentation.panelScale(w,h,logicalWidth,logicalHeight,value.basic().scalePercent(),guiScale);
         var reserved=VehicleHudPlacement.reservation(w,h,value.reservation());
         var hotbar=new VehicleHudPlacement.Box(Math.max(0,(w-186)/2),Math.max(0,h-52),Math.min(w,186),Math.min(h,52));
@@ -72,7 +75,7 @@ public final class UnifiedVehicleHud {
         var client=Minecraft.getInstance();if(client.player==null || client.level==null || client.gui.hud.isHidden() || client.gui.screen()!=null) return;
         var value=VehicleUiState.current();
         var energy=value.energyEnabled()?VehicleEnergyHud.reading(auto):VehicleEnergyReading.NONE;
-        resolve(graphics.guiWidth(),graphics.guiHeight(),value,energy.present());
+        resolve(graphics.guiWidth(),graphics.guiHeight(),value,energy.present(),value.basic().enabled() && VehicleDrivetrainHud.present(auto));
         int speed=contributor!=null && contributor.enabled()?contributor.speedKmh(auto):(int)Math.round(Math.abs(auto.getEffectiveSpeed()*72));
         boolean active=contributor!=null && contributor.enabled() && contributor.cruiseActive(auto);
         drawPanel(graphics,auto,panel,scale,cachedStatusWidth,speed,active,active?contributor.cruiseTarget():0,value.basic().enabled() && VehicleClientControls.isDriver(client,auto),energy,VehicleEnergyHud.reversing(auto));
@@ -112,7 +115,7 @@ public final class UnifiedVehicleHud {
     }
     public static void drawPreview(GuiGraphicsExtractor graphics,int w,int h,VehicleUiSettings value) {
         var energy=value.energyEnabled()?VehicleEnergyHud.preview():VehicleEnergyReading.NONE;
-        resolve(w,h,value,energy.present());drawPanel(graphics,null,panel,scale,cachedStatusWidth,64,true,64,value.basic().enabled(),energy,false);
+        resolve(w,h,value,energy.present(),value.basic().enabled());drawPanel(graphics,null,panel,scale,cachedStatusWidth,64,true,64,value.basic().enabled(),energy,false);
         if(value.hintMode()!=VehicleUiSettings.HintMode.OFF) drawHints(graphics,hints);
     }
     private static void drawPanel(GuiGraphicsExtractor graphics,AutomobileEntity auto,VehicleHudPlacement.Box box,float scale,int statusWidth,int speed,boolean cruise,int target,boolean status,VehicleEnergyReading energy,boolean reverse) {
@@ -136,6 +139,7 @@ public final class UnifiedVehicleHud {
         }
         if(cruise) graphics.text(font,Component.translatable("vehicle.automobility.cruise.active",target),49,25,0xFF8ADEAE,false);
         VehicleEnergyGauge.draw(graphics,energy,44+statusWidth);
+        if(cachedMechanics) VehicleDrivetrainHud.draw(graphics,auto,VehicleEnergyPresentation.panelHeight(energy.present()),44+statusWidth);
         graphics.pose().popMatrix();
     }
     public static Component hintBinding(AutomobileHud.ControlHint hint,net.minecraft.client.Options options) {

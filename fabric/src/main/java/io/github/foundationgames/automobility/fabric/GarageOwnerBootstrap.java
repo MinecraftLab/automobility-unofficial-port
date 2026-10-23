@@ -14,14 +14,26 @@ import java.util.*;
 /** Private integrated-cohort gate. Unknown artifacts keep owner-bearing transfers closed. */
 public final class GarageOwnerBootstrap {
     private GarageOwnerBootstrap(){}
-    // Filled only from successful producer build handoffs; older011/021 are deliberately excluded.
-    private static final Map<String,String> QUALIFIED_JARS=Map.of(
-            "pumps_and_pistons","016D498EBB79F4C0901DD788312AE0AB3686357CC676C6E2918DDDCFBC669223",
-            "pumps_and_pistons_automobility","2B54EBFF39FD19C5C62AD75C72299E833D9BE7CF3D4E0DCBE374B2B68D598D08",
-            "powerworks","15522D5FD363B8801DB01630445893C6A7947A0E1A4E03C02D40A4CCDBCF29E7");
     private record Nested(String parent,String member){}
-    private static final Map<String,Nested> QUALIFIED_NESTED=Map.of(
-            "pumps_and_pistons_automobility",new Nested("pumps_and_pistons","META-INF/jars/pumps-and-pistons-automobility-1.11.0-beta.1+26.2.jar"));
+    private record OwnerPins(Map<String,String> jars,Map<String,Nested> nested){}
+    private static final OwnerPins PINS=readOwnerPins();
+    private static final Map<String,String> QUALIFIED_JARS=PINS.jars();
+    private static final Map<String,Nested> QUALIFIED_NESTED=PINS.nested();
+    private static OwnerPins readOwnerPins(){
+        try{
+            var loader=FabricLoader.getInstance();
+            var core=loader.getModContainer("automobility").orElseThrow();
+            var minecraft=loader.getModContainer("minecraft").orElseThrow();
+            var resource=core.findPath(io.github.foundationgames.automobility.automobile.drivetrain.DrivetrainOwnerSeals.RESOURCE).orElseThrow();
+            if(!Files.isRegularFile(resource)||Files.size(resource)>8192)throw new java.io.IOException("Owner seal resource size");
+            var seals=io.github.foundationgames.automobility.automobile.drivetrain.DrivetrainOwnerSeals.decode(Files.readAllBytes(resource),
+                    core.getMetadata().getVersion().getFriendlyString(),minecraft.getMetadata().getVersion().getFriendlyString());
+            return new OwnerPins(seals.jars(),Map.of("pumps_and_pistons_automobility",new Nested(seals.nestedParent(),seals.nestedMember())));
+        }catch(Exception invalid){
+            LoggerFactory.getLogger("AutomobilityGarage").warn("Garage owner pins are unavailable; owner-bearing transfers remain closed",invalid);
+            return new OwnerPins(Map.of(),Map.of());
+        }
+    }
     public static void initialize(){
         var loader=FabricLoader.getInstance();var required=new TreeSet<String>();
         if(loader.isModLoaded("pumps_and_pistons")||loader.isModLoaded("pumps_and_pistons_automobility"))required.add("pumps_and_pistons");
