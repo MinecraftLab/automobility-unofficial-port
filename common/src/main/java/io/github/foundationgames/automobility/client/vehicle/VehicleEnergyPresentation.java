@@ -12,20 +12,7 @@ public final class VehicleEnergyPresentation {
 
     /** Same fit for actual rendering and drag bounds, including the attached energy row. */
     public static float panelScale(int viewportWidth, int viewportHeight, int logicalWidth, int logicalHeight, int percent) {
-        return panelScale(viewportWidth, viewportHeight, logicalWidth, logicalHeight, percent, 1);
-    }
-
-    /** Keep GUI1-3 unchanged; larger vanilla GUI scales do not enlarge our overlay past GUI3.
-     * The player's own percentage is still a multiplier, not a setting we rewrite.
-     */
-    public static float guiScaleCompensation(double guiScale) {
-        return Double.isFinite(guiScale) && guiScale > 3 ? (float) (3 / guiScale) : 1;
-    }
-
-    public static float panelScale(int viewportWidth, int viewportHeight, int logicalWidth, int logicalHeight,
-            int percent, double guiScale) {
-        float requested = percent / 100f * guiScaleCompensation(guiScale);
-        float scale = Math.min(requested, Math.max(1, viewportWidth - 16) / (float) logicalWidth);
+        float scale = Math.min(percent / 100f, Math.max(1, viewportWidth - 16) / (float) logicalWidth);
         return Math.min(scale, Math.max(1, viewportHeight - 16) / (float) logicalHeight);
     }
 

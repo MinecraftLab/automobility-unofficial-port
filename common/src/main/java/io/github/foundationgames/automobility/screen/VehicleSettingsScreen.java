@@ -95,11 +95,13 @@ public final class VehicleSettingsScreen extends Screen {
         List<Tab> tabs = new ArrayList<>(List.of(Tab.OVERVIEW, Tab.ENGINE, Tab.LIGHTS));
         if (MomentumVehicleCapabilities.snapshot(automobile).isPresent()) tabs.add(Tab.DRIVING);
         tabs.add(Tab.DISPLAY);
+        tabs.add(Tab.CABIN);
         if (!tabs.contains(tab)) tab = Tab.LIGHTS;
         int tabWidth = (panelWidth - 32 - (tabs.size() - 1) * 4) / tabs.size();
         for (int index = 0; index < tabs.size(); index++) {
             Tab value = tabs.get(index);
-            Button button = addRenderableWidget(Button.builder(text("tab." + value.id), ignored -> {
+            Button button = addRenderableWidget(Button.builder(value == Tab.CABIN ? Component.translatableWithFallback("vehicle.automobility.cabin.open_short", "Cockpit") : text("tab." + value.id), ignored -> {
+                if (value == Tab.CABIN) { minecraft.setScreen(new CabinSettingsScreen022(this, automobile)); return; }
                 tab = value;
                 feedback = null;
                 rebuildWidgets();
@@ -113,6 +115,7 @@ public final class VehicleSettingsScreen extends Screen {
             case ENGINE -> initEngine();
             case DRIVING -> initDriving();
             case DISPLAY -> initDisplay();
+            case CABIN -> { }
         }
         addRenderableWidget(Button.builder(text("access.general"), ignored -> minecraft.setScreen(new VehicleAccessScreen(this, automobile)))
                 .bounds(left + panelWidth - 84, top + 9, 68, 20).tooltip(Tooltip.create(text("access.open_help"))).build());
@@ -174,9 +177,14 @@ public final class VehicleSettingsScreen extends Screen {
                     new io.github.foundationgames.automobility.automobile.engine.VehicleEngineSettings(value.automaticStart(),
                             value.idleShutdownSeconds(), !value.lightsWithEngine()));
         }).bounds(left + 16, top + 149, panelWidth - 32, 20).tooltip(Tooltip.create(text("engine.lights_help"))).build());
+        boolean drivetrain = io.github.foundationgames.automobility.client.vehicle.VehicleDrivetrainSettingsClient.available(automobile);
+        if (drivetrain) addRenderableWidget(Button.builder(Component.translatableWithFallback("vehicle.automobility.drivetrain.title", "Drivetrain"), ignored ->
+                minecraft.setScreen(new VehicleDrivetrainScreen(this, automobile)))
+                .bounds(automobile.hasOpeningHood() ? left + 20 + (panelWidth - 36) / 2 : left + 16, top + 174,
+                        automobile.hasOpeningHood() ? (panelWidth - 36) / 2 : panelWidth - 32, 20).build());
         if (automobile.hasOpeningHood()) hoodToggle = addRenderableWidget(Button.builder(Component.empty(), ignored ->
                 VehicleClientControls.requestHood(automobile, !automobile.isHoodOpen()))
-                .bounds(left + 16, top + 174, panelWidth - 32, 20).build());
+                .bounds(left + 16, top + 174, drivetrain ? (panelWidth - 36) / 2 : panelWidth - 32, 20).build());
     }
 
     private static Component shutdownName(int seconds) {
@@ -504,6 +512,7 @@ public final class VehicleSettingsScreen extends Screen {
                         16, 164, panelWidth - 32, ACCENT, mouseX, mouseY);
             }
             case DRIVING -> drawDriving(graphics, mouseX, mouseY);
+            case CABIN -> { }
             case DISPLAY -> {
                 var preferences = VehicleClientControls.preferences();
                 int previewTop = panelHeight < 252 ? 155 : 165;
@@ -583,7 +592,7 @@ public final class VehicleSettingsScreen extends Screen {
     private static Component text(String key) { return Component.translatable("vehicle.automobility." + key); }
 
     private enum Tab {
-        OVERVIEW("overview"), ENGINE("engine"), LIGHTS("lights"), DRIVING("driving"), DISPLAY("display");
+        OVERVIEW("overview"), ENGINE("engine"), LIGHTS("lights"), DRIVING("driving"), DISPLAY("display"), CABIN("cabin");
         private final String id;
         Tab(String id) { this.id = id; }
     }

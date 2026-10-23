@@ -20,6 +20,7 @@ public final class CruiseMotorServer {
     public static void initialize(){
         PayloadTypeRegistry.serverboundPlay().register(CruiseMotorRequest.TYPE,CruiseMotorRequest.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(CruiseMotorGrant.TYPE,CruiseMotorGrant.CODEC);
+        VehicleCruiseMotorLimit.installMechanicalCancellation(false, (car, reason) -> cancelForMechanics(car));
         VehicleCruiseMotorLimit.install(car->car.level().isClientSide()?CruiseMotorPrediction.targetFor(car):targetFor(car));
         ServerPlayNetworking.registerGlobalReceiver(CruiseMotorRequest.TYPE,(packet,context)->{
             var actor=context.player();var connection=actor.connection;
@@ -46,7 +47,7 @@ public final class CruiseMotorServer {
     private static boolean owns(Session s,AutomobileEntity c){return current(s.actor)&&s.actor.connection==s.connection&&!c.isRemoved()&&s.actor.level()==c.level()&&s.actor.getVehicle()==c&&c.isDriving(s.actor)&&c.getFirstPassenger()==s.actor;}
     private static boolean valid(Session s,AutomobileEntity c){
         var cfg=MomentumConfig.get();
-        return owns(s,c)&&ServerPhysicsSessions.mayUseCruiseMotor(s.actor)&&cfg.cruise.enabled&&c.engineRunning()&&c.hasFreshAcceptedClientInput()&&!c.horizontalCollision
+        return owns(s,c)&&ServerPhysicsSessions.mayUseCruiseMotor(s.actor)&&cfg.cruise.enabled&&c.engineRunning()&&VehicleCruiseMotorLimit.mayEngage(c)&&c.hasFreshAcceptedClientInput()&&!c.horizontalCollision
                 &&Float.isFinite(s.target)&&s.target>=cfg.cruise.minActivationKmh&&s.target<=cfg.cruise.maxTargetKmh
                 &&!(c instanceof SteeringDebugAccessor access&&access.momentum$getEngineSpeed()<0)
                 &&!c.input.braking&&!c.rawBrakePedalHeld()&&!c.input.holdingDrift&&!c.burningOut()&&c.getBoostTimer()==0
@@ -68,6 +69,12 @@ public final class CruiseMotorServer {
             if(matchingRenewal&&valid(s,car)){s.car=car;s.issued=System.nanoTime();if(renewal)s.forward.confirm();else s.forward.offer();accepted=true;}else withdraw(s,false);
         }else withdraw(s,false);
         ServerPlayNetworking.send(actor,new CruiseMotorGrant(p.nonce(),p.sequence(),p.entityId(),p.entityUuid(),actor.getUUID(),accepted,p.targetKmh(),accepted?CruiseMotorLease.LEASE_MS:0));
+    }
+    private static void cancelForMechanics(AutomobileEntity car) {
+        if (car.getFirstPassenger() instanceof ServerPlayer actor) {
+            var s = sessions.get(actor.getUUID());
+            if (s != null && s.car == car && owns(s, car)) withdraw(s, false);
+        }
     }
     public static void cancelOnImpact(AutomobileEntity car,float speedKmh){
         if(speedKmh<MomentumConfig.get().cruise.impactCancelMinSpeedKmh)return;

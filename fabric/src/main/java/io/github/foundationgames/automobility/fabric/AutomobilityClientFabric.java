@@ -62,6 +62,7 @@ public class AutomobilityClientFabric implements ClientModInitializer {
     public void onInitializeClient() {
         io.github.foundationgames.automobility.client.vehicle.VehicleUiState.preserveBeforeBootstrap(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir());
         FabricPlatform.init();
+        io.github.foundationgames.automobility.client.dashboard.VehicleDashboardClient.init();
         AutomobileModels.init();
         PictureInPictureRendererRegistry.register(context -> new GarageVehiclePreviewRenderer(context.bufferSource()));
         PictureInPictureRendererRegistry.register(context -> new GarageVehicleThumbnailRenderer(context.bufferSource()));

@@ -94,22 +94,40 @@ public abstract class AutomobileSoundInstance extends AbstractTickableSoundInsta
     }
 
     public static class EngineSound extends AutomobileSoundInstance {
+        private float drivetrainPitch = Float.NaN;
+        private float drivetrainGain = Float.NaN;
         public EngineSound(Minecraft client, AutomobileEntity automobile) {
             super(automobile.getEngine().sound().get(), client, automobile);
         }
 
         @Override
         protected boolean canPlay(AutomobileEntity automobile) {
+            var mechanics = io.github.foundationgames.automobility.client.vehicle.VehiclePowertrainPresentation.reading(automobile);
+            if (mechanics.isPresent()) return mechanics.get().tone().audible();
             return automobile.engineRunning();
         }
 
         @Override
         protected float getPitch(AutomobileEntity automobile) {
+            var mechanics = io.github.foundationgames.automobility.client.vehicle.VehiclePowertrainPresentation.reading(automobile);
+            if (mechanics.isPresent()) {
+                float target = mechanics.get().tone().pitch();
+                drivetrainPitch = Float.isFinite(drivetrainPitch) ? drivetrainPitch + 0.45f * (target - drivetrainPitch) : target;
+                return drivetrainPitch;
+            }
+            drivetrainPitch = Float.NaN;
             return (float) (Math.pow(4, (automobile.getEffectiveSpeed() - 0.9)) + 0.32);
         }
 
         @Override
         protected float getVolume(AutomobileEntity automobile) {
+            var mechanics = io.github.foundationgames.automobility.client.vehicle.VehiclePowertrainPresentation.reading(automobile);
+            if (mechanics.isPresent()) {
+                float target = mechanics.get().tone().gain();
+                drivetrainGain = Float.isFinite(drivetrainGain) ? drivetrainGain + 0.45f * (target - drivetrainGain) : target;
+                return drivetrainGain;
+            }
+            drivetrainGain = Float.NaN;
             return 1;
         }
 

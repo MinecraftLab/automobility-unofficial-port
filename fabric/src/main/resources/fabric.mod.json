@@ -23,12 +23,19 @@
   "entrypoints": {
     "main": [
       "io.github.foundationgames.automobility.fabric.AutomobilityFabric",
-      "io.github.milkucha.momentum.Momentum"
+      "io.github.milkucha.momentum.Momentum",
+      "io.github.foundationgames.automobility.fabric.network.drivetrain.FabricDrivetrainServer",
+      "io.github.foundationgames.automobility.api.dashboard.CabinSettingsServer022",
+      "io.github.foundationgames.automobility.fabric.vehicle.FabricVehicleQuiescenceBootstrap",
+      "io.github.foundationgames.automobility.api.dashboard.CabinTuningServer027"
     ],
     "client": [
       "io.github.foundationgames.automobility.fabric.AutomobilityClientFabric",
       "io.github.foundationgames.automobility.client.lighting.direct.bootstrap.DirectBootstrap",
-      "io.github.milkucha.momentum.MomentumClient"
+      "io.github.milkucha.momentum.MomentumClient",
+      "io.github.foundationgames.automobility.fabric.network.drivetrain.FabricDrivetrainClient",
+      "io.github.foundationgames.automobility.api.dashboard.CabinSettingsClient022",
+      "io.github.foundationgames.automobility.api.dashboard.CabinTuningClient027"
     ],
     "controlify": [
       "io.github.foundationgames.automobility.fabric.controller.controlify.ControlifyCompat",
@@ -49,7 +56,10 @@
     {
       "config": "automobility_energy_hud.mixins.json",
       "environment": "client"
-    }
+    },
+    "automobility_drivetrain.mixins.json",
+    "automobility_cabin022.mixins.json",
+    "automobility_cabin027.mixins.json"
   ],
   "accessWidener": "automobility.accesswidener",
   "breaks": {
@@ -69,5 +79,10 @@
     "controlify": ">=3.0.2",
     "modmenu": "*",
     "yet_another_config_lib_v3": "*"
-  }
+  },
+  "jars": [
+    {
+      "file": "META-INF/jars/obj-0.4.0.jar"
+    }
+  ]
 }

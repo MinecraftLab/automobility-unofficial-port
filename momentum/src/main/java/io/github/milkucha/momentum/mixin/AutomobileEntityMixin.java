@@ -340,6 +340,7 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, Ex
         )
     )
     private float momentum$replaceCoastDecay(float value, float rate) {
+        if (momentum$coreMechanicalDrive()) return value;
         if (momentum$externalDrive()) return AUtils.zero(value, rate);
         var config = momentum$drivingConfig();
         if (!config.enabled || !config.movement.enabled)
@@ -370,7 +371,7 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, Ex
             at = @At("RETURN"), cancellable = true, require = 1)
     private void momentum$mc5ForwardAcceleration(float speed, AutomobileStats stats, CallbackInfoReturnable<Float> cir) {
         var automobile = (AutomobileEntity) (Object) this;
-        if (momentum$externalDrive() || engineSpeed < 0 || hSpeed < 0
+        if (momentum$externalDrive() || momentum$coreMechanicalDrive() || engineSpeed < 0 || hSpeed < 0
                 || engineSpeed >= stats.getComfortableSpeed() || !input.accelerating || input.braking
                 || automobile.rawBrakePedalHeld() || drifting || input.holdingDrift || momentum$driftKey()
                 || automobile.burningOut() || momentum$arcadeDriftActive || momentum$responsiveDriftActive)
@@ -421,6 +422,7 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, Ex
         index = 0
     )
     private float momentum$scaleAcceleration(float speed) {
+        if (momentum$coreMechanicalDrive()) return speed;
         var config = momentum$drivingConfig();
         if (!config.enabled) return speed;
         if (!config.movement.enabled) return speed;
@@ -535,7 +537,7 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, Ex
             if (canDrift) {
                 setDrifting(true);
                 driftDir = steering > 0 ? 1 : -1;
-                if (!momentum$externalDrive()) engineSpeed -= 0.028f * engineSpeed;
+                if (!momentum$externalDrive() && !momentum$coreMechanicalDrive()) engineSpeed -= 0.028f * engineSpeed;
             }
         }
 
@@ -545,7 +547,7 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, Ex
             if (momentum$coreReleaseHandoff.coreOwnsRelease() ? coreRelease : prevDrift && !driftHeld) {
                 // An old Core drift waits for its own real release, not a mapped-key edge.
                 setDrifting(false);
-                if (momentum$externalDrive()) turboCharge = 0;
+                if (momentum$externalDrive() && !momentum$coreMechanicalDrive()) turboCharge = 0;
                 else consumeTurboCharge();
             } else if (hSpeed < 0.33f) {
                 // Too slow: drift cancelled, no boost
@@ -646,9 +648,9 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, Ex
                     : arcadeCfg.slipDecay;
                 momentum$arcadeDriftOffset = AUtils.zero(momentum$arcadeDriftOffset, kDecay);
                 if (Math.abs(momentum$arcadeDriftOffset) < 0.5f) {
-                    if (!momentum$externalDrive() && ((AutomobileEntity) (Object) this).engineRunning()
+                    if ((!momentum$externalDrive() || momentum$coreMechanicalDrive()) && ((AutomobileEntity) (Object) this).engineRunning()
                             && arcadeCfg.boostEnabled && momentum$arcadeDriftTimer >= arcadeCfg.minTicks) {
-                        engineSpeed += arcadeCfg.boost;
+                        if (!momentum$coreMechanicalDrive()) engineSpeed += arcadeCfg.boost;
                         boost(0.23f, arcadeCfg.boostDuration);
                     }
                     turboCharge = 0;
@@ -757,9 +759,9 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, Ex
                     : cfg.slipDecay;
                 momentum$responsiveDriftOffset = AUtils.zero(momentum$responsiveDriftOffset, mDecay);
                 if (Math.abs(momentum$responsiveDriftOffset) < 0.5f) {
-                    if (!momentum$externalDrive() && ((AutomobileEntity) (Object) this).engineRunning()
+                    if ((!momentum$externalDrive() || momentum$coreMechanicalDrive()) && ((AutomobileEntity) (Object) this).engineRunning()
                             && cfg.boostEnabled && momentum$responsiveDriftTimer >= cfg.minTicks) {
-                        engineSpeed += cfg.boost;
+                        if (!momentum$coreMechanicalDrive()) engineSpeed += cfg.boost;
                         boost(0.23f, cfg.boostDuration);
                     }
                     turboCharge = 0;
@@ -797,7 +799,7 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, Ex
      */
     @Inject(method = "movementTick", at = @At("RETURN"))
     private void momentum$applyResponsiveBrake(CallbackInfo ci) {
-        if (momentum$externalDrive()) return;
+        if (momentum$externalDrive() || momentum$coreMechanicalDrive()) return;
         var config = momentum$drivingConfig();
         if (!config.enabled) return;
         if (!config.movement.enabled) return;
@@ -814,7 +816,7 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, Ex
      */
     @Inject(method = "movementTick", at = @At("RETURN"))
     private void momentum$applyArcadeBrake(CallbackInfo ci) {
-        if (momentum$externalDrive()) return;
+        if (momentum$externalDrive() || momentum$coreMechanicalDrive()) return;
         var config = momentum$drivingConfig();
         if (!config.enabled) return;
         if (!config.movement.enabled) return;
@@ -887,6 +889,7 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, Ex
         require = 1
     )
     private float momentum$suppressVanillaBrakeDecay(float a, float b) {
+        if (momentum$coreMechanicalDrive()) return engineSpeed;
         float proposed = momentum$limitOrdinaryReverse((AutomobileEntity) (Object) this, Math.max(a, b), b);
         if (momentum$externalDrive()) return proposed;
         var config = momentum$drivingConfig();
@@ -921,7 +924,7 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, Ex
      */
     @Inject(method = "movementTick", at = @At("RETURN"))
     private void momentum$applyBrake(CallbackInfo ci) {
-        if (momentum$externalDrive()) return;
+        if (momentum$externalDrive() || momentum$coreMechanicalDrive()) return;
         var config = momentum$drivingConfig();
         if (!config.enabled) return;
         if (!config.movement.enabled) return;
@@ -964,6 +967,11 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, Ex
                 automobile.rawBrakePedalHeld(), hSpeed, unsafe)) {
             ci.cancel();
         }
+    }
+
+    @Unique
+    private boolean momentum$coreMechanicalDrive() {
+        return io.github.foundationgames.automobility.api.drivetrain.VehicleMechanicalAccess.active(this);
     }
 
     @Unique
