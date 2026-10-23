@@ -6,6 +6,14 @@ import io.github.milkucha.momentum.network.GameplayConfigPacket;
 import io.github.milkucha.momentum.network.GameplayConfigSync;
 import io.github.milkucha.momentum.network.VehicleInputPacket;
 import io.github.milkucha.momentum.network.ServerKeyState;
+import io.github.milkucha.momentum.network.PhysicsHelloPacket;
+import io.github.milkucha.momentum.network.PhysicsStatusPacket;
+import io.github.milkucha.momentum.network.ServerPhysicsSessions;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import io.github.milkucha.momentum.config.MomentumConfig;
+import io.github.foundationgames.automobility.entity.AutomobileEntity;
+import io.github.foundationgames.automobility.automobile.driving.VehicleDrivingModeSupport;
+import io.github.foundationgames.automobility.automobile.driving.GarageDrivingStats;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -28,22 +36,60 @@ public class Momentum implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        io.github.milkucha.momentum.network.CruiseMotorServer.initialize();
+        io.github.milkucha.momentum.network.ReverseDriveCapability.initialize();
+        GarageDrivingStats.install((original, rawThreshold, frameId, selected) -> MomentumGarageStats.snapshot(
+                original, rawThreshold, frameId, selected, MomentumConfig.gameplay()));
+        VehicleDrivingModeSupport.install(() -> {
+            var config = MomentumConfig.get();
+            return config.enabled && config.allowVehiclePresets;
+        });
         // Register the payload type for the C2S key-state packet.
         PayloadTypeRegistry.serverboundPlay().register(KeyStatePacket.TYPE, KeyStatePacket.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(GameplayConfigPacket.TYPE, GameplayConfigPacket.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VehicleInputPacket.TYPE, VehicleInputPacket.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(PhysicsHelloPacket.TYPE, PhysicsHelloPacket.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(PhysicsStatusPacket.TYPE, PhysicsStatusPacket.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(PhysicsHelloPacket.TYPE, (payload, context) ->
+                context.server().execute(() -> {
+                    var player = context.player();
+                    if (context.server().getPlayerList().getPlayer(player.getUUID()) != player) return;
+                    ServerPhysicsSessions.accept(player, payload.revision(), payload.nonce());
+                }));
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            ServerPhysicsSessions.clearAll();
+            ServerKeyState.clearAll();
+        });
         MomentumCommands.register();
 
-        // Receive key state from client and store it per-player.
-        // Runs on the Netty network thread - ServerKeyState uses ConcurrentHashMap.
+        // Observe every accepted brake edge on the server thread. Sampling only once
+        // per vehicle tick would lose a release followed by a press in that same tick.
         ServerPlayNetworking.registerGlobalReceiver(KeyStatePacket.TYPE, (payload, context) ->
-            ServerKeyState.set(context.player().getUUID(), payload.brake(), payload.drift()));
+            context.server().execute(() -> {
+                var player = context.player();
+                if (context.server().getPlayerList().getPlayer(player.getUUID()) != player) return;
+                if (!ServerPhysicsSessions.canDrive(player)) {
+                    ServerKeyState.remove(player.getUUID());
+                    return;
+                }
+                ServerKeyState.set(player.getUUID(), payload.brake(), payload.drift());
+                if (player.getVehicle() instanceof AutomobileEntity automobile && !automobile.isRemoved()
+                        && automobile.level() == player.level() && automobile.isDriving(player)) {
+                    var config = MomentumConfig.get();
+                    automobile.setAdditionalBrakeInput(
+                            payload.brake(), config.enabled && config.movement.enabled);
+                }
+            }));
 
         // Clear state on disconnect so a reconnecting player starts clean.
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-            ServerKeyState.remove(handler.player.getUUID()));
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            ServerKeyState.remove(handler.player.getUUID());
+            ServerPhysicsSessions.remove(handler.player.getUUID());
+        });
 
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                GameplayConfigSync.sendTo(handler.player));
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            ServerPhysicsSessions.reset(handler.player);
+            GameplayConfigSync.sendTo(handler.player);
+        });
     }
 }

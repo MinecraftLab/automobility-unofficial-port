@@ -1,0 +1,17 @@
+{
+  "type": "automobility:auto_mechanic_table",
+  "category": "automobility:frames",
+  "sortnum": 460,
+  "ingredients": [
+    "minecraft:iron_ingot",
+    "minecraft:iron_block",
+    "minecraft:green_dye",
+    "minecraft:leather",
+    "minecraft:glass",
+    "minecraft:iron_ingot"
+  ],
+  "result": {
+    "item": "automobility:automobile_frame",
+    "component": "automobility:defender_90"
+  }
+}

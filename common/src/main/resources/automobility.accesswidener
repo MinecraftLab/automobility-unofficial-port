@@ -6,3 +6,6 @@ accessible method net/minecraft/world/entity/Entity collideWithShapes (Lnet/mine
 accessible field net/minecraft/world/entity/Entity passengers Lcom/google/common/collect/ImmutableList;
 accessible class net/minecraft/client/gui/screens/MenuScreens$ScreenConstructor
 accessible method net/minecraft/client/gui/screens/MenuScreens register (Lnet/minecraft/world/inventory/MenuType;Lnet/minecraft/client/gui/screens/MenuScreens$ScreenConstructor;)V
+
+#26.3 removed the false/no-outline overload; preserve its exact memoized vanilla factory.
+accessible field net/minecraft/client/renderer/rendertype/RenderTypes ENTITY_TRANSLUCENT_EMISSIVE Ljava/util/function/BiFunction;

@@ -41,7 +41,8 @@ public class BannerPostRearAttachment extends RearAttachment {
 
         @Override
         public boolean stillValid(Player player) {
-            return AttachmentMenuValidity.isValid(
+            return io.github.foundationgames.automobility.automobile.access.VehicleInventoryAccess.mayUse(
+                    BannerPostRearAttachment.this.automobile(), player) && AttachmentMenuValidity.isValid(
                     BannerPostRearAttachment.this.wasRemoved(),
                     BannerPostRearAttachment.this.automobile().isAlive(),
                     player.level() == BannerPostRearAttachment.this.automobile().level(),

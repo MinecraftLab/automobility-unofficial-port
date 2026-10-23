@@ -1,4 +1,1 @@
-# Stable resource bytes across Windows/Linux checkouts.
-common/src/main/resources/automobility.mixins.json text eol=lf
-momentum/src/main/resources/assets/controlify/radial_icons.json text eol=lf
-momentum/src/main/resources/assets/controlify/contextual/guide/in_game.json text eol=lf
+* -text

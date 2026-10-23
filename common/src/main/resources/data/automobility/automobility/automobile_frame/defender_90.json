@@ -1,0 +1,91 @@
+{
+  "weight": 0.92,
+  "width": 1.9125,
+  "hitboxes": [
+    {
+      "origin": [
+        0,
+        0.9125,
+        1.2937500000000002
+      ],
+      "width": 1.7875,
+      "height": 1.825
+    },
+    {
+      "origin": [
+        0,
+        0.9125,
+        0.006250000000000089
+      ],
+      "width": 1.7875,
+      "height": 1.825
+    },
+    {
+      "origin": [
+        0,
+        0.9125,
+        -1.2812499999999996
+      ],
+      "width": 1.7875,
+      "height": 1.825
+    }
+  ],
+  "display": {
+    "texture": "automobility:textures/entity/automobile/frame/defender_90.png",
+    "model": "automobility:frame/defender_90",
+    "wheels": [
+      {
+        "forward": 18.7,
+        "right": -12.55,
+        "scale": 1,
+        "yaw": 0,
+        "end": "front",
+        "side": "left"
+      },
+      {
+        "forward": 18.7,
+        "right": 12.55,
+        "scale": 1,
+        "yaw": 180,
+        "end": "front",
+        "side": "right"
+      },
+      {
+        "forward": -19.1,
+        "right": -12.55,
+        "scale": 1,
+        "yaw": 0,
+        "end": "back",
+        "side": "left"
+      },
+      {
+        "forward": -19.1,
+        "right": 12.55,
+        "scale": 1,
+        "yaw": 180,
+        "end": "back",
+        "side": "right"
+      }
+    ],
+    "length_pixels": 61.8,
+    "driver_seat": [
+      6.2,
+      3,
+      4.5
+    ],
+    "passenger_seats": [
+      [
+        -6.2,
+        3,
+        4.5
+      ]
+    ],
+    "engine_position": [
+      0,
+      3.5,
+      23
+    ],
+    "front_attachment_offset": 34,
+    "rear_attachment_offset": 37.8
+  }
+}

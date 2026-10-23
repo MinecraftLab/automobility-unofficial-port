@@ -1,0 +1,17 @@
+{
+  "product": "automobility",
+  "version": "1.3.0+26.3-fabric",
+  "minecraft": "26.3",
+  "modrinth_version_id": "UDzzsVeH",
+  "tag": "automobility-1.3.0+26.3-fabric",
+  "files": [
+    {
+      "filename": "automobility-1.3.0+26.3-fabric.jar",
+      "url": "https://cdn.modrinth.com/data/B6d5S1wQ/versions/UDzzsVeH/automobility-1.3.0%2B26.3-fabric.jar",
+      "primary": true,
+      "bytes": 4448670,
+      "sha256": "0FB9BB140BA718AA8C81C4ADA4E5414EB23FEC1F6EF5035FE35EB2F801C13315",
+      "sha512": "9CB9BCA33073F1CE2353D23B8F3E69D0CE4D6E6A893F92A21FDC5EDB227C29DFCC72E1F63B8C662665668DA3D58E15476CC415006486D0E4E07174B5A932D905"
+    }
+  ]
+}

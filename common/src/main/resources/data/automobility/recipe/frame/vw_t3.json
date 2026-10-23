@@ -1,0 +1,17 @@
+{
+  "type": "automobility:auto_mechanic_table",
+  "category": "automobility:frames",
+  "sortnum": 461,
+  "ingredients": [
+    "minecraft:iron_ingot",
+    "minecraft:iron_block",
+    "minecraft:brown_dye",
+    "minecraft:leather",
+    "minecraft:glass",
+    "minecraft:iron_ingot"
+  ],
+  "result": {
+    "item": "automobility:automobile_frame",
+    "component": "automobility:vw_t3"
+  }
+}

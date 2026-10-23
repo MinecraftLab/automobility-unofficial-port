@@ -1,4 +1,17 @@
 {
+    "entity.automobile.vehicle_signal_tick": { "subtitle": "subtitles.automobility.vehicle_signal_tick", "sounds": [ "automobility:vehicle_signal_tick" ] },
+    "entity.automobile.vehicle_signal_tock": { "subtitle": "subtitles.automobility.vehicle_signal_tock", "sounds": [ "automobility:vehicle_signal_tock" ] },
+    "entity.automobile.vehicle_lock": { "subtitle": "subtitles.automobility.vehicle_lock", "sounds": [ "automobility:vehicle_lock" ] },
+    "entity.automobile.vehicle_unlock": { "subtitle": "subtitles.automobility.vehicle_unlock", "sounds": [ "automobility:vehicle_unlock" ] },
+    "entity.automobile.vehicle_lock_horn": { "subtitle": "subtitles.automobility.vehicle_lock_horn", "sounds": [ "automobility:vehicle_lock_horn" ] },
+    "entity.automobile.electric_engine_start": {
+        "subtitle": "subtitles.automobility.engine_start",
+        "sounds": [ "automobility:electric_engine_start" ]
+    },
+    "entity.automobile.engine_start": {
+        "subtitle": "subtitles.automobility.engine_start",
+        "sounds": [ "automobility:engine_start" ]
+    },
     "entity.automobile.collision": {
         "subtitle": "subtitles.automobility.collision",
         "sounds": [

@@ -26,6 +26,7 @@ dependencies {
     compileOnly(commonMainOutput)
     compileOnly(fabricMainOutput)
     runtimeOnly(fabricMainOutput)
+    testImplementation(commonMainOutput)
 
     compileOnly("maven.modrinth:yacl:${rootProject.providers.gradleProperty("yacl_version").get()}")
     compileOnly("com.terraformersmc:modmenu:${rootProject.providers.gradleProperty("modmenu_version").get()}")
@@ -44,7 +45,19 @@ val legacyControlify = sourceSets.create("legacyControlify") {
             (sourceSets.main.get().compileClasspath - modernControlifySdk) + legacyControlifySdk
 }
 
-version = "${rootProject.providers.gradleProperty("momentum_version").get()}+${rootProject.providers.gradleProperty("minecraft_version").get()}-fabric"
+// Opt-in integration probe; never part of either production artifact.
+val controlifyIntegrationQa = sourceSets.create("controlifyIntegrationQa") {
+    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+    runtimeClasspath += output + compileClasspath
+}
+
+tasks.register<Jar>("controlifyIntegrationQaJar") {
+    from(controlifyIntegrationQa.output)
+    archiveFileName.set("momentum-controlify-integration-qa.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("qa"))
+}
+
+version = "${rootProject.extra["momentum_version"]}+${rootProject.providers.gradleProperty("minecraft_version").get()}-fabric"
 group = "io.github.milkucha"
 
 base {
@@ -72,7 +85,8 @@ loom {
 
 tasks {
     named<Jar>("jar") {
-        from(legacyControlify.output)
+        // Internal source/test module. Production classes/resources are compiled by :fabric.
+        enabled = false
     }
     withType<JavaCompile> {
         options.encoding = "UTF-8"
@@ -80,9 +94,12 @@ tasks {
     }
 
     processResources {
+        // Internal tests share :fabric's loader identity. Advertising a second Momentum
+        // mod here would conflict with Core's deliberate standalone-addon rejection.
+        exclude("fabric.mod.json")
         val loaderVersion = rootProject.providers.gradleProperty("fabric_version").get()
         val fabricApiVersion = rootProject.providers.gradleProperty("fabric_api_version").get()
-        val automobilityVersion = rootProject.providers.gradleProperty("momentum_automobility_min_version").get()
+        val automobilityVersion = rootProject.extra["momentum_automobility_min_version"].toString()
         inputs.property("version", version)
         inputs.property("fabric_loader_version", loaderVersion)
         inputs.property("fabric_api_version", fabricApiVersion)
@@ -98,7 +115,10 @@ tasks {
     }
 
     withType<Jar> {
-        destinationDirectory = rootDir.resolve(project.name).resolve("build").resolve("libs")
+        if (name != "controlifyIntegrationQaJar") enabled = false
+        destinationDirectory = layout.buildDirectory.dir(
+            if (name == "controlifyIntegrationQaJar") "qa" else "libs"
+        )
     }
 
     withType<Test> {

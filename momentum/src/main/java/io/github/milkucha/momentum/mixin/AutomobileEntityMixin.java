@@ -1,20 +1,32 @@
 package io.github.milkucha.momentum.mixin;
 
 import io.github.foundationgames.automobility.entity.AutomobileEntity;
+import io.github.foundationgames.automobility.automobile.AutomobileEngine;
+import io.github.foundationgames.automobility.automobile.AutomobileFrame;
+import io.github.foundationgames.automobility.automobile.AutomobileStats;
 import io.github.foundationgames.automobility.util.AUtils;
 import io.github.foundationgames.automobility.util.network.ClientPackets;
 import io.github.milkucha.momentum.MomentumBrakeState;
+import io.github.milkucha.momentum.CoreDriftReleaseHandoff;
+import io.github.milkucha.momentum.PedalBrakePolicy;
 import io.github.milkucha.momentum.MomentumCruiseControl;
 import io.github.milkucha.momentum.MomentumDriftState;
+import io.github.milkucha.momentum.MomentumVehicleDrivingModes;
 import io.github.milkucha.momentum.accessor.SteeringDebugAccessor;
+import io.github.milkucha.momentum.accessor.ExternalEngineDriveAccess;
+import io.github.milkucha.momentum.accessor.VehicleDrivingStatsAccess;
+import io.github.milkucha.momentum.api.ExternalEngineDriveApi;
 import io.github.milkucha.momentum.config.MomentumConfig;
 import io.github.milkucha.momentum.network.ServerKeyState;
 import io.github.milkucha.momentum.network.VehicleInputPacket;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.core.Holder;
+import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.world.entity.player.Player;
 import java.util.UUID;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,9 +34,9 @@ import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * AutomobileEntityMixin - corrected movement feel for Automobility.
@@ -64,9 +76,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *    Skipped during a drift so the drift arc is unaffected.
  */
 @Mixin(value = AutomobileEntity.class, remap = false)
-public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
+public abstract class AutomobileEntityMixin implements SteeringDebugAccessor, ExternalEngineDriveAccess {
+
+    @Shadow @Final private static EntityDataAccessor<Holder<AutomobileEngine>> ENGINE_TYPE;
+    @Shadow @Final private static EntityDataAccessor<Holder<AutomobileFrame>> FRAME_TYPE;
+    @Shadow @Final private AutomobileStats stats;
 
     @Shadow private boolean drifting;
+    @Shadow private boolean prevHoldDrift;
     @Shadow public AutomobileEntity.Input input;
     @Shadow private float engineSpeed;
     @Shadow private float hSpeed;
@@ -86,6 +103,7 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
     // Instance field (not static) so client and integrated-server entities
     // each track their own edge independently.
     @Unique private boolean momentum$prevDriftKeyHeld = false;
+    @Unique private final CoreDriftReleaseHandoff momentum$coreReleaseHandoff = new CoreDriftReleaseHandoff();
 
     // ── Arcade Drift state ────────────────────────────────────────────────
     @Unique private boolean momentum$prevArcadeDriftKeyHeld = false;
@@ -111,6 +129,21 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
     @Unique private boolean momentum$lastSyncedDrift        = false;
     @Unique private int     momentum$remoteInputSyncTicks   = 0;
 
+    @Inject(method = "<init>", at = @At("RETURN"))
+    private void momentum$bindDrivingStats(CallbackInfo ci) {
+        ((VehicleDrivingStatsAccess) (Object) stats).momentum$bindDrivingOwner((AutomobileEntity) (Object) this);
+    }
+
+    @Unique
+    private MomentumConfig momentum$drivingConfig() {
+        return MomentumVehicleDrivingModes.baselineFor((AutomobileEntity) (Object) this);
+    }
+
+    @Unique
+    private MomentumVehicleDrivingModes.Settings momentum$drivingSettings() {
+        return MomentumVehicleDrivingModes.settingsFor((AutomobileEntity) (Object) this);
+    }
+
     // ── Key-state helpers (client vs. dedicated server) ───────────────────────
     //
     // On the client logical side we read the volatile statics set by KeyBinding polling.
@@ -127,7 +160,7 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
         Entity self = (Entity) (Object) this;
         if (self.level().isClientSide()) {
             if (self.getFirstPassenger() instanceof Player player && player.isLocalPlayer()) {
-                return MomentumBrakeState.brakeHeld;
+                return MomentumBrakeState.rawBrakeHeld;
             }
             return momentum$remoteBrakeHeld;
         }
@@ -186,6 +219,87 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
         return (bits & 1L) == 0 ? 1 : -1;
     }
 
+    @Unique private UUID momentum$driftDriverContext;
+
+    @Inject(method = "tick", at = @At(value = "INVOKE",
+            target = "Lio/github/foundationgames/automobility/entity/AutomobileEntity;expireStaleClientInput()V",
+            shift = At.Shift.BEFORE), require = 1)
+    private void momentum$clearUnavailableAddonState(CallbackInfo ci) {
+        var car = (AutomobileEntity) (Object) this;
+        Entity driver = car.getFirstPassenger();
+        UUID context = driver != null && car.isDriving(driver) ? driver.getUUID() : null;
+        if (!java.util.Objects.equals(context, momentum$driftDriverContext)
+                || !MomentumConfig.gameplay().enabled) {
+            momentum$resetAddonDriftState();
+        }
+        momentum$driftDriverContext = context;
+    }
+
+    @Inject(method = "removePassenger", at = @At("HEAD"))
+    private void momentum$clearDepartingDriverAddonState(Entity passenger, CallbackInfo ci) {
+        // RIA's seat table may already be empty. Invalidate only the captured
+        // actual driver's Core input history, before losing that reference.
+        if (momentum$coreReleaseHandoff.isBoundDriver(passenger)) {
+            momentum$resetCoreDriftInputHistory();
+            momentum$coreReleaseHandoff.bindDriver(null);
+        }
+        // RIA can clear its seat lookup before the actual driver removal reaches HEAD.
+        if (((AutomobileEntity) (Object) this).isDriving(passenger)
+                || (passenger != null && passenger.getUUID().equals(momentum$driftDriverContext))) {
+            momentum$resetAddonDriftState();
+            momentum$driftDriverContext = null;
+        }
+    }
+
+    @Unique
+    private void momentum$bindCoreReleaseDriver() {
+        var car = (AutomobileEntity) (Object) this;
+        Entity driver = car.getFirstPassenger();
+        // This runs after ordinary admission cleanup. A masked/ineligible controller
+        // cannot retain release ownership, even if the actual passenger UUID matches.
+        Object context = driver != null && car.isDriving(driver)
+                && car.getControllingPassenger() == driver
+                && !(car.level().isClientSide() && driver instanceof Player player
+                    && player.isLocalPlayer() && MomentumConfig.clientDrivingBlocked())
+                ? driver : null;
+        boolean driverChanged = momentum$coreReleaseHandoff.bindDriver(context);
+        if (driverChanged) {
+            momentum$resetAddonDriftState();
+        }
+        // A first denied tick can still have held raw input, so Core may latch
+        // it again. Every unavailable entry must discard that non-driver edge.
+        if (driverChanged || context == null) {
+            momentum$resetCoreDriftInputHistory();
+        }
+    }
+
+    @Unique
+    private void momentum$resetCoreDriftInputHistory() {
+        // A departed/replaced driver's held key is not a genuine Core release.
+        // Preserve the actual drift, charge, boost and motion; only invalidate
+        // its old input edge before a disabled-mode Core body can observe it.
+        prevHoldDrift = false;
+    }
+
+    @Unique
+    private void momentum$resetAddonDriftState() {
+        momentum$prevDriftKeyHeld = false;
+        momentum$prevArcadeDriftKeyHeld = false;
+        momentum$arcadeDriftActive = false;
+        momentum$arcadeDriftOffset = 0f;
+        momentum$arcadeDriftTimer = 0;
+        momentum$arcadeHeldTimer = 0;
+        momentum$prevResponsiveDriftKeyHeld = false;
+        momentum$responsiveDriftActive = false;
+        momentum$responsiveDriftOffset = 0f;
+        momentum$responsiveDriftTimer = 0;
+        momentum$responsiveHeldTimer = 0;
+        momentum$responsiveSteerAccum = 0f;
+        momentum$remoteBrakeHeld = false;
+        momentum$remoteDriftHeld = false;
+        // Core drift, boost, position and speed are deliberately not reset.
+    }
+
     @Inject(method = "tick", at = @At("TAIL"))
     private void momentum$syncRemoteInputs(CallbackInfo ci) {
         Entity self = (Entity) (Object) this;
@@ -226,10 +340,48 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
         )
     )
     private float momentum$replaceCoastDecay(float value, float rate) {
-        if (!MomentumConfig.gameplay().enabled) return AUtils.zero(value, 0.025f);
-        if (!MomentumConfig.gameplay().movement.enabled) return AUtils.zero(value, 0.025f);
-        if (momentum$brake()) return value;  // brake inject handles decel this tick
-        return AUtils.zero(value, MomentumConfig.gameplay().movement.coastDecay);
+        if (momentum$externalDrive()) return AUtils.zero(value, rate);
+        var config = momentum$drivingConfig();
+        if (!config.enabled || !config.movement.enabled)
+            return AUtils.zero(value, momentum$passiveCombustionCoastRate(value, rate));
+        // Existing drift decay remains separate from normal pedal ownership.
+        if (drifting ? momentum$brake() : ((AutomobileEntity) (Object) this).rawBrakePedalHeld()) return value;
+        return AUtils.zero(value, momentum$passiveCombustionCoastRate(value, momentum$drivingSettings().coastDecay()));
+    }
+
+    /** Only neutral forward roll of stock combustion engines changes. External/EV ownership,
+     * raw pedals, reverse and all drift/brake handoffs retain their existing paths.
+     */
+    @Unique
+    private float momentum$passiveCombustionCoastRate(float value, float rate) {
+        var automobile = (AutomobileEntity) (Object) this;
+        if (value <= 0 || hSpeed < 0 || input.accelerating || input.braking || automobile.rawBrakePedalHeld()
+                || drifting || input.holdingDrift || momentum$driftKey() || automobile.burningOut()
+                || momentum$arcadeDriftActive || momentum$responsiveDriftActive
+                || Math.abs(momentum$arcadeDriftOffset) >= .01f || Math.abs(momentum$responsiveDriftOffset) >= .01f)
+            return rate;
+        var engine = automobile.getEntityData().get(ENGINE_TYPE).unwrapKey().orElse(null);
+        if (engine == null || !"automobility".equals(engine.identifier().getNamespace())) return rate;
+        return rate * 0.5f;
+    }
+
+    /** MC-5 gets a stronger forward launch, not new speed limits, reverse/braking or EV torque. */
+    @Inject(method = "calculateAcceleration(FLio/github/foundationgames/automobility/automobile/AutomobileStats;)F",
+            at = @At("RETURN"), cancellable = true, require = 1)
+    private void momentum$mc5ForwardAcceleration(float speed, AutomobileStats stats, CallbackInfoReturnable<Float> cir) {
+        var automobile = (AutomobileEntity) (Object) this;
+        if (momentum$externalDrive() || engineSpeed < 0 || hSpeed < 0
+                || engineSpeed >= stats.getComfortableSpeed() || !input.accelerating || input.braking
+                || automobile.rawBrakePedalHeld() || drifting || input.holdingDrift || momentum$driftKey()
+                || automobile.burningOut() || momentum$arcadeDriftActive || momentum$responsiveDriftActive)
+            return;
+        var engine = automobile.getEntityData().get(ENGINE_TYPE).unwrapKey().orElse(null);
+        var frame = automobile.getEntityData().get(FRAME_TYPE).unwrapKey().orElse(null);
+        if (engine == null || !"automobility".equals(engine.identifier().getNamespace()) || frame == null
+                || !"automobility".equals(frame.identifier().getNamespace()) || !"mx5_na".equals(frame.identifier().getPath()))
+            return;
+        float acceleration = cir.getReturnValue();
+        if (Float.isFinite(acceleration) && acceleration > 0) cir.setReturnValue(acceleration * 1.25f);
     }
 
     // ── Acceleration scale ────────────────────────────────────────────────────
@@ -254,8 +406,9 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
         constant = @Constant(doubleValue = 0.5)
     )
     private double momentum$removeSteeringAccelGate(double original) {
-        if (!MomentumConfig.gameplay().enabled) return original;
-        if (!MomentumConfig.gameplay().movement.enabled) return original;
+        var config = momentum$drivingConfig();
+        if (!config.enabled) return original;
+        if (!config.movement.enabled) return original;
         return Double.MAX_VALUE;
     }
 
@@ -268,9 +421,10 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
         index = 0
     )
     private float momentum$scaleAcceleration(float speed) {
-        if (!MomentumConfig.gameplay().enabled) return speed;
-        if (!MomentumConfig.gameplay().movement.enabled) return speed;
-        return speed / MomentumConfig.gameplay().movement.accelerationScale;
+        var config = momentum$drivingConfig();
+        if (!config.enabled) return speed;
+        if (!config.movement.enabled) return speed;
+        return speed / momentum$drivingSettings().accelerationScale();
     }
 
     // ── Steering ramp rate ────────────────────────────────────────────────────
@@ -285,11 +439,13 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
         constant = @Constant(floatValue = 0.42f)
     )
     private float momentum$steeringRampRate(float original) {
-        if (!MomentumConfig.gameplay().enabled) return original;
-        if (!MomentumConfig.gameplay().steering.enabled) return original;
+        var config = momentum$drivingConfig();
+        if (!config.enabled) return original;
+        if (!config.steering.enabled) return original;
         if (drifting) return original;
-        if (input.steering != 0) return MomentumConfig.gameplay().steering.rampRate;
-        return MomentumConfig.gameplay().steering.centerRate;
+        var settings = momentum$drivingSettings();
+        if (input.steering != 0) return settings.rampRate();
+        return settings.centerRate();
     }
 
     // ── Speed-based understeer ────────────────────────────────────────────────
@@ -320,17 +476,22 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
         index = 2
     )
     private float momentum$applyUndersteer(float target) {
-        if (!MomentumConfig.gameplay().enabled) return target;
-        if (!MomentumConfig.gameplay().steering.enabled) return target;
+        var config = momentum$drivingConfig();
+        if (!config.enabled) return target;
+        if (!config.steering.enabled) return target;
         if (drifting || momentum$arcadeDriftActive || momentum$responsiveDriftActive) return target;
-        MomentumConfig.Steering s = MomentumConfig.gameplay().steering;
-        float speedCurved = (float) Math.pow(Math.abs(hSpeed), s.understeerCurve);
-        return target / (1f + s.understeer * speedCurved);
+        var settings = momentum$drivingSettings();
+        float speedCurved = (float) Math.pow(Math.abs(hSpeed), settings.understeerCurve());
+        return target / (1f + settings.understeer() * speedCurved);
     }
 
     @Inject(method = "postMovementTick", at = @At("HEAD"))
     private void momentum$cancelCruiseOnImpact(CallbackInfo ci) {
-        if (!MomentumConfig.gameplay().enabled || !MomentumConfig.gameplay().cruise.enabled) return;
+        Entity impactSelf = (Entity) (Object) this;
+        if (!impactSelf.level().isClientSide() && (touchingWall || hadVehicleCollision > 0))
+            io.github.milkucha.momentum.network.CruiseMotorServer.cancelOnImpact(
+                    (AutomobileEntity) (Object) this, Math.abs(hSpeed) * 72f);
+        if (!MomentumCruiseControl.isEnabled()) return;
         Entity self = (Entity) (Object) this;
         if (!self.level().isClientSide()) return;
         if (!(self.getControllingPassenger() instanceof Player player) || !player.isLocalPlayer()) return;
@@ -356,7 +517,11 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
      */
     @Inject(method = "driftingTick", at = @At("HEAD"), cancellable = true)
     private void momentum$vanillaDriftTick(CallbackInfo ci) {
-        if (!MomentumConfig.gameplay().enabled) return;
+        momentum$bindCoreReleaseDriver();
+        boolean enabled = MomentumConfig.gameplay().enabled;
+        boolean coreRelease = momentum$coreReleaseHandoff.beforeDriftTick(
+                enabled, drifting, prevHoldDrift, input.holdingDrift);
+        if (!enabled) return;
         ci.cancel();
 
         boolean driftHeld = momentum$vanillaDriftKey();
@@ -370,17 +535,18 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
             if (canDrift) {
                 setDrifting(true);
                 driftDir = steering > 0 ? 1 : -1;
-                engineSpeed -= 0.028f * engineSpeed;
+                if (!momentum$externalDrive()) engineSpeed -= 0.028f * engineSpeed;
             }
         }
 
         if (drifting) {
             if (mcOnGnd) createDriftParticles();
 
-            if (prevDrift && !driftHeld) {
-                // Falling edge: drift key released → end drift and grant turbo boost
+            if (momentum$coreReleaseHandoff.coreOwnsRelease() ? coreRelease : prevDrift && !driftHeld) {
+                // An old Core drift waits for its own real release, not a mapped-key edge.
                 setDrifting(false);
-                consumeTurboCharge();
+                if (momentum$externalDrive()) turboCharge = 0;
+                else consumeTurboCharge();
             } else if (hSpeed < 0.33f) {
                 // Too slow: drift cancelled, no boost
                 setDrifting(false);
@@ -393,6 +559,10 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
         }
 
         momentum$prevDriftKeyHeld = driftHeld;
+        // Core must see its own held/released edge when its original body resumes.
+        // Never alias this latch to Momentum's independently configurable key.
+        prevHoldDrift = input.holdingDrift;
+        momentum$coreReleaseHandoff.afterDriftTick(drifting);
     }
 
     // ── Arcade Drift ──────────────────────────────────────────────────────────
@@ -476,7 +646,8 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
                     : arcadeCfg.slipDecay;
                 momentum$arcadeDriftOffset = AUtils.zero(momentum$arcadeDriftOffset, kDecay);
                 if (Math.abs(momentum$arcadeDriftOffset) < 0.5f) {
-                    if (arcadeCfg.boostEnabled && momentum$arcadeDriftTimer >= arcadeCfg.minTicks) {
+                    if (!momentum$externalDrive() && ((AutomobileEntity) (Object) this).engineRunning()
+                            && arcadeCfg.boostEnabled && momentum$arcadeDriftTimer >= arcadeCfg.minTicks) {
                         engineSpeed += arcadeCfg.boost;
                         boost(0.23f, arcadeCfg.boostDuration);
                     }
@@ -586,7 +757,8 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
                     : cfg.slipDecay;
                 momentum$responsiveDriftOffset = AUtils.zero(momentum$responsiveDriftOffset, mDecay);
                 if (Math.abs(momentum$responsiveDriftOffset) < 0.5f) {
-                    if (cfg.boostEnabled && momentum$responsiveDriftTimer >= cfg.minTicks) {
+                    if (!momentum$externalDrive() && ((AutomobileEntity) (Object) this).engineRunning()
+                            && cfg.boostEnabled && momentum$responsiveDriftTimer >= cfg.minTicks) {
                         engineSpeed += cfg.boost;
                         boost(0.23f, cfg.boostDuration);
                     }
@@ -625,13 +797,15 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
      */
     @Inject(method = "movementTick", at = @At("RETURN"))
     private void momentum$applyResponsiveBrake(CallbackInfo ci) {
-        if (!MomentumConfig.gameplay().enabled) return;
-        if (!MomentumConfig.gameplay().movement.enabled) return;
-        if (!MomentumConfig.gameplay().responsiveDrift.brakeEnabled) return;
+        if (momentum$externalDrive()) return;
+        var config = momentum$drivingConfig();
+        if (!config.enabled) return;
+        if (!config.movement.enabled) return;
+        if (!config.responsiveDrift.brakeEnabled) return;
         if (!momentum$responsiveDriftKey()) return;
         if (momentum$responsiveDriftActive) return;
         if (drifting) return;
-        float decay = MomentumConfig.gameplay().movement.brakeDecay;
+        float decay = momentum$drivingSettings().brakeDecay();
         engineSpeed = Math.max(engineSpeed - decay, 0f);
     }
 
@@ -640,23 +814,22 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
      */
     @Inject(method = "movementTick", at = @At("RETURN"))
     private void momentum$applyArcadeBrake(CallbackInfo ci) {
-        if (!MomentumConfig.gameplay().enabled) return;
-        if (!MomentumConfig.gameplay().movement.enabled) return;
-        if (!MomentumConfig.gameplay().arcadeDrift.brakeEnabled) return;
+        if (momentum$externalDrive()) return;
+        var config = momentum$drivingConfig();
+        if (!config.enabled) return;
+        if (!config.movement.enabled) return;
+        if (!config.arcadeDrift.brakeEnabled) return;
         if (!momentum$arcadeDriftKey()) return;
         if (momentum$arcadeDriftActive) return;
         if (momentum$responsiveDriftActive) return;
         if (drifting) return;
-        float decay = MomentumConfig.gameplay().movement.brakeDecay;
+        float decay = momentum$drivingSettings().brakeDecay();
         engineSpeed = Math.max(engineSpeed - decay, 0f);
     }
 
     // ── Brake ────────────────────────────────────────────────────────────────
 
-    /**
-     * Intercepts the `back` parameter of provideClientInput and forces it to false
-     * when Momentum is enabled.
-     */
+    /** Adjust cruise input without discarding the player's raw brake/reverse pedal. */
     @Inject(method = "provideClientInput", at = @At("HEAD"), cancellable = true)
     private void momentum$applyCruiseControlInput(boolean fwd, boolean back, boolean left, boolean right, boolean space, boolean ctrl, CallbackInfo ci) {
         MomentumCruiseControl.AdjustedInput adjusted = MomentumCruiseControl.adjustInput(
@@ -665,33 +838,44 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
         );
         if (adjusted == null) return;
 
-        if (this.input.setDigitalInputs(
+        boolean changed = this.input.setDigitalInputs(
                 adjusted.fwd(),
                 adjusted.back(),
                 adjusted.left(),
                 adjusted.right(),
                 adjusted.space(),
                 adjusted.ctrl()
-        )) {
+        );
+        boolean republish = io.github.milkucha.momentum.network.CruiseMotorClient.consumeInputResync(
+                (AutomobileEntity) (Object) this);
+        if (changed || republish) {
             ClientPackets.sendServerboundAutomobileSyncPacket((AutomobileEntity) (Object) this);
         }
         ci.cancel();
     }
 
-    @ModifyVariable(
-        method = "provideClientInput",
-        at = @At("HEAD"),
-        index = 2,
-        remap = false
-    )
-    private boolean momentum$suppressVanillaBackInput(boolean back) {
-        if (!MomentumConfig.gameplay().enabled) return back;
-        if (!MomentumConfig.gameplay().movement.enabled) return back;
-        return false;
+    @Inject(method = "provideClientInput", at = @At("RETURN"))
+    private void momentum$republishAfterCruiseWithdrawal(boolean fwd, boolean back, boolean left,
+            boolean right, boolean space, boolean ctrl, CallbackInfo ci) {
+        if (io.github.milkucha.momentum.network.CruiseMotorClient.consumeInputResync(
+                (AutomobileEntity) (Object) this))
+            ClientPackets.sendServerboundAutomobileSyncPacket((AutomobileEntity) (Object) this);
     }
 
     /**
-     * Suppresses Automobility's own braking decay while Momentum is enabled.
+     * The base entity owns the reverse-release latch for all engines. Supply only the
+     * separate brake binding before it samples raw intent; handbrake/drift never
+     * count as a brake-pedal release or a request for reverse.
+     */
+    @Inject(method = "prepareReverseBrakeIntent", at = @At("HEAD"))
+    private void momentum$provideAdditionalBrakeIntent(CallbackInfo ci) {
+        var config = momentum$drivingConfig();
+        ((AutomobileEntity) (Object) this).setAdditionalBrakeInput(
+                momentum$brake(), config.enabled && config.movement.enabled);
+    }
+
+    /**
+     * Selects ordinary Original braking; Extended continues to own its configured decay.
      */
     @Redirect(
         method = "movementTick",
@@ -699,26 +883,120 @@ public abstract class AutomobileEntityMixin implements SteeringDebugAccessor {
             value = "INVOKE",
             target = "Ljava/lang/Math;max(FF)F",
             ordinal = 3
-        )
+        ),
+        require = 1
     )
     private float momentum$suppressVanillaBrakeDecay(float a, float b) {
-        if (!MomentumConfig.gameplay().enabled) return Math.max(a, b);
-        if (!MomentumConfig.gameplay().movement.enabled) return Math.max(a, b);
+        float proposed = momentum$limitOrdinaryReverse((AutomobileEntity) (Object) this, Math.max(a, b), b);
+        if (momentum$externalDrive()) return proposed;
+        var config = momentum$drivingConfig();
+        if (!config.enabled) {
+            var automobile = (AutomobileEntity) (Object) this;
+            boolean unsafe = drifting || input.holdingDrift || momentum$driftKey()
+                    || momentum$arcadeDriftActive || momentum$responsiveDriftActive
+                    || Math.abs(momentum$arcadeDriftOffset) >= 0.01f
+                    || Math.abs(momentum$responsiveDriftOffset) >= 0.01f;
+            return io.github.milkucha.momentum.OriginalBrakePolicy.runningResult(
+                    proposed, engineSpeed, b, automobile.burningOut(),
+                    input.accelerating, input.braking, automobile.rawBrakePedalHeld(), unsafe);
+        }
+        if (!config.movement.enabled) return proposed;
         return engineSpeed;  // no-op: Momentum's @Inject at RETURN owns braking
     }
 
+    // The adjacent engine-off branch also belongs to Momentum. Suppressing only
+    // ordinal 3 leaves a vanilla .15 decay followed by Momentum's configured decay.
+    @Redirect(method = "movementTick",
+            at = @At(value = "INVOKE", target = "Ljava/lang/Math;max(FF)F", ordinal = 4),
+            require = 1)
+    private float momentum$suppressVanillaStoppedEngineBrakeDecay(float a, float b) {
+        if (drifting || !momentum$drivingConfig().enabled) return Math.max(a, b);
+        return momentum$suppressVanillaBrakeDecay(a, b);
+    }
+
     /**
-     * Applies linear braking directly to engineSpeed at the end of movementTick,
-     * using MomentumBrakeState.brakeHeld as the source of truth.
+     * Applies the configured decay to the core's raw pedal intent and braking floor.
+     * Holding the brake through a forward stop therefore cannot create reverse
+     * propulsion; a distinct pedal release is required before the floor is negative.
      */
     @Inject(method = "movementTick", at = @At("RETURN"))
     private void momentum$applyBrake(CallbackInfo ci) {
-        if (!MomentumConfig.gameplay().enabled) return;
-        if (!MomentumConfig.gameplay().movement.enabled) return;
-        if (!momentum$brake()) return;
+        if (momentum$externalDrive()) return;
+        var config = momentum$drivingConfig();
+        if (!config.enabled) return;
+        if (!config.movement.enabled) return;
+        var automobile = (AutomobileEntity) (Object) this;
+        if (!automobile.rawBrakePedalHeld()) return;
         if (drifting) return;  // braking reduces hSpeed which would cancel the drift
-        float decay = MomentumConfig.gameplay().movement.brakeDecay;
-        engineSpeed = Math.max(engineSpeed - decay, -0.25f);
+        var frameId = automobile.getEntityData().get(FRAME_TYPE).unwrapKey().map(key -> key.identifier()).orElse(null);
+        float decay = PedalBrakePolicy.decay(engineSpeed, momentum$drivingSettings().brakeDecay(),
+                config.movement.forwardPedalScale, config.movement.vehiclePedalBalance,
+                frameId == null ? null : frameId.getNamespace(), frameId == null ? null : frameId.getPath());
+        float floor = automobile.brakingSpeedFloor();
+        engineSpeed = momentum$limitOrdinaryReverse(automobile, Math.max(engineSpeed - decay, floor), floor);
+    }
+
+    @Unique
+    private float momentum$limitOrdinaryReverse(AutomobileEntity automobile, float proposed, float floor) {
+        if (engineSpeed > 0 || proposed >= engineSpeed || floor >= 0) return proposed;
+        boolean unsafe = drifting || input.holdingDrift || momentum$driftKey()
+                || momentum$arcadeDriftActive || momentum$responsiveDriftActive
+                || Math.abs(momentum$arcadeDriftOffset) >= .01f || Math.abs(momentum$responsiveDriftOffset) >= .01f;
+        boolean ordinary = automobile.engineRunning() && automobile.rawBrakePedalHeld()
+                && !input.accelerating && !unsafe && !automobile.burningOut();
+        return io.github.milkucha.momentum.ReverseAccelerationPolicy.constrain(engineSpeed, proposed, floor,
+                io.github.milkucha.momentum.network.ReverseDriveCapability.negotiated(automobile), ordinary);
+    }
+
+    /** Normal backward pedal is not a deliberate W+S burnout in either driving model.
+     * Keep active burnout cleanup and every drift/handbrake/external path in Core.
+     */
+    @Inject(method = "burnoutTick", at = @At("HEAD"), cancellable = true, require = 1)
+    private void momentum$keepNormalPedalOutOfBurnout(CallbackInfo ci) {
+        var automobile = (AutomobileEntity) (Object) this;
+        boolean unsafe = drifting || input.holdingDrift || momentum$driftKey()
+                || momentum$arcadeDriftActive || momentum$responsiveDriftActive
+                || Math.abs(momentum$arcadeDriftOffset) >= 0.01f
+                || Math.abs(momentum$responsiveDriftOffset) >= 0.01f;
+        if (io.github.milkucha.momentum.BurnoutBrakePolicy.suppressStart(
+                true, momentum$externalDrive(),
+                automobile.burningOut(), input.accelerating, input.braking,
+                automobile.rawBrakePedalHeld(), hSpeed, unsafe)) {
+            ci.cancel();
+        }
+    }
+
+    @Unique
+    private boolean momentum$externalDrive() {
+        return ExternalEngineDriveApi.ownsDrive((AutomobileEntity) (Object) this);
+    }
+
+    @Unique @Override public Holder<AutomobileEngine> momentum$driveEngine() {
+        return ((AutomobileEntity) (Object) this).getEntityData().get(ENGINE_TYPE);
+    }
+
+    @Unique @Override public ExternalEngineDriveApi.DriveState momentum$externalDriveState() {
+        var self = (AutomobileEntity) (Object) this;
+        var passenger = self.getFirstPassenger();
+        var attachment = self.getFrontAttachment();
+        boolean driver = self.isDriving(passenger)
+                || (attachment != null && attachment.isProvidingAlternativeInputs(self, passenger));
+        var config = momentum$drivingConfig();
+        boolean enabled = config.enabled && config.movement.enabled;
+        boolean driftKey = driver && momentum$driftKey();
+        boolean handbrake = enabled && driftKey && !drifting
+                && ((config.oDrift.profile == MomentumConfig.ODrift.Profile.RESPONSIVE
+                        && config.responsiveDrift.brakeEnabled && !momentum$responsiveDriftActive)
+                    || (config.oDrift.profile == MomentumConfig.ODrift.Profile.ARCADE
+                        && config.arcadeDrift.brakeEnabled && !momentum$arcadeDriftActive
+                        && !momentum$responsiveDriftActive));
+        boolean unsafe = driftKey || drifting
+                || momentum$arcadeDriftActive || momentum$responsiveDriftActive
+                || Math.abs(momentum$arcadeDriftOffset) >= 0.01f
+                || Math.abs(momentum$responsiveDriftOffset) >= 0.01f;
+        var settings = momentum$drivingSettings();
+        return new ExternalEngineDriveApi.DriveState(enabled,
+                settings.coastDecay(), settings.brakeDecay(), driver && momentum$brake(), handbrake, unsafe);
     }
 
     // ── Debug accessors (SteeringDebugAccessor) ───────────────────────────────

@@ -108,7 +108,9 @@ public abstract class AutomobileComponentItem<T extends AutomobileComponent<T>, 
             registries.lookupOrThrow(registryKey).listElements().forEach(ref ->
                     ref.unwrapKey().ifPresent(key -> {
                         var component = ref.value();
-                        if (addToCreative(component)) output.accept(this.createStack(key));
+                        if (addToCreative(component) && NewVehicleContent.allows(registryKey.identifier(), key.identifier())) {
+                            output.accept(this.createStack(key));
+                        }
                     }));
         }
     }

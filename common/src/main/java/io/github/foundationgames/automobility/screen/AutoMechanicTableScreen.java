@@ -21,11 +21,9 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 public class AutoMechanicTableScreen extends AbstractContainerScreen<AutoMechanicTableScreenHandler> {
     private static final Identifier TEXTURE = Automobility.rl("textures/gui/container/auto_mechanic_table.png");
@@ -239,11 +237,7 @@ public class AutoMechanicTableScreen extends AbstractContainerScreen<AutoMechani
     }
 
     protected List<RecipeEntry> getRecipeList() {
-        if (this.currentCategory < this.orderedCategories.size() && this.currentCategory >= 0) {
-            return Objects.requireNonNullElseGet(this.recipes.get(this.orderedCategories.get(this.currentCategory)), Collections::emptyList);
-        }
-
-        return Collections.emptyList();
+        return RecipeCategoryLookup.entries(this.recipes, this.orderedCategories, this.currentCategory);
     }
 
     protected int getHoveredCategoryButton(int mouseX, int mouseY) {
@@ -275,8 +269,8 @@ public class AutoMechanicTableScreen extends AbstractContainerScreen<AutoMechani
 
             if (row >= 0 && col >= 0) {
                 int idx = (5 * (row + this.recipeScroll)) + col;
-                var recipes = this.recipes.get(this.orderedCategories.get(this.currentCategory));
-                if (idx < recipes.size()) {
+                var recipes = this.getRecipeList();
+                if (idx >= 0 && idx < recipes.size()) {
                     return recipes.get(idx).id();
                 }
 

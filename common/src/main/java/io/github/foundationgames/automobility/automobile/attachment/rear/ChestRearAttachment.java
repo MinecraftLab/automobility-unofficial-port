@@ -27,7 +27,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.function.BiFunction;
 
-public class ChestRearAttachment extends BaseChestRearAttachment implements Container, MenuProvider {
+public class ChestRearAttachment extends BaseChestRearAttachment implements Container, MenuProvider,
+        io.github.foundationgames.automobility.util.duck.VehicleCargoAccess {
     private NonNullList<ItemStack> inventory;
 
     public ChestRearAttachment(RearAttachmentType<?> type, AutomobileEntity entity, BlockState block, @Nullable BiFunction<ContainerLevelAccess, BlockRearAttachment, MenuProvider> screenProvider) {
@@ -84,7 +85,8 @@ public class ChestRearAttachment extends BaseChestRearAttachment implements Cont
 
     @Override
     public boolean stillValid(Player player) {
-        return AttachmentMenuValidity.isValid(
+        return io.github.foundationgames.automobility.automobile.access.VehicleInventoryAccess.mayUse(this.automobile(), player)
+                && AttachmentMenuValidity.isValid(
                 this.wasRemoved(),
                 this.automobile().isAlive(),
                 player.level() == this.automobile().level(),
@@ -92,6 +94,8 @@ public class ChestRearAttachment extends BaseChestRearAttachment implements Cont
                 player.distanceToSqr(this.automobile())
         );
     }
+
+    @Override public boolean automobility$mayUseCargo(Player player) { return stillValid(player); }
 
     @Override
     public Component getDisplayName() {
@@ -101,6 +105,7 @@ public class ChestRearAttachment extends BaseChestRearAttachment implements Cont
     @Nullable
     @Override
     public AbstractContainerMenu createMenu(int syncId, Inventory inv, Player player) {
+        if (!stillValid(player)) return null;
         return ChestMenu.threeRows(syncId, inv, this);
     }
 

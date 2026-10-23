@@ -30,6 +30,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public enum AutomobilityBlocks {;
+    public static final Eventual<Block> GARAGE = register("garage", key -> new GarageBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).setId(key)), Automobility.TAB);
     public static final Eventual<Block> AUTO_MECHANIC_TABLE = register("auto_mechanic_table", key -> new AutoMechanicTableBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.COPPER_BLOCK.weathering().unaffected()).setId(key)), Automobility.TAB);
     public static final Eventual<Block> AUTOMOBILE_ASSEMBLER = register("automobile_assembler", key -> new AutomobileAssemblerBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.ANVIL).setId(key)), Automobility.TAB);
     public static final Eventual<Block> AUTOPILOT_SIGN = register("autopilot_sign", key -> new AutopilotSignBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_TRAPDOOR)

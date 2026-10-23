@@ -47,6 +47,10 @@ public class AutomobileItem extends Item implements CustomCreativeOutput {
             var engine = context.getLevel().registryAccess().lookupOrThrow(AutomobileEngine.REGISTRY).get(data.engine())
                     .map(r -> (Holder<AutomobileEngine>)r).orElseGet(() -> Holder.direct(AutomobileEngine.EMPTY));
             e.setComponents(frame, wheel, engine);
+            e.setVehicleLightMode(data.lightMode());
+            e.setVehicleSignalAutoCancelEnabled(data.signalAutoCancel());
+            e.setVehicleComfortSignalsEnabled(data.comfortSignals());
+            e.setVehicleLockSignalConfirmationEnabled(false);
 
             context.getLevel().addFreshEntity(e);
             stack.shrink(1);
@@ -77,7 +81,7 @@ public class AutomobileItem extends Item implements CustomCreativeOutput {
     @Override
     public void provideCreativeOutput(Consumer<ItemStack> output, HolderLookup.Provider registries) {
         for (var prefab : PREFABS) {
-            output.accept(prefab.asStack());
+            if (NewVehicleContent.allowsPrefab(prefab, registries)) output.accept(prefab.asStack());
         }
     }
 }

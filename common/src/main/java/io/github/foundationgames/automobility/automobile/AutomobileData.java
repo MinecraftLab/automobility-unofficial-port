@@ -2,6 +2,7 @@ package io.github.foundationgames.automobility.automobile;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.github.foundationgames.automobility.automobile.light.VehicleLightMode;
 import io.github.foundationgames.automobility.item.AutomobilityItems;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -22,7 +23,32 @@ import java.util.function.Consumer;
 public record AutomobileData(Optional<Identifier> prefabName,
                              ResourceKey<AutomobileFrame> frame,
                              ResourceKey<AutomobileWheel> wheel,
-                             ResourceKey<AutomobileEngine> engine) implements TooltipProvider {
+                             ResourceKey<AutomobileEngine> engine,
+                             VehicleLightMode lightMode, boolean signalAutoCancel,
+                             boolean comfortSignals, boolean lockSignalConfirmation) implements TooltipProvider {
+    public AutomobileData {
+        // The field remains in old addon/item schemas, but cannot restore the removed effect.
+        lockSignalConfirmation = false;
+    }
+
+    public AutomobileData(Optional<Identifier> prefabName, ResourceKey<AutomobileFrame> frame,
+                          ResourceKey<AutomobileWheel> wheel, ResourceKey<AutomobileEngine> engine,
+                          VehicleLightMode lightMode, boolean signalAutoCancel) {
+        this(prefabName, frame, wheel, engine, lightMode, signalAutoCancel, true, false);
+    }
+
+    public AutomobileData(Optional<Identifier> prefabName, ResourceKey<AutomobileFrame> frame,
+                          ResourceKey<AutomobileWheel> wheel, ResourceKey<AutomobileEngine> engine,
+                          VehicleLightMode lightMode) {
+        this(prefabName, frame, wheel, engine, lightMode, true);
+    }
+
+    /** Legacy addon constructors and the item prototype retain their OFF default. */
+    public AutomobileData(Optional<Identifier> prefabName, ResourceKey<AutomobileFrame> frame,
+                          ResourceKey<AutomobileWheel> wheel, ResourceKey<AutomobileEngine> engine) {
+        this(prefabName, frame, wheel, engine, VehicleLightMode.OFF);
+    }
+
     public static final AutomobileData DEFAULT = new AutomobileData(
             Optional.empty(),
             AutomobileFrame.STANDARD_WHITE,
@@ -34,7 +60,11 @@ public record AutomobileData(Optional<Identifier> prefabName,
             Identifier.CODEC.optionalFieldOf("prefab_id").forGetter(AutomobileData::prefabName),
             AutomobileFrame.CODEC.fieldOf("frame").forGetter(AutomobileData::frame),
             AutomobileWheel.CODEC.fieldOf("wheels").forGetter(AutomobileData::wheel),
-            AutomobileEngine.CODEC.fieldOf("engine").forGetter(AutomobileData::engine)
+            AutomobileEngine.CODEC.fieldOf("engine").forGetter(AutomobileData::engine),
+            VehicleLightMode.CODEC.optionalFieldOf("light_mode", VehicleLightMode.OFF).forGetter(AutomobileData::lightMode),
+            Codec.BOOL.optionalFieldOf("signal_auto_cancel", true).forGetter(AutomobileData::signalAutoCancel),
+            Codec.BOOL.optionalFieldOf("comfort_signals", true).forGetter(AutomobileData::comfortSignals),
+            Codec.BOOL.optionalFieldOf("lock_signal_confirmation", false).forGetter(AutomobileData::lockSignalConfirmation)
     ).apply(inst, AutomobileData::new));
 
     private static final AutomobileStats stats = new AutomobileStats();
@@ -43,7 +73,33 @@ public record AutomobileData(Optional<Identifier> prefabName,
                                         ResourceKey<AutomobileFrame> frame,
                                         ResourceKey<AutomobileWheel> wheel,
                                         ResourceKey<AutomobileEngine> engine) {
-        return new AutomobileData(Optional.of(prefabName), frame, wheel, engine);
+        return prefab(prefabName, frame, wheel, engine, VehicleLightMode.OFF);
+    }
+
+    public static AutomobileData prefab(Identifier prefabName,
+                                        ResourceKey<AutomobileFrame> frame,
+                                        ResourceKey<AutomobileWheel> wheel,
+                                        ResourceKey<AutomobileEngine> engine,
+                                        VehicleLightMode lightMode) {
+        return new AutomobileData(Optional.of(prefabName), frame, wheel, engine, lightMode);
+    }
+
+    public static AutomobileData prefab(Identifier prefabName,
+                                        ResourceKey<AutomobileFrame> frame,
+                                        ResourceKey<AutomobileWheel> wheel,
+                                        ResourceKey<AutomobileEngine> engine,
+                                        VehicleLightMode lightMode, boolean signalAutoCancel) {
+        return new AutomobileData(Optional.of(prefabName), frame, wheel, engine, lightMode, signalAutoCancel);
+    }
+
+    public static AutomobileData prefab(Identifier prefabName,
+                                        ResourceKey<AutomobileFrame> frame,
+                                        ResourceKey<AutomobileWheel> wheel,
+                                        ResourceKey<AutomobileEngine> engine,
+                                        VehicleLightMode lightMode, boolean signalAutoCancel,
+                                        boolean comfortSignals, boolean lockSignalConfirmation) {
+        return new AutomobileData(Optional.of(prefabName), frame, wheel, engine, lightMode,
+                signalAutoCancel, comfortSignals, lockSignalConfirmation);
     }
 
     public ItemStack asStack() {

@@ -2,13 +2,17 @@ package io.github.milkucha.momentum;
 
 import io.github.foundationgames.automobility.entity.AutomobileEntity;
 import io.github.foundationgames.automobility.platform.Platform;
+import io.github.foundationgames.automobility.client.vehicle.GarageTestDriveClient;
 import io.github.milkucha.momentum.accessor.SteeringDebugAccessor;
 import io.github.milkucha.momentum.config.MomentumConfig;
 import io.github.milkucha.momentum.hud.BarHud;
-import io.github.milkucha.momentum.input.LegacyKeyCodes;
 import io.github.milkucha.momentum.network.KeyStatePacket;
 import io.github.milkucha.momentum.network.GameplayConfigPacket;
 import io.github.milkucha.momentum.network.VehicleInputPacket;
+import io.github.milkucha.momentum.network.ClientPhysicsSession;
+import io.github.milkucha.momentum.network.PhysicsContract;
+import io.github.milkucha.momentum.network.PhysicsHelloPacket;
+import io.github.milkucha.momentum.network.PhysicsStatusPacket;
 import io.github.milkucha.momentum.sound.BrakingSkidSound;
 import io.github.milkucha.momentum.sound.ArcadeDriftSkidSound;
 import io.github.milkucha.momentum.sound.ResponsiveDriftSkidSound;
@@ -34,10 +38,9 @@ public class MomentumClient implements ClientModInitializer {
             KeyMapping.Category.register(Identifier.fromNamespaceAndPath("momentum", "momentum"));
 
     // ── Registered KeyBindings ────────────────────────────────────────────────
-    // NOTE: Brake and Drift keys are NOT registered as Minecraft KeyBindings.
-    // Persisted legacy GLFW codes are translated to SDL scancodes at the input boundary.
-    // This avoids Fabric's key conflict suppression in multiplayer - registering
-    // them on Space/S would interfere with vanilla Jump and Move Backwards.
+    // The target KeyMapping MAP stores a list for each physical key (SDK-audited).
+    // Brake/drift therefore share S/Space without replacing vanilla Back/Jump.
+    // Runtime shared-key dispatch and saved remaps remain target acceptance checks.
 
     // ── Tick state ────────────────────────────────────────────────────────────
 
@@ -51,48 +54,103 @@ public class MomentumClient implements ClientModInitializer {
     private float   reverseYawOffset       = 0f;
     private float   brakeZoomVelocity      = 0f;
     private float   prevHSpeed             = 0f;
+    private AutomobileEntity brakeZoomVehicle;
+    private Object brakeZoomLevel;
+    private boolean brakeZoomComfort;
+    private float brakeZoomMaximum;
 
     // Last key-state snapshot sent to the server; used to send only on changes.
     private boolean pktBrake = false;
     private boolean pktDrift = false;
     private boolean forceKeyStatePacket = true;
+    private boolean compatibilityWarningShown;
 
     @Override
     public void onInitializeClient() {
         MomentumConfig.get();
+        io.github.milkucha.momentum.network.CruiseMotorClient.initialize();
+        ClientPlayNetworking.registerGlobalReceiver(io.github.milkucha.momentum.network.ReverseDriveCapability.TYPE, (payload, context) -> {});
+        io.github.milkucha.momentum.network.ReverseDriveCapability.installClient(car -> {
+            var client = Minecraft.getInstance();
+            return client.player != null && client.player.isAlive() && client.getConnection() != null
+                    && client.level == car.level() && client.player.getVehicle() == car && car.isDriving(client.player)
+                    && ClientPlayNetworking.canSend(io.github.milkucha.momentum.network.ReverseDriveCapability.TYPE);
+        });
+        io.github.milkucha.momentum.hud.MomentumHudContributor.register();
 
-        ClientPlayNetworking.registerGlobalReceiver(GameplayConfigPacket.TYPE, (payload, context) -> {
-            if (payload.protocolVersion() != GameplayConfigPacket.PROTOCOL_VERSION) {
-                Momentum.LOGGER.warn("Ignoring unsupported Momentum gameplay config protocol {}", payload.protocolVersion());
-                return;
+        ClientPlayConnectionEvents.INIT.register((handler, client) -> {
+            MomentumConfig.clearServerGameplayConfig();
+            if (client.hasSingleplayerServer()) ClientPhysicsSession.endSession();
+            else ClientPhysicsSession.beginRemoteSession();
+            MomentumCruiseControl.clearSession();
+            MomentumBrakeState.sampleInput(false, false);
+            MomentumDriftState.driftKeyHeld = false;
+            pktBrake = false; pktDrift = false; forceKeyStatePacket = true;
+            compatibilityWarningShown = false;
+        });
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            if (!client.hasSingleplayerServer()) {
+                ClientPhysicsSession.setServerHasMomentum(ClientPlayNetworking.canSend(KeyStatePacket.TYPE));
+                if (ClientPlayNetworking.canSend(PhysicsHelloPacket.TYPE)) {
+                    ClientPlayNetworking.send(new PhysicsHelloPacket(PhysicsContract.REVISION, ClientPhysicsSession.nonce()));
+                }
             }
+        });
+        ClientPlayNetworking.registerGlobalReceiver(PhysicsStatusPacket.TYPE, (payload, context) -> {
+            var connection = context.client().getConnection();
             context.client().execute(() -> {
-                if (context.client().hasSingleplayerServer()) {
-                    MomentumConfig.clearServerGameplayConfig();
-                } else {
-                    MomentumConfig.applyServerGameplayConfig(payload.json());
+                if (connection == null || context.client().getConnection() != connection) return;
+                ClientPhysicsSession.receiveStatus(payload.revision(), payload.nonce(), payload.accepted());
+                if (!ClientPhysicsSession.physicsAllowed(MomentumConfig.hasServerGameplayConfig())) {
+                    MomentumCruiseControl.clearSession();
+                    MomentumBrakeState.sampleInput(false, false);
+                    MomentumDriftState.driftKeyHeld = false;
                 }
             });
         });
-        ClientPlayNetworking.registerGlobalReceiver(VehicleInputPacket.TYPE, (payload, context) ->
-                context.client().execute(() -> {
-                    if (context.client().level != null
+
+        ClientPlayNetworking.registerGlobalReceiver(GameplayConfigPacket.TYPE, (payload, context) -> {
+            var connection = context.client().getConnection();
+            context.client().execute(() -> {
+                if (connection == null || context.client().getConnection() != connection) return;
+                if (payload.protocolVersion() != GameplayConfigPacket.PROTOCOL_VERSION) {
+                    Momentum.LOGGER.warn("Ignoring unsupported Momentum gameplay config protocol {}", payload.protocolVersion());
+                    rejectServerGameplayConfig();
+                } else if (context.client().hasSingleplayerServer()) {
+                    MomentumConfig.clearServerGameplayConfig();
+                } else if (!MomentumConfig.applyServerGameplayConfig(payload.json())) {
+                    rejectServerGameplayConfig();
+                }
+            });
+        });
+        ClientPlayNetworking.registerGlobalReceiver(VehicleInputPacket.TYPE, (payload, context) -> {
+            var connection = context.client().getConnection();
+            context.client().execute(() -> {
+                    if (connection == null || context.client().getConnection() != connection) return;
+                    if (ClientPhysicsSession.physicsAllowed(MomentumConfig.hasServerGameplayConfig())
+                            && context.client().level != null
                             && context.client().level.getEntity(payload.entityId()) instanceof AutomobileEntity automobile) {
                         ((SteeringDebugAccessor) automobile).momentum$setRemoteInputState(payload.brake(), payload.drift());
                     }
-                }));
+                });
+        });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            ClientPhysicsSession.endSession();
             MomentumConfig.clearServerGameplayConfig();
+            BarHud.resetSpeedDisplay();
             MomentumCruiseControl.clearSession();
-            MomentumBrakeState.brakeHeld = false;
+            MomentumBrakeState.sampleInput(false, false);
             MomentumDriftState.driftKeyHeld = false;
             pktBrake = false;
             pktDrift = false;
             forceKeyStatePacket = true;
+            compatibilityWarningShown = false;
         });
 
         // ── KeyBinding registrations ──────────────────────────────────────────
         // These appear in Minecraft's vanilla Controls screen under "Momentum".
+
+        MomentumKeyMappings.initialize(MOMENTUM_CATEGORY);
 
         KeyMapping reloadKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.momentum.reload_config",
@@ -105,8 +163,8 @@ public class MomentumClient implements ClientModInitializer {
         if (FabricLoader.getInstance().isModLoaded("yet_another_config_lib_v3")) {
             openOptionsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                     "key.momentum.open_options",
-                    InputConstants.Type.KEYBOARD,
-                    InputConstants.KEY_PERIOD,
+                    InputConstants.UNKNOWN.getType(),
+                    InputConstants.UNKNOWN.getValue(),
                     MOMENTUM_CATEGORY
             ));
         } else {
@@ -131,10 +189,11 @@ public class MomentumClient implements ClientModInitializer {
                 InputConstants.KEY_PAGEDOWN,
                 MOMENTUM_CATEGORY
         ));
+        boolean irisLoaded = FabricLoader.getInstance().isModLoaded("iris");
         KeyMapping cruiseResumeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.momentum.cruise_resume",
-                InputConstants.Type.KEYBOARD,
-                InputConstants.KEY_R,
+                irisLoaded ? InputConstants.UNKNOWN.getType() : InputConstants.Type.KEYBOARD,
+                irisLoaded ? InputConstants.UNKNOWN.getValue() : InputConstants.KEY_R,
                 MOMENTUM_CATEGORY
         ));
 
@@ -142,8 +201,7 @@ public class MomentumClient implements ClientModInitializer {
 
         HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.fromNamespaceAndPath("momentum", "bar_hud"), (drawContext, tickCounter) -> {
             MomentumConfig cfg = MomentumConfig.get();
-            if (!MomentumConfig.gameplay().enabled) return;
-            if (!cfg.barHud.enabled) return;
+            if (!io.github.milkucha.momentum.hud.MomentumHudContributor.dashboardEnabled()) return;
             float tickDelta = tickCounter.getGameTimeDeltaPartialTick(true);
             BarHud.render(drawContext, tickDelta);
             BarHud.renderDebug(drawContext, tickDelta);
@@ -158,39 +216,64 @@ public class MomentumClient implements ClientModInitializer {
                     && client.player.getVehicle() instanceof AutomobileEntity auto
                     && auto.isDriving(client.player);
 
-            if (locallyDriving && client.gui.screen() == null) {
-                MomentumConfig config = MomentumConfig.get();
+            MomentumCruiseControl.maintainSession(locallyDriving
+                    ? (AutomobileEntity) client.player.getVehicle() : null);
+
+            if (ClientPhysicsSession.physicsAllowed(MomentumConfig.hasServerGameplayConfig())
+                    && locallyDriving && client.gui.screen() == null) {
                 var controller = Platform.get().controller();
-                MomentumBrakeState.brakeHeld = isKeyHeld(config.brakeKey) || controller.braking();
-                MomentumDriftState.driftKeyHeld = isKeyHeld(config.driftKey) || controller.drifting();
+                var pedals = MomentumKeyMappings.pedals(controller.braking(), controller.drifting());
+                boolean enabled = MomentumConfig.gameplay().enabled;
+                MomentumBrakeState.sampleInput(pedals.brake(), enabled);
+                MomentumDriftState.driftKeyHeld = enabled && pedals.drift();
+                MomentumCruiseControl.cancelOnDriverInput(pedals.brake(), pedals.drift());
             } else {
-                MomentumBrakeState.brakeHeld = false;
+                MomentumBrakeState.sampleInput(false, false);
                 MomentumDriftState.driftKeyHeld = false;
             }
 
-            if (!locallyDriving) {
+            if (!locallyDriving) compatibilityWarningShown = false;
+            if (locallyDriving && MomentumConfig.clientDrivingBlocked()
+                    && !compatibilityWarningShown) {
+                client.player.sendOverlayMessage(Component.translatable("momentum.compatibility.driver_required"));
+                compatibilityWarningShown = true;
+            }
+
+            if (!locallyDriving || !MomentumCruiseControl.isEnabled()) {
                 MomentumCruiseControl.clearSession();
             }
 
             // Send key state to server whenever any value changes.
-            boolean nb = MomentumBrakeState.brakeHeld;
+            boolean nb = MomentumBrakeState.rawBrakeHeld;
             boolean nd = MomentumDriftState.driftKeyHeld;
             if (client.getConnection() != null
+                    && ClientPhysicsSession.physicsAllowed(MomentumConfig.hasServerGameplayConfig())
+                    && ClientPlayNetworking.canSend(KeyStatePacket.TYPE)
                     && (forceKeyStatePacket || nb != pktBrake || nd != pktDrift)) {
+                ClientPlayNetworking.send(new KeyStatePacket(nb, nd));
                 pktBrake = nb; pktDrift = nd;
                 forceKeyStatePacket = false;
-                ClientPlayNetworking.send(new KeyStatePacket(nb, nd));
             }
         });
 
         // ── Per-tick effects ──────────────────────────────────────────────────
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            BarHud.updateSpeedDisplay(client);
             MomentumControllerInput.ActionSnapshot controllerActions = MomentumControllerInput.poll();
-            boolean cruisePressed = cruiseKey.consumeClick() || controllerActions.cruiseToggle();
-            boolean cruiseIncreasePressed = cruiseIncreaseKey.consumeClick() || controllerActions.cruiseIncrease();
-            boolean cruiseDecreasePressed = cruiseDecreaseKey.consumeClick() || controllerActions.cruiseDecrease();
-            boolean cruiseResumePressed = cruiseResumeKey.consumeClick() || controllerActions.cruiseResume();
+            boolean cruisePressed = consumeClicks(cruiseKey) > 0 || controllerActions.cruiseToggle();
+            int increaseClicks = Math.max(consumeClicks(cruiseIncreaseKey), controllerActions.cruiseIncrease() ? 1 : 0);
+            int decreaseClicks = Math.max(consumeClicks(cruiseDecreaseKey), controllerActions.cruiseDecrease() ? 1 : 0);
+            boolean cruiseResumePressed = consumeClicks(cruiseResumeKey) > 0 || controllerActions.cruiseResume();
+            boolean garageReturnContext = client.player != null
+                    && client.player.getVehicle() instanceof AutomobileEntity returnCar
+                    && returnCar.isDriving(client.player) && GarageTestDriveClient.matchesVehicle(returnCar);
+            if (!controllerActions.cruiseResume() && !MomentumInputPolicy.allowCruiseResume(garageReturnContext,
+                    MomentumKeyMappings.sameBinding(cruiseResumeKey, GarageTestDriveClient.returnKey()))) {
+                cruiseResumePressed = false;
+            }
+            boolean reloadPressed = consumeClicks(reloadKey) > 0;
+            boolean optionsPressed = consumeClicks(openOptionsKey) > 0;
             if (cruisePressed && client.gui.screen() == null && client.player != null) {
                 if (client.player.getVehicle() instanceof AutomobileEntity auto && auto.isDriving(client.player)) {
                     handleCruiseResult(client, MomentumCruiseControl.toggle(auto), 1.20f);
@@ -206,17 +289,21 @@ public class MomentumClient implements ClientModInitializer {
             if (client.gui.screen() == null && client.player != null
                     && client.player.getVehicle() instanceof AutomobileEntity auto
                     && auto.isDriving(client.player)) {
-                if (cruiseIncreasePressed) {
-                    handleCruiseResult(client, MomentumCruiseControl.adjustTarget(auto, 1), 1.45f);
+                if (increaseClicks > 0) {
+                    MomentumCruiseControl.ActionResult result = null;
+                    for (int click = 0; click < increaseClicks; click++) result = MomentumCruiseControl.adjustTarget(auto, 1);
+                    handleCruiseResult(client, result, 1.45f);
                 }
-                if (cruiseDecreasePressed) {
-                    handleCruiseResult(client, MomentumCruiseControl.adjustTarget(auto, -1), 0.90f);
+                if (decreaseClicks > 0) {
+                    MomentumCruiseControl.ActionResult result = null;
+                    for (int click = 0; click < decreaseClicks; click++) result = MomentumCruiseControl.adjustTarget(auto, -1);
+                    handleCruiseResult(client, result, 0.90f);
                 }
                 if (cruiseResumePressed) {
                     handleCruiseResult(client, MomentumCruiseControl.resume(auto), 1.30f);
                 }
             } else if (client.gui.screen() == null && client.player != null
-                    && (cruiseIncreasePressed || cruiseDecreasePressed || cruiseResumePressed)) {
+                    && (increaseClicks > 0 || decreaseClicks > 0 || cruiseResumePressed)) {
                 handleCruiseResult(client,
                         new MomentumCruiseControl.ActionResult(
                                 MomentumCruiseControl.Action.UNAVAILABLE, 0f, 0f),
@@ -230,30 +317,36 @@ public class MomentumClient implements ClientModInitializer {
                 playCruiseTone(client, 0.70f);
             }
 
-            if (reloadKey.consumeClick() && client.player != null) {
-                MomentumConfig.reload();
-                client.player.sendOverlayMessage(Component.translatable("message.momentum.config_reloaded"));
+            if (reloadPressed && MomentumInputPolicy.allowReload(client.player != null, client.gui.screen() != null)) {
+                MomentumDrivingModelClient.reloadSettings();
             }
-            if (openOptionsKey != null && openOptionsKey.consumeClick()) {
-                client.execute(() -> {
-                    try {
-                        var screenClass = Class.forName("io.github.milkucha.momentum.config.MomentumConfigScreen");
-                        var create = screenClass.getMethod("create", net.minecraft.client.gui.screens.Screen.class);
-                        client.gui.setScreen((net.minecraft.client.gui.screens.Screen) create.invoke(null, client.gui.screen()));
-                    } catch (ReflectiveOperationException | LinkageError e) {
-                        if (client.player != null) {
-                            client.player.sendOverlayMessage(Component.translatable(
-                                    "message.momentum.config_screen_unavailable"));
+            if (optionsPressed) {
+                if (client.player != null && client.player.getVehicle() instanceof AutomobileEntity optionsDriver
+                        && optionsDriver.isDriving(client.player)) {
+                    // Consume saved bindings too; pending clicks must not open options after dismount.
+                } else {
+                    client.execute(() -> {
+                        if (client.player != null && client.player.getVehicle() instanceof AutomobileEntity automobile
+                                && automobile.isDriving(client.player)) return;
+                        try {
+                            var screenClass = Class.forName("io.github.milkucha.momentum.config.MomentumConfigScreen");
+                            var create = screenClass.getMethod("create", net.minecraft.client.gui.screens.Screen.class);
+                            client.gui.setScreen((net.minecraft.client.gui.screens.Screen) create.invoke(null, client.gui.screen()));
+                        } catch (ReflectiveOperationException | LinkageError e) {
+                            if (client.player != null) {
+                                client.player.sendOverlayMessage(Component.translatable(
+                                        "message.momentum.config_screen_unavailable"));
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
 
             if (client.player != null && client.player.getVehicle() instanceof AutomobileEntity auto) {
                 MomentumConfig cfg = MomentumConfig.get();
                 SteeringDebugAccessor accessor = (SteeringDebugAccessor) auto;
 
-                if (!MomentumConfig.gameplay().enabled) {
+                if (!MomentumConfig.presentationEnabled()) {
                     resetTickState();
                     return;
                 }
@@ -283,7 +376,7 @@ public class MomentumClient implements ClientModInitializer {
                 float reverseTarget = reversing ? 180f : 0f;
                 reverseYawOffset += (reverseTarget - reverseYawOffset) * cfg.camera.reverseFlipLerp;
 
-                if (cfg.camera.enabled && cfg.camera.lock) {
+                if (MomentumCameraPolicy.lockActive(MomentumConfig.presentationEnabled(), cfg.camera.enabled, cfg.camera.lock)) {
                     client.player.setYRot(auto.getYRot() + kCameraDriftYawOffset + mCameraDriftYawOffset + steeringTiltOffset + reverseYawOffset);
                     client.player.setXRot(cfg.camera.pitch);
                 }
@@ -297,9 +390,18 @@ public class MomentumClient implements ClientModInitializer {
 
                 // Brake zoom - spring-damper driven by deceleration.
                 float hSpd = accessor.momentum$getHSpeed();
-                float decel = Math.max(0f, prevHSpeed - hSpd);
-                prevHSpeed = hSpd;
-                if (cfg.camera.enabled) {
+                if (cfg.camera.enabled && Float.isFinite(hSpd)) {
+                    boolean sameBaseline = auto == brakeZoomVehicle && client.level == brakeZoomLevel
+                            && brakeZoomComfort == cfg.camera.comfortBrakeZoom
+                            && Float.compare(brakeZoomMaximum, cfg.camera.brakeZoomFov) == 0
+                        && Float.isFinite(prevHSpeed);
+                    if (!sameBaseline) resetBrakeZoom();
+                    float decel = sameBaseline ? BrakeZoomDisplayState.deceleration(prevHSpeed, hSpd) : 0f;
+                    prevHSpeed = hSpd;
+                    brakeZoomVehicle = auto;
+                    brakeZoomLevel = client.level;
+                    brakeZoomComfort = cfg.camera.comfortBrakeZoom;
+                    brakeZoomMaximum = cfg.camera.brakeZoomFov;
                     float inputForce = decel * cfg.camera.brakeZoomInputScale;
                     brakeZoomVelocity = brakeZoomVelocity * cfg.camera.brakeZoomDamping
                         + inputForce
@@ -312,9 +414,14 @@ public class MomentumClient implements ClientModInitializer {
                         MomentumBrakeState.brakeZoomOffset = 0f;
                         brakeZoomVelocity = Math.max(brakeZoomVelocity, 0f);
                     }
+                    if (!Float.isFinite(brakeZoomVelocity) || !Float.isFinite(MomentumBrakeState.brakeZoomOffset)) {
+                        resetBrakeZoom();
+                    } else {
+                        MomentumBrakeState.brakeZoomDisplay.tick(MomentumBrakeState.brakeZoomOffset,
+                                cfg.camera.comfortBrakeZoom, cfg.camera.brakeZoomFov);
+                    }
                 } else {
-                    brakeZoomVelocity = 0f;
-                    MomentumBrakeState.brakeZoomOffset = 0f;
+                    resetBrakeZoom();
                 }
 
                 // Drift skid sounds - one per drift type, triggered on rising edge of active state
@@ -351,9 +458,16 @@ public class MomentumClient implements ClientModInitializer {
         mCameraDriftYawOffset              = 0f;
         steeringTiltOffset                 = 0f;
         reverseYawOffset                   = 0f;
-        brakeZoomVelocity                  = 0f;
-        prevHSpeed                         = 0f;
+        resetBrakeZoom();
+    }
+
+    private void resetBrakeZoom() {
+        brakeZoomVelocity = 0f;
+        prevHSpeed = 0f;
+        brakeZoomVehicle = null;
+        brakeZoomLevel = null;
         MomentumBrakeState.brakeZoomOffset = 0f;
+        MomentumBrakeState.brakeZoomDisplay.reset();
     }
 
     private static void handleCruiseResult(Minecraft client,
@@ -398,21 +512,29 @@ public class MomentumClient implements ClientModInitializer {
         playCruiseTone(client, pitch);
     }
 
+    private void rejectServerGameplayConfig() {
+        if ((pktBrake || pktDrift) && ClientPlayNetworking.canSend(KeyStatePacket.TYPE)) {
+            ClientPlayNetworking.send(new KeyStatePacket(false, false));
+        }
+        pktBrake = false; pktDrift = false; forceKeyStatePacket = true;
+        MomentumConfig.clearServerGameplayConfig();
+        MomentumCruiseControl.clearSession();
+        MomentumBrakeState.sampleInput(false, false);
+        MomentumDriftState.driftKeyHeld = false;
+    }
+
     private static String roundedSpeed(float speedKmh) {
         return Integer.toString(Math.round(speedKmh));
+    }
+
+    private static int consumeClicks(KeyMapping mapping) {
+        int clicks = 0;
+        if (mapping != null) while (mapping.consumeClick()) clicks++;
+        return clicks;
     }
 
     private static void playCruiseTone(Minecraft client, float pitch) {
         client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, pitch));
     }
 
-    /**
-     * Returns true if the persisted legacy key is currently held down.
-     * Reads Minecraft's SDL-backed state - does not consume key events or interfere with
-     * vanilla key bindings (Jump, Move Backwards, etc.).
-     */
-    private static boolean isKeyHeld(int legacyKeyCode) {
-        int scancode = LegacyKeyCodes.toScancode(legacyKeyCode);
-        return scancode != LegacyKeyCodes.UNKNOWN && InputConstants.isKeyDown(scancode);
-    }
 }

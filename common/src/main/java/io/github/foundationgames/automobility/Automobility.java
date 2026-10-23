@@ -14,6 +14,7 @@ import io.github.foundationgames.automobility.recipe.AutoMechanicTableRecipe;
 import io.github.foundationgames.automobility.recipe.AutoMechanicTableRecipeSerializer;
 import io.github.foundationgames.automobility.screen.AutoMechanicTableScreenHandler;
 import io.github.foundationgames.automobility.screen.SingleSlotScreenHandler;
+import io.github.foundationgames.automobility.screen.GarageScreenHandler;
 import io.github.foundationgames.automobility.sound.AutomobilitySounds;
 import io.github.foundationgames.automobility.util.AUtils;
 import io.github.foundationgames.automobility.util.AutomobilityClientResourceDumper;
@@ -53,11 +54,17 @@ public class Automobility {
                     AutoMechanicTableScreenHandler::new, AutoMechanicTableScreenHandler.OpeningData.STREAM_CODEC));
     public static final Eventual<MenuType<SingleSlotScreenHandler>> SINGLE_SLOT_SCREEN =
             RegistryQueue.register(BuiltInRegistries.MENU, Automobility.rl("single_slot"), () -> Platform.get().menuType(SingleSlotScreenHandler::new));
+    public static final Eventual<MenuType<GarageScreenHandler>> GARAGE_SCREEN =
+            RegistryQueue.register(BuiltInRegistries.MENU, Automobility.rl("garage"), () -> Platform.get().extendedMenuType(
+                    GarageScreenHandler::new, GarageScreenHandler.OpeningData.STREAM_CODEC));
 
     public static void init() {
+        io.github.foundationgames.automobility.automobile.engine.VehicleEnginePolicy.load();
+        io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLightPolicy.load();
         AutomobilitySounds.init();
         AutomobilityBlocks.init();
         AutomobilityItems.init();
+        io.github.foundationgames.automobility.item.NewVehiclePrefabs.register();
         AutomobilityEntities.init();
         AutomobilityParticles.init();
         initOther();

@@ -6,16 +6,37 @@
   "mixins": [
     "AABBMixin",
     "AbstractContainerMenuMixin",
+    "ChestMenuPermissionsMixin",
+    "RiaCargoPermissionsMixin",
     "EntityMixin",
     "ItemCombinerMenuMixin",
     "PlayerEnderChestContainerMixin",
-    "ServerGamePacketListenerImplMixin"
+    "ServerGamePacketListenerImplMixin",
+    "GarageRawInputMixin",
+    "GarageEntityLoadMixin",
+    "GarageEntityStorageMixin",
+    "GarageEntityManagerMixin",
+    "GarageLevelStorageAccess",
+    "GarageManagerStorageAccess",
+    "GarageRegionStorageAccess",
+    "GarageFencedRemovalMixin",
+    "GaragePlayerListStorageAccess",
+    "GaragePlayerDataDirectoryAccess",
+    "GaragePlayerReceiptMixin",
+    "GaragePendingPlayerPacketMixin",
+    "GaragePlayerInventoryAdmissionMixin",
+    "GaragePendingPlayerTickMixin"
   ],
   "client": [
+    "ClientLevelHeadlightTerrainMixin",
     "ClientChunkCacheTerrainMixin",
     "ClientLevelTerrainMixin",
     "ClientPacketListenerMixin",
-    "LocalPlayerMixin"
+    "LocalPlayerMixin",
+    "VehiclePassengerRendererMixin",
+    "VehicleRiderRenderScaleMixin",
+    "GuiGraphicsExtractorAccess",
+    "VehicleHudFontReloadMixin"
   ],
   "injectors": {
     "defaultRequire": 1

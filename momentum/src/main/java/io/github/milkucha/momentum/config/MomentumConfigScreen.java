@@ -8,7 +8,8 @@ import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
 import dev.isxander.yacl3.api.controller.BooleanControllerBuilder;
 import com.mojang.blaze3d.platform.InputConstants;
-import io.github.milkucha.momentum.input.LegacyKeyCodes;
+import io.github.milkucha.momentum.network.GameplayConfigSync;
+import io.github.milkucha.momentum.MomentumDrivingModelClient;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import dev.isxander.yacl3.api.controller.ColorControllerBuilder;
 import dev.isxander.yacl3.api.controller.FloatSliderControllerBuilder;
@@ -25,9 +26,12 @@ public class MomentumConfigScreen {
 
     public static Screen create(Screen parent) {
         MomentumConfig cfg = MomentumConfig.get();
-        MomentumConfig def = new MomentumConfig();
+        MomentumConfig def = MomentumConfig.freshInstallation();
         boolean serverControlled = MomentumConfig.hasServerGameplayConfig();
         MomentumConfig drivingCfg = serverControlled ? MomentumConfig.gameplay() : cfg;
+        boolean originalVehiclePresets = cfg.allowVehiclePresets;
+        float originalForwardPedalScale = cfg.movement.forwardPedalScale;
+        boolean originalVehiclePedalBalance = cfg.movement.vehiclePedalBalance;
 
         return YetAnotherConfigLib.createBuilder()
                 .title(text("title"))
@@ -37,7 +41,12 @@ public class MomentumConfigScreen {
                 .category(steering(drivingCfg, def, serverControlled))
                 .category(camera(cfg, def))
                 .category(hud(cfg, def))
-                .save(cfg::save)
+                .save(() -> {
+                    MomentumDrivingModelClient.saveSettings(cfg, !serverControlled && (
+                            originalVehiclePresets != cfg.allowVehiclePresets
+                            || Float.compare(originalForwardPedalScale, cfg.movement.forwardPedalScale) != 0
+                            || originalVehiclePedalBalance != cfg.movement.vehiclePedalBalance));
+                })
                 .build()
                 .generateScreen(parent);
     }
@@ -68,6 +77,13 @@ public class MomentumConfigScreen {
                         v -> setDrivingValue(cfg, cfg.movement.comfortableSpeedMultiplier, v,
                                 n -> cfg.movement.comfortableSpeedMultiplier = n),
                         0.5f, 5.0f, 0.05f), !serverControlled))
+                .option(available(floatOpt("movement.forward_pedal_scale",
+                        def.movement.forwardPedalScale,
+                        () -> cfg.movement.forwardPedalScale, v -> cfg.movement.forwardPedalScale = v,
+                        0.25f, 1f, 0.05f), !serverControlled))
+                .option(available(boolOpt("movement.vehicle_pedal_balance", def.movement.vehiclePedalBalance,
+                        () -> cfg.movement.vehiclePedalBalance, v -> cfg.movement.vehiclePedalBalance = v),
+                        !serverControlled))
                 .build();
     }
 
@@ -134,6 +150,8 @@ public class MomentumConfigScreen {
                         .build())
                 .group(OptionGroup.createBuilder()
                         .name(text("group.brake_zoom"))
+                        .option(boolOpt("camera.comfort_brake_zoom", def.camera.comfortBrakeZoom,
+                                () -> cfg.camera.comfortBrakeZoom, v -> cfg.camera.comfortBrakeZoom = v))
                         .option(floatOpt("camera.brake_zoom_fov",
                                 def.camera.brakeZoomFov,
                                 () -> cfg.camera.brakeZoomFov, v -> cfg.camera.brakeZoomFov = v,
@@ -159,69 +177,13 @@ public class MomentumConfigScreen {
     private static ConfigCategory hud(MomentumConfig cfg, MomentumConfig def) {
         return ConfigCategory.createBuilder()
                 .name(text("category.hud"))
-                .group(OptionGroup.createBuilder()
-                        .name(text("group.debug_overlay_position"))
-                        .option(intOpt("hud.debug_x",
-                                def.barHud.debugX, () -> cfg.barHud.debugX, v -> cfg.barHud.debugX = v, -1, 1920, 1))
-                        .option(intOpt("hud.debug_y", def.barHud.debugY,
-                                () -> cfg.barHud.debugY, v -> cfg.barHud.debugY = v, 0, 1080, 1))
-                        .option(floatOpt("hud.debug_x_fraction", def.barHud.debugXFraction,
-                                () -> cfg.barHud.debugXFraction, v -> cfg.barHud.debugXFraction = v, 0.0f, 1.0f, 0.001f))
-                        .build())
-                .group(OptionGroup.createBuilder()
-                        .name(text("group.bar_position"))
-                        .option(intOpt("hud.x",
-                                def.barHud.x, () -> cfg.barHud.x, v -> cfg.barHud.x = v, -1, 1920, 1))
-                        .option(intOpt("hud.y",
-                                def.barHud.y, () -> cfg.barHud.y, v -> cfg.barHud.y = v, -1, 1080, 1))
-                        .option(floatOpt("hud.x_fraction", def.barHud.xFraction,
-                                () -> cfg.barHud.xFraction, v -> cfg.barHud.xFraction = v, 0.0f, 1.0f, 0.001f))
-                        .option(intOpt("hud.margin_bottom", def.barHud.marginBottom,
-                                () -> cfg.barHud.marginBottom, v -> cfg.barHud.marginBottom = v, 0, 500, 1))
-                        .build())
-                .group(OptionGroup.createBuilder()
-                        .name(text("group.bar_size"))
-                        .option(boolOpt("hud.compact_dashboard",
-                                def.barHud.compactDashboard,
-                                () -> cfg.barHud.compactDashboard, v -> cfg.barHud.compactDashboard = v))
-                        .option(intOpt("hud.total_width",
-                                def.barHud.totalWidth,
-                                () -> cfg.barHud.totalWidth, v -> cfg.barHud.totalWidth = v, 24, 500, 1))
-                        .option(intOpt("hud.total_height",
-                                def.barHud.totalHeight,
-                                () -> cfg.barHud.totalHeight, v -> cfg.barHud.totalHeight = v, 1, 100, 1))
-                        .option(intOpt("hud.bar_width",
-                                def.barHud.barWidth,
-                                () -> cfg.barHud.barWidth, v -> cfg.barHud.barWidth = v, 1, 50, 1))
-                        .option(intOpt("hud.bar_spacing",
-                                def.barHud.barSpacing,
-                                () -> cfg.barHud.barSpacing, v -> cfg.barHud.barSpacing = v, 0, 20, 1))
-                        .option(floatOpt("hud.max_speed",
-                                def.barHud.maxSpeedKmh,
-                                () -> cfg.barHud.maxSpeedKmh, v -> cfg.barHud.maxSpeedKmh = v,
-                                50.0f, 500.0f, 10.0f))
-                        .build())
-                .group(OptionGroup.createBuilder()
-                        .name(text("group.bar_colors"))
-                        .option(colorOpt("hud.bar_color",
-                                def.barHud.barColor,
-                                () -> cfg.barHud.barColor, v -> cfg.barHud.barColor = v))
-                        .option(colorOpt("hud.boost_bar_color",
-                                def.barHud.boostBarColor,
-                                () -> cfg.barHud.boostBarColor, v -> cfg.barHud.boostBarColor = v))
-                        .option(colorOpt("hud.text_color",
-                                def.barHud.textColor,
-                                () -> cfg.barHud.textColor, v -> cfg.barHud.textColor = v))
-                        .build())
-                .group(OptionGroup.createBuilder()
-                        .name(text("group.bar_text_position"))
-                        .option(intOpt("hud.text_offset_x",
-                                def.barHud.textOffsetX,
-                                () -> cfg.barHud.textOffsetX, v -> cfg.barHud.textOffsetX = v, -100, 100, 1))
-                        .option(intOpt("hud.text_offset_y",
-                                def.barHud.textOffsetY,
-                                () -> cfg.barHud.textOffsetY, v -> cfg.barHud.textOffsetY = v, -100, 100, 1))
-                        .build())
+                .option(dev.isxander.yacl3.api.ButtonOption.createBuilder()
+                        .name(Component.translatable("ui.automobility.open_hud"))
+                        .text(Component.translatable("ui.automobility.open_hud"))
+                        .description(OptionDescription.of(Component.translatable("ui.automobility.common_hud_help")))
+                        .action(screen -> Minecraft.getInstance().gui.setScreen(new io.github.foundationgames.automobility.screen.AutomobilityOptionsScreen(
+                                screen,io.github.foundationgames.automobility.screen.AutomobilityOptionsScreen.Page.HUD))).build())
+                .option(boolOpt("hud.reverse_release_hint",def.barHud.reverseReleaseHint,()->cfg.barHud.reverseReleaseHint,v->cfg.barHud.reverseReleaseHint=v))
                 .build();
     }
 
@@ -244,13 +206,18 @@ public class MomentumConfigScreen {
                                 .formatValue(v -> text("driving_preset." + v.name().toLowerCase(java.util.Locale.ROOT))))
                         .listener((opt, val) -> {
                             if (serverControlled || val == drivingCfg.drivingPreset) return;
-                            drivingCfg.applyDrivingPreset(val);
-                            drivingCfg.save();
-                            Minecraft mc = Minecraft.getInstance();
-                            mc.execute(() -> mc.gui.setScreen(MomentumConfigScreen.create(parent)));
+                            MomentumDrivingModelClient.editSettings(drivingCfg,
+                                    () -> drivingCfg.applyDrivingPreset(val), true,
+                                    () -> Minecraft.getInstance().gui.setScreen(MomentumConfigScreen.create(parent)));
                         })
                         .build();
         drivingPresetOpt.setAvailable(!serverControlled);
+
+        Option<Boolean> vehiclePresetsOpt = boolOpt("general.allow_vehicle_presets",
+                def.allowVehiclePresets,
+                () -> drivingCfg.allowVehiclePresets,
+                v -> { if (!serverControlled) drivingCfg.allowVehiclePresets = v; });
+        vehiclePresetsOpt.setAvailable(!serverControlled);
 
         // Profile selector - applies immediately to config and rebuilds screen
         Option<MomentumConfig.ODrift.Profile> profileOpt =
@@ -266,11 +233,10 @@ public class MomentumConfigScreen {
                                 .enumClass(MomentumConfig.ODrift.Profile.class)
                                 .formatValue(v -> text("profile." + v.name().toLowerCase(java.util.Locale.ROOT))))
                         .listener((opt, val) -> {
-                            if (val == drivingCfg.oDrift.profile) return;
-                            drivingCfg.oDrift.profile = val;
-                            drivingCfg.save();
-                            Minecraft mc = Minecraft.getInstance();
-                            mc.execute(() -> mc.gui.setScreen(MomentumConfigScreen.create(parent)));
+                            if (serverControlled || val == drivingCfg.oDrift.profile) return;
+                            MomentumDrivingModelClient.editSettings(drivingCfg,
+                                    () -> drivingCfg.oDrift.profile = val, true,
+                                    () -> Minecraft.getInstance().gui.setScreen(MomentumConfigScreen.create(parent)));
                         })
                         .build();
         profileOpt.setAvailable(!serverControlled);
@@ -303,7 +269,12 @@ public class MomentumConfigScreen {
 
         Option<Boolean> enabledOpt = boolOpt("general.enabled",
                 def.enabled,
-                () -> drivingCfg.enabled, v -> drivingCfg.enabled = v);
+                () -> drivingCfg.enabled, v -> {
+                    if (serverControlled) return;
+                    if (Minecraft.getInstance().getSingleplayerServer() != null)
+                        MomentumDrivingModelClient.request(v);
+                    else drivingCfg.enabled = v;
+                });
         enabledOpt.setAvailable(!serverControlled);
 
         Option<Boolean> cruiseOpt = boolOpt("general.cruise_control",
@@ -324,7 +295,14 @@ public class MomentumConfigScreen {
         if (serverControlled) {
             features.option(LabelOption.create(text("server_controlled")));
         }
+        if (io.github.milkucha.momentum.network.ClientPhysicsSession.isRemoteSession()
+                && !io.github.milkucha.momentum.network.ClientPhysicsSession.physicsAllowed(MomentumConfig.hasServerGameplayConfig())) {
+            features.option(LabelOption.create(Component.translatable(
+                    MomentumConfig.clientDrivingBlocked() ? "momentum.compatibility.driver_required"
+                            : "momentum.compatibility.local_only")));
+        }
         features.option(drivingPresetOpt)
+                .option(vehiclePresetsOpt)
                 .option(profileOpt)
                 .option(movOpt)
                 .option(steerOpt)
@@ -343,9 +321,9 @@ public class MomentumConfigScreen {
                 .group(OptionGroup.createBuilder()
                         .name(text("group.key_bindings"))
                         .option(LabelOption.create(text("key_binding.brake",
-                                InputConstants.Type.KEYBOARD.getOrCreate(LegacyKeyCodes.toScancode(localCfg.brakeKey)).getDisplayName())))
+                                io.github.milkucha.momentum.MomentumKeyMappings.brakeBinding())))
                         .option(LabelOption.create(text("key_binding.handbrake",
-                                InputConstants.Type.KEYBOARD.getOrCreate(LegacyKeyCodes.toScancode(localCfg.driftKey)).getDisplayName())))
+                                io.github.milkucha.momentum.MomentumKeyMappings.driftBinding())))
                         .option(LabelOption.create(text("key_binding.remap_hint")))
                         .build())
                 .build();

@@ -14,6 +14,28 @@ import io.github.foundationgames.automobility.automobile.attachment.RearAttachme
 import io.github.foundationgames.automobility.automobile.attachment.front.FrontAttachment;
 import io.github.foundationgames.automobility.automobile.attachment.rear.DeployableRearAttachment;
 import io.github.foundationgames.automobility.automobile.attachment.rear.RearAttachment;
+import io.github.foundationgames.automobility.automobile.light.AutomaticVehicleLights;
+import io.github.foundationgames.automobility.automobile.light.Mx5MovingParts;
+import io.github.foundationgames.automobility.automobile.light.Mx5HoodGeometry;
+import io.github.foundationgames.automobility.automobile.light.Mx5HoodAnimation;
+import io.github.foundationgames.automobility.automobile.light.Mx5PopupAnimation;
+import io.github.foundationgames.automobility.automobile.light.Mx5HeadlightDance;
+import io.github.foundationgames.automobility.automobile.light.Mx5VisualPose;
+import io.github.foundationgames.automobility.util.network.content.Mx5MovingPartsSync;
+import io.github.foundationgames.automobility.util.network.content.CoreClientContentSession;
+import io.github.foundationgames.automobility.util.network.content.CoreContentProtocol;
+import io.github.foundationgames.automobility.automobile.light.VehicleDrivingLights;
+import io.github.foundationgames.automobility.automobile.light.VehicleLightMode;
+import io.github.foundationgames.automobility.automobile.light.VehicleSignalMode;
+import io.github.foundationgames.automobility.automobile.light.VehicleSignalController;
+import io.github.foundationgames.automobility.automobile.light.VehicleSignalPersistence;
+import io.github.foundationgames.automobility.automobile.engine.VehicleIgnition;
+import io.github.foundationgames.automobility.automobile.engine.VehicleEngineSettings;
+import io.github.foundationgames.automobility.automobile.engine.VehicleEnginePolicy;
+import io.github.foundationgames.automobility.automobile.driving.VehicleDrivingMode;
+import io.github.foundationgames.automobility.automobile.driving.VehicleDrivingModeSupport;
+import io.github.foundationgames.automobility.automobile.access.VehicleAccessState;
+import io.github.foundationgames.automobility.automobile.light.VehicleLightPersistence;
 import io.github.foundationgames.automobility.automobile.render.RenderableAutomobile;
 import io.github.foundationgames.automobility.block.AutomobileAssemblerBlock;
 import io.github.foundationgames.automobility.block.LaunchGelBlock;
@@ -41,6 +63,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -76,6 +99,7 @@ import net.minecraft.world.entity.vehicle.DismountHelper;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.storage.ValueInput;
@@ -100,12 +124,35 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
 public class AutomobileEntity extends Entity implements RenderableAutomobile, EntityWithInventory, EntityWithContainer {
+    private GarageCarrierMarker garageCarrier=GarageCarrierMarker.LEGACY;
+    // Prospective engine remains server-local until durable COMMIT publication.
+    private Holder<AutomobileEngine> garageStagedEngine;
+    private Holder<AutomobileEngine> garageEffectiveEngine(){
+        return !level().isClientSide()&&garageStagedEngine!=null?garageStagedEngine:this.entityData.get(ENGINE_TYPE);
+    }
+    boolean garageStageEngine(Holder<AutomobileEngine> target){
+        var key=target.unwrapKey().orElse(null);
+        if(key==null||level().isClientSide()||!io.github.foundationgames.automobility.automobile.garage.GarageEngineTransferAccess.permitsComponentChange(this,key.identifier()))return false;
+        garageStagedEngine=target;return true;
+    }
+    boolean garagePublishEngine(Holder<AutomobileEngine> target){
+        if(!garageStageEngine(target))return false;
+        this.entityData.set(ENGINE_TYPE,target);garageStagedEngine=null;
+        this.stats.from(getFrame(),getWheels(),getEngine());return true;
+    }
+
+    private CompoundTag garageOpaque=new CompoundTag();
+    public GarageCarrierMarker garageCarrierMarker(){return garageCarrier;}
+    void garageCarrierMarker(GarageCarrierMarker marker){garageCarrier=java.util.Objects.requireNonNull(marker);}
+    CompoundTag garageOpaqueSnapshot(){return garageOpaque.copy();}
+
     public static Consumer<AutomobileEntity> engineSound = e -> {};
     public static Consumer<AutomobileEntity> skidSound = e -> {};
     public static Consumer<AutomobileEntity> hornSound = e -> {};
@@ -117,6 +164,41 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private static final EntityDataAccessor<Holder<AutomobileFrame>> FRAME_TYPE = SynchedEntityData.defineId(AutomobileEntity.class, AutomobileFrame.SERIALIZER);
     private static final EntityDataAccessor<Holder<AutomobileWheel>> WHEEL_TYPE = SynchedEntityData.defineId(AutomobileEntity.class, AutomobileWheel.SERIALIZER);
     private static final EntityDataAccessor<Holder<AutomobileEngine>> ENGINE_TYPE = SynchedEntityData.defineId(AutomobileEntity.class, AutomobileEngine.SERIALIZER);
+    private static final EntityDataAccessor<Integer> VEHICLE_LIGHT_MODE = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> EFFECTIVE_VEHICLE_LIGHT_MODE = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.INT);
+
+    private final AutomaticVehicleLights automaticVehicleLights = new AutomaticVehicleLights();
+    private static final EntityDataAccessor<Integer> IGNITION_STATE = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> AUTOMATIC_ENGINE_START = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> IDLE_ENGINE_SHUTDOWN = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> LIGHTS_WITH_ENGINE = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.BOOLEAN);
+    private final VehicleIgnition ignition = new VehicleIgnition();
+    private final io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLights unattendedLights =
+            new io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLights();
+    private io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLightSettings unattendedLightSettings =
+            io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLightSettings.defaults();
+    private static final EntityDataAccessor<Integer> ENGINE_IDLE_LIMIT = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> ENGINE_ALLOW_MANUAL_SHUTDOWN = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<String> VEHICLE_ACCESS = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.STRING);
+    // Append after every existing accessor: mode and flash bit travel as one atomic snapshot.
+    private static final EntityDataAccessor<Integer> VEHICLE_SIGNAL_STATE = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.INT);
+    // Append transient brake/reverse flags after every existing accessor.
+    private static final EntityDataAccessor<Integer> VEHICLE_DRIVING_LIGHTS = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> VEHICLE_SIGNAL_AUTO_CANCEL = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.BOOLEAN);
+    // Append preferences and transient confirmation after all accepted tracked fields.
+    private static final EntityDataAccessor<Boolean> VEHICLE_COMFORT_SIGNALS = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> VEHICLE_LOCK_SIGNAL_CONFIRMATION = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> VEHICLE_LOCK_SIGNAL_STATE = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> VEHICLE_DRIVING_MODE = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> VEHICLE_DRIVING_MODE_CAPABILITIES = SynchedEntityData.defineId(AutomobileEntity.class, EntityDataSerializers.INT);
+    private final VehicleSignalController vehicleSignals = new VehicleSignalController();
+    private final VehicleDrivingLights vehicleDrivingLights = new VehicleDrivingLights();
+    private boolean drivingLightsForwardPedal;
+    private @Nullable UUID drivingLightsInputDriver;
+    private VehicleAccessState accessCache;
+    private String cachedAccessJson, unresolvedAccessJson;
+    private long lastLockFeedbackTick = Long.MIN_VALUE;
+    public static java.util.function.BiConsumer<AutomobileEntity, Boolean> lockConfirmation = (car, locked) -> {};
 
     private RearAttachment rearAttachment;
     private FrontAttachment frontAttachment;
@@ -136,7 +218,15 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private static final int UNMANNED_COAST_SETTLE_MAX_TICKS = 120;
     private static final int POST_UNMANNED_COAST_GRACE_TICKS = 60;
 
-    public final Input input = new Input();
+    public final Input input = new Input(this);
+    private final ReverseBrakeGuard reverseBrakeGuard = new ReverseBrakeGuard();
+    private @Nullable UUID reverseBrakeDriver;
+    private boolean reverseBrakeHadDriver;
+    private long reverseBrakeContextTick = Long.MIN_VALUE;
+    private long reverseBrakeInputCaptureTick = Long.MIN_VALUE;
+    private long reverseBrakeTickEnd = Long.MIN_VALUE;
+    private double reverseBrakeEndX, reverseBrakeEndY, reverseBrakeEndZ;
+    private @Nullable ResourceKey<Level> reverseBrakeEndDimension;
     private boolean prevHoldDrift = input.holdingDrift;
 
     private long clientTime;
@@ -207,6 +297,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     private Vec3 lastVelocity = Vec3.ZERO;
     private Vec3 lastMeasuredPos = Vec3.ZERO;
+    private boolean measuredPositionInitialized;
 
     private float measuredAngVel = 0;
     private float smoothAngVel = 0;
@@ -216,6 +307,14 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private transient ResourceKey<Level> previousServerTickEndDimension = null;
     private float prevYawForRotate = 0;
     private final DeferredDriverRotation deferredDriverRotation = new DeferredDriverRotation();
+    private final ResolvedRiderSeats<Entity, AutomobileFrame.FrameModel> renderedRiderSeats = new ResolvedRiderSeats<>();
+    private final Mx5MovingParts mx5Parts = new Mx5MovingParts();
+    private final Mx5HeadlightDance mx5Dance = new Mx5HeadlightDance();
+    private final Mx5HoodAnimation mx5HoodAnimation = new Mx5HoodAnimation();
+    private final Mx5PopupAnimation mx5LeftAnimation = new Mx5PopupAnimation();
+    private final Mx5PopupAnimation mx5RightAnimation = new Mx5PopupAnimation();
+    private UUID mx5ShowDriver;
+    private long mx5LastHoodInteraction = Long.MIN_VALUE;
 
     private int slopeStickingTimer = 0;
     private float grip = 1;
@@ -234,6 +333,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     private int despawnCountdown = 0;
     private boolean decorative = false;
     private final Map<UUID, Integer> recentDismounts = new HashMap<>();
+    private final Set<UUID> pendingPassengerMembershipSync = new HashSet<>();
     private int unmannedCoastSettleTicks = 0;
 
     private boolean wasEngineRunning = false;
@@ -326,7 +426,9 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
                 this.getInterpolation().cancel();
                 this.setPos(syncedX, syncedY, syncedZ);
                 this.setYRot(syncedYaw);
-                this.syncPacketPositionCodec(syncedX, syncedY, syncedZ);
+                // This custom absolute pose does not consume a vanilla movement packet.
+                // Keep vanilla's relative codec base intact: its pending delta may still
+                // reference the previous endpoint and otherwise apply this move twice.
                 if (hadSyncedDisplacement
                         && AutomobilePositionUpdatePolicy.positionChanged(positionBeforeStoppedSync, this.position())) {
                     this.clientOnAuthoritativePositionApplied(positionBeforeStoppedSync);
@@ -345,10 +447,12 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     public boolean applyClientInputState(boolean accelerating, boolean braking, float inputSteering,
                                          boolean holdingDrift, boolean holdingHorn) {
-        if (this.level().isClientSide() || !Float.isFinite(inputSteering)) {
+        if (io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this)||this.level().isClientSide() || !Float.isFinite(inputSteering)) {
             return false;
         }
 
+        // A packet for a new driver must not inherit the old driver's freshness/context.
+        refreshReverseBrakeContext();
         this.lastAcceptedClientInputTick = this.level().getGameTime();
         return this.input.setInputs(
                 accelerating,
@@ -359,8 +463,40 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         );
     }
 
+    /** Establish the first travel sample after all vanilla and owner load readers finish.
+     * Accessible border-chunk cars may not receive a simulation tick yet. */
+    @Override
+    public void load(ValueInput nbt) {
+        GarageTransferRuntime.beforeLoad(this,nbt);
+        try { super.load(nbt);
+        if (this.level() instanceof ServerLevel&&garageCarrier.generation()>0||io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.quietLoading(this)) {
+            var original=GarageWorldAdmission.raw(nbt);
+            if(original!=null&&this.level() instanceof ServerLevel server){
+                var output=net.minecraft.world.level.storage.TagValueOutput.createWithContext(net.minecraft.util.ProblemReporter.DISCARDING,server.registryAccess());
+                super.saveWithoutId(output);garageOpaque=GarageOpaqueState.capture(original,output.buildResult());
+            }
+        }
+        } catch(RuntimeException|Error error){GarageTransferRuntime.loadFailed(this,nbt,error);throw error;}
+        if (this.firstTick && !this.measuredPositionInitialized) {
+            this.lastMeasuredPos = this.position();
+            this.measuredPositionInitialized = true;
+        }
+    }
+
+    @Override
+    public void saveWithoutId(ValueOutput output) {
+        super.saveWithoutId(output);
+        if(output instanceof net.minecraft.world.level.storage.TagValueOutput raw)GarageOpaqueState.appendMissing(raw.buildResult(),garageOpaque);
+    }
+
     @Override
     public void readAdditionalSaveData(ValueInput nbt) {
+        // Pedal-derived lamps are transient; saved physics/input fields are not trusted intent.
+        resetVehicleDrivingLights();
+        clearVehicleLockSignals();
+        setVehicleSignalAutoCancelEnabled(nbt.getBooleanOr("vehicleSignalAutoCancel", true));
+        setVehicleComfortSignalsEnabled(nbt.getBooleanOr("vehicleComfortSignals", true));
+        setVehicleLockSignalConfirmationEnabled(nbt.getBooleanOr("vehicleLockSignalConfirmation", false));
         var reg = nbt.lookup();
         var frameId = Identifier.tryParse(nbt.getStringOr("frame", ""));
         var wheelId = Identifier.tryParse(nbt.getStringOr("wheels", ""));
@@ -425,17 +561,82 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         input.steering = nbt.getFloatOr("steeringInput", input.steering);
         input.holdingDrift = nbt.getBooleanOr("holdingDrift", input.holdingDrift);
         input.holdingHorn = nbt.getBooleanOr("holdingHorn", input.holdingHorn);
+        reverseBrakeGuard.restoreUntrustedInput(input.accelerating, input.braking);
         fallTicks = nbt.getIntOr("fallTicks", fallTicks);
         despawnTime = nbt.getIntOr("despawnTime", despawnTime);
         despawnCountdown = nbt.getIntOr("despawnCountdown", despawnCountdown);
         decorative = nbt.getBooleanOr("decorative", decorative);
+        String storedAccess = nbt.getStringOr("vehicleAccess", VehicleAccessState.DEFAULT.toJson());
+        try { setVehicleAccess(VehicleAccessState.fromJson(storedAccess)); }
+        catch (RuntimeException error) {
+            this.unresolvedAccessJson = storedAccess;
+            this.entityData.set(VEHICLE_ACCESS, VehicleAccessState.QUARANTINED.toJson());
+            Automobility.LOG.warn("Preserving invalid vehicle access data for {}", getUUID());
+        }
+        setVehicleEngineSettings(new VehicleEngineSettings(nbt.getBooleanOr("automaticEngineStart", true),
+                nbt.getIntOr("idleEngineShutdownSeconds", VehicleEngineSettings.DEFAULT_IDLE_SECONDS),
+                nbt.getBooleanOr("lightsWithEngine", true)));
+        setVehicleDrivingMode(VehicleDrivingMode.fromId(nbt.getIntOr("vehicleDrivingMode", 0)));
+        ignition.restoreUnloaded(nbt.getIntOr("ignitionState", VehicleIgnition.OFF),
+                nbt.getLongOr("ignitionStartedAt", -1), nbt.getLongOr("ignitionVacantAt", -1),
+                nbt.getStringOr("ignitionServerSession", "").equals(VehicleEnginePolicy.session(level().getServer())));
+        entityData.set(IGNITION_STATE, ignition.state());
+        setVehicleLightMode(VehicleLightPersistence.restore(
+                nbt.getIntOr(VehicleLightPersistence.VERSION_KEY, VehicleLightPersistence.SCHEMA_VERSION),
+                nbt.getIntOr(VehicleLightPersistence.MODE_KEY, VehicleLightMode.OFF.id())));
+        unattendedLightSettings = new io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLightSettings(
+                nbt.getIntOr("unattendedLightSeconds", 300)).sanitized();
+        int unattendedVersion = nbt.getIntOr("unattendedLightsVersion", 0);
+        if (unattendedVersion == 0) unattendedLights.restoreLegacy();
+        else unattendedLights.restore(new io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLights.Saved(
+                        nbt.getLongOr("unattendedLightsVacantAt", -1), nbt.getBooleanOr("unattendedLightsSuppressed", false)),
+                unattendedVersion == 1 && nbt.getStringOr("unattendedLightsServerSession", "")
+                        .equals(VehicleEnginePolicy.session(level().getServer())), getVehicleLightMode() != VehicleLightMode.OFF);
+        tickVehicleLights();
+        this.automaticVehicleLights.reset();
+        if (getVehicleLightMode() == VehicleLightMode.AUTO) {
+            this.entityData.set(EFFECTIVE_VEHICLE_LIGHT_MODE, VehicleLightMode.OFF.id());
+        }
+        if (!level().isClientSide()) {
+            vehicleSignals.restore(VehicleSignalPersistence.restore(
+                    nbt.getIntOr(VehicleSignalPersistence.VERSION_KEY, 0),
+                    nbt.getIntOr(VehicleSignalPersistence.MODE_KEY, VehicleSignalMode.OFF.id())));
+            entityData.set(VEHICLE_SIGNAL_STATE, vehicleSignals.packed());
+        }
+        // Restore only the persistent hood. Runtime incarnation, sequence and show are never saved.
+        if (!level().isClientSide()) syncMx5Parts(hasOpeningHood() && canOpenHood()
+                && nbt.getBooleanOr("mx5HoodOpen", false), 0, false);
     }
 
     @Override
     public void addAdditionalSaveData(ValueOutput nbt) {
+        if(garageCarrier.generation()>0){var marker=new CompoundTag();garageCarrier.write(marker);nbt.store(GarageCarrierMarker.KEY,CompoundTag.CODEC,marker.getCompound(GarageCarrierMarker.KEY).orElseThrow());}
+        if (hasOpeningHood()) nbt.putBoolean("mx5HoodOpen", mx5Parts.hood());
+        nbt.putInt("vehicleEngineSettingsVersion", 1);
+        nbt.putInt("vehicleDrivingMode", getVehicleDrivingMode().id());
+        nbt.putString("vehicleAccess", unresolvedAccessJson != null ? unresolvedAccessJson : this.entityData.get(VEHICLE_ACCESS));
+        nbt.putBoolean("automaticEngineStart", getVehicleEngineSettings().automaticStart());
+        nbt.putInt("idleEngineShutdownSeconds", getVehicleEngineSettings().idleShutdownSeconds());
+        nbt.putBoolean("lightsWithEngine", getVehicleEngineSettings().lightsWithEngine());
+        nbt.putInt("ignitionState", getIgnitionState());
+        nbt.putLong("ignitionStartedAt", ignition.startedAt());
+        nbt.putLong("ignitionVacantAt", ignition.vacantAt());
+        if (!level().isClientSide()) nbt.putString("ignitionServerSession", VehicleEnginePolicy.session(level().getServer()));
+        nbt.putInt(VehicleLightPersistence.VERSION_KEY, VehicleLightPersistence.SCHEMA_VERSION);
+        nbt.putInt(VehicleLightPersistence.MODE_KEY, getVehicleLightMode().id());
+        nbt.putInt("unattendedLightsVersion", 1);
+        nbt.putInt("unattendedLightSeconds", unattendedLightSettings.seconds());
+        nbt.putLong("unattendedLightsVacantAt", unattendedLights.save().vacantAt());
+        nbt.putBoolean("unattendedLightsSuppressed", unattendedLights.suppressed());
+        if (!level().isClientSide()) nbt.putString("unattendedLightsServerSession", VehicleEnginePolicy.session(level().getServer()));
+        nbt.putInt(VehicleSignalPersistence.VERSION_KEY, VehicleSignalPersistence.SCHEMA_VERSION);
+        nbt.putInt(VehicleSignalPersistence.MODE_KEY, VehicleSignalPersistence.savedMode(getVehicleSignalMode()));
+        nbt.putBoolean("vehicleSignalAutoCancel", isVehicleSignalAutoCancelEnabled());
+        nbt.putBoolean("vehicleComfortSignals", isVehicleComfortSignalsEnabled());
+        nbt.putBoolean("vehicleLockSignalConfirmation", isVehicleLockSignalConfirmationEnabled());
         var frameId = AutomobileComponentPersistence.idToSave(this.entityData.get(FRAME_TYPE), this.unresolvedFrameId);
         var wheelId = AutomobileComponentPersistence.idToSave(this.entityData.get(WHEEL_TYPE), this.unresolvedWheelId);
-        var engineId = AutomobileComponentPersistence.idToSave(this.entityData.get(ENGINE_TYPE), this.unresolvedEngineId);
+        var engineId = AutomobileComponentPersistence.idToSave(garageEffectiveEngine(), this.unresolvedEngineId);
         if (frameId != null) nbt.putString("frame", frameId.toString());
         if (wheelId != null) nbt.putString("wheels", wheelId.toString());
         if (engineId != null) nbt.putString("engine", engineId.toString());
@@ -512,7 +713,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     @Override
     public AutomobileEngine getEngine() {
-        return this.entityData.get(ENGINE_TYPE).value();
+        return garageEffectiveEngine().value();
     }
 
     @Override
@@ -554,16 +755,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     @Override
     public boolean engineRunning() {
-        boolean running = this.boostTimer > 0 || isVehicle();
-
-        if (!running) {
-            var fAtt = getFrontAttachment();
-            if (fAtt != null) {
-                running = fAtt.isProvidingAlternativeInputs(this, getFirstPassenger());
-            }
-        }
-
-        return running;
+        return getIgnitionState() == VehicleIgnition.RUNNING;
     }
 
     @Override
@@ -671,6 +863,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public <T extends RearAttachment> void setRearAttachment(RearAttachmentType<T> rearAttachment) {
+        if(io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this)&&!io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.quietLoading(this))throw new IllegalStateException("Garage carrier is fenced");
         if (rearAttachment == null) {
             return;
         }
@@ -692,6 +885,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public <T extends FrontAttachment> void setFrontAttachment(FrontAttachmentType<T> frontAttachment) {
+        if(io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this)&&!io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.quietLoading(this))throw new IllegalStateException("Garage carrier is fenced");
         if (frontAttachment == null) {
             return;
         }
@@ -707,6 +901,14 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void setComponents(Holder<AutomobileFrame> frame, Holder<AutomobileWheel> wheel, Holder<AutomobileEngine> engine) {
+        if(garageStagedEngine!=null)throw new IllegalStateException("Garage prospective engine is fenced");
+        if(io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this)&&!io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.quietLoading(this))throw new IllegalStateException("Garage carrier is fenced");
+        mx5Dance.reset();
+        mx5ShowDriver = null;
+        if (!level().isClientSide()) mx5Parts.update(false, 0, false);
+        resetMx5AnimationClocks();
+        reverseBrakeGuard.interrupt();
+        renderedRiderSeats.clear();
         this.unresolvedFrameId = null;
         this.unresolvedWheelId = null;
         this.unresolvedEngineId = null;
@@ -718,6 +920,16 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         this.size = getFrame().makeBounds();
         this.displacement.applyWheelbase(getFrame().model().wheelBase());
         this.refreshDimensions();
+        if (!level().isClientSide()) Mx5MovingPartsSync.serverChanged.accept(this);
+    }
+
+    /** A service operation must never erase unresolved datapack identifiers. */
+    public GarageService.Components garageComponents() {
+        if (this.unresolvedFrameId != null || this.unresolvedWheelId != null || this.unresolvedEngineId != null) {
+            return null;
+        }
+        return new GarageService.Components(this.entityData.get(FRAME_TYPE),
+                this.entityData.get(WHEEL_TYPE), garageEffectiveEngine());
     }
 
     public void verifyHitboxesFor(AutomobileFrame frame) {
@@ -901,12 +1113,16 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     @Override
     public void tick() {
+        if(io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this))return;
         boolean first = this.firstTick;
         if (first) {
             this.lastMeasuredPos = this.position();
+            this.measuredPositionInitialized = true;
         }
 
         if (!this.level().isClientSide()) {
+            if (first) setVehicleEngineSettings(getVehicleEngineSettings());
+            this.entityData.set(VEHICLE_DRIVING_MODE_CAPABILITIES, VehicleDrivingModeSupport.capabilities());
             // Also release animals restored from older saves or mounted by a forced command.
             // The immutable passenger list remains safe to iterate as riders dismount.
             for (Entity passenger : this.getPassengers()) {
@@ -930,6 +1146,14 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             input.clearInputs();
         }
         expireStaleClientInput();
+        if (!this.level().isClientSide()) {
+            prepareReverseBrakeIntent();
+            tickVehicleIgnition();
+            tickVehicleLights();
+            tickVehicleDrivingLights();
+            tickVehicleSignals();
+        }
+        tickMx5MovingParts();
 
         if (this.jumpCooldown > 0) {
             this.jumpCooldown--;
@@ -948,6 +1172,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         lerpAutomobileData();
         positionTrackingTick();
         collisionStateTick();
+        prepareReverseBrakeIntent();
         steeringTick();
         driftingTick();
         burnoutTick();
@@ -1065,6 +1290,11 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.previousServerTickEndPosition = this.position();
             this.previousServerTickEndDimension = this.level().dimension();
         }
+        reverseBrakeTickEnd = reverseBrakeClockTick();
+        reverseBrakeEndX = this.getX();
+        reverseBrakeEndY = this.getY();
+        reverseBrakeEndZ = this.getZ();
+        reverseBrakeEndDimension = this.level().dimension();
     }
 
     @Override
@@ -1163,8 +1393,371 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         return new AutomobileData(Optional.empty(),
                 this.entityData.get(FRAME_TYPE).unwrapKey().orElse(AutomobileFrame.EMPTY_KEY),
                 this.entityData.get(WHEEL_TYPE).unwrapKey().orElse(AutomobileWheel.EMPTY_KEY),
-                this.entityData.get(ENGINE_TYPE).unwrapKey().orElse(AutomobileEngine.EMPTY_KEY)
+                this.entityData.get(ENGINE_TYPE).unwrapKey().orElse(AutomobileEngine.EMPTY_KEY),
+                getVehicleLightMode(), isVehicleSignalAutoCancelEnabled(),
+                isVehicleComfortSignalsEnabled(), isVehicleLockSignalConfirmationEnabled()
         ).asStack();
+    }
+
+    public VehicleLightMode getVehicleLightMode() {
+        return VehicleLightMode.fromId(this.entityData.get(VEHICLE_LIGHT_MODE));
+    }
+
+    public VehicleSignalMode getVehicleSignalMode() {
+        return VehicleSignalController.modeFromPacked(this.entityData.get(VEHICLE_SIGNAL_STATE));
+    }
+
+    public boolean vehicleSignalLit() {
+        return VehicleSignalController.litFromPacked(this.entityData.get(VEHICLE_SIGNAL_STATE));
+    }
+
+    /** Only the driver's manual or comfort selection can light the indicators. */
+    public VehicleSignalMode getVisibleVehicleSignalMode() {
+        return VehicleSignalController.modeFromPacked(visibleVehicleSignalState());
+    }
+
+    public boolean vehicleVisibleSignalLit() {
+        return VehicleSignalController.litFromPacked(visibleVehicleSignalState());
+    }
+
+    private int visibleVehicleSignalState() {
+        return entityData.get(VEHICLE_SIGNAL_STATE);
+    }
+
+    /** The server owns these atomic flags; client renderers never infer them from motion. */
+    public boolean vehicleBrakeLightsLit() {
+        return VehicleDrivingLights.brakeLit(this.entityData.get(VEHICLE_DRIVING_LIGHTS));
+    }
+
+    public boolean vehicleReverseLightsLit() {
+        return VehicleDrivingLights.reverseLit(this.entityData.get(VEHICLE_DRIVING_LIGHTS));
+    }
+
+    private void tickVehicleDrivingLights() {
+        var driver = getControllingPassenger();
+        boolean valid = driver instanceof Player && driver.isAlive() && !isRemoved()
+                && driver.getVehicle() == this && driver.level() == level() && isDriving(driver)
+                && Objects.equals(drivingLightsInputDriver, driver.getUUID())
+                && AutomobileClientInputPolicy.isFresh(lastAcceptedClientInputTick,
+                        level().getGameTime(), CLIENT_INPUT_TIMEOUT_TICKS);
+        double signedSpeed = Float.isFinite(engineSpeed) && Float.isFinite(hSpeed)
+                ? VehicleDrivingLights.signedSpeed(getX() - lastMeasuredPos.x,
+                        getZ() - lastMeasuredPos.z, getYRot()) : Double.NaN;
+        int flags = vehicleDrivingLights.update(valid, engineRunning(), drivingLightsForwardPedal,
+                rawBrakePedalHeld(), waitingForReverseRelease(), signedSpeed);
+        if (this.entityData.get(VEHICLE_DRIVING_LIGHTS) != flags)
+            this.entityData.set(VEHICLE_DRIVING_LIGHTS, flags);
+    }
+
+    private void resetVehicleDrivingLights() {
+        // The same load, driver, stale-input and position resets invalidate a pending turn.
+        vehicleSignals.resetAutomaticCancellation();
+        if (!level().isClientSide()) {
+            if (vehicleSignals.cancelComfort()) entityData.set(VEHICLE_SIGNAL_STATE, vehicleSignals.packed());
+        }
+        vehicleDrivingLights.reset();
+        drivingLightsForwardPedal = false;
+        drivingLightsInputDriver = null;
+        if (!level().isClientSide()) this.entityData.set(VEHICLE_DRIVING_LIGHTS, 0);
+    }
+
+    /** Trusted server-side selection; ordinary clients send validated driver requests. */
+    public boolean isVehicleSignalAutoCancelEnabled() {
+        return entityData.get(VEHICLE_SIGNAL_AUTO_CANCEL);
+    }
+
+    public void setVehicleSignalAutoCancelEnabled(boolean enabled) {
+        if (!level().isClientSide() && isVehicleSignalAutoCancelEnabled() != enabled) {
+            entityData.set(VEHICLE_SIGNAL_AUTO_CANCEL, enabled);
+            vehicleSignals.resetAutomaticCancellation();
+        }
+    }
+
+    public boolean isVehicleComfortSignalsEnabled() {
+        return entityData.get(VEHICLE_COMFORT_SIGNALS);
+    }
+
+    public void setVehicleComfortSignalsEnabled(boolean enabled) {
+        if (level().isClientSide()) return;
+        entityData.set(VEHICLE_COMFORT_SIGNALS, enabled);
+        if (!enabled && vehicleSignals.cancelComfort()) entityData.set(VEHICLE_SIGNAL_STATE, vehicleSignals.packed());
+    }
+
+    public boolean isVehicleLockSignalConfirmationEnabled() {
+        return false;
+    }
+
+    /** Retired preference: consume old item/NBT/packet fields without restoring lock flashes. */
+    public void setVehicleLockSignalConfirmationEnabled(boolean enabled) {
+        if (level().isClientSide()) return;
+        entityData.set(VEHICLE_LOCK_SIGNAL_CONFIRMATION, false);
+        clearVehicleLockSignals();
+    }
+
+    private void clearVehicleLockSignals() {
+        if (entityData.get(VEHICLE_LOCK_SIGNAL_STATE) != 0) entityData.set(VEHICLE_LOCK_SIGNAL_STATE, 0);
+    }
+
+    private void tickVehicleSignals() {
+        var driver = getControllingPassenger();
+        boolean actualDriver = driver instanceof Player && driver.isAlive() && !isRemoved()
+                && driver.getVehicle() == this && driver.level() == level() && isDriving(driver);
+        double observedForwardSpeed = Float.isFinite(hSpeed)
+                ? VehicleDrivingLights.signedSpeed(getX() - lastMeasuredPos.x,
+                        getZ() - lastMeasuredPos.z, getYRot()) : Double.NaN;
+        if (vehicleSignals.tick(actualDriver, isVehicleSignalAutoCancelEnabled(),
+                steering, (float) observedForwardSpeed, getYRot()))
+            entityData.set(VEHICLE_SIGNAL_STATE, vehicleSignals.packed());
+    }
+
+    /** Trusted server-side selection; ordinary clients send validated driver requests. */
+    public void setVehicleSignalMode(VehicleSignalMode mode) {
+        Objects.requireNonNull(mode, "mode");
+        if (!level().isClientSide()) {
+            if (vehicleSignals.setMode(mode)) entityData.set(VEHICLE_SIGNAL_STATE, vehicleSignals.packed());
+            clearVehicleLockSignals();
+        }
+    }
+
+    /** Resolve toggles from current server state, including several clicks before tracking ACK. */
+    public void applyVehicleSignalRequest(int request) {
+        if (level().isClientSide() || !VehicleSignalController.isValidRequest(request)) return;
+        boolean changed = vehicleSignals.request(request, isVehicleComfortSignalsEnabled());
+        if (changed) entityData.set(VEHICLE_SIGNAL_STATE, vehicleSignals.packed());
+        if (changed || !VehicleSignalController.isComfortRequest(request)) clearVehicleLockSignals();
+    }
+
+    /** Observers read this synchronized value; shader or daylight choices never control the server. */
+    public VehicleLightMode getEffectiveVehicleLightMode() {
+        return VehicleLightMode.fromId(this.entityData.get(EFFECTIVE_VEHICLE_LIGHT_MODE));
+    }
+
+    /** Server-side selected setting. Client controls must send a validated settings packet. */
+    public void setVehicleLightMode(VehicleLightMode mode) {
+        Objects.requireNonNull(mode, "mode");
+        if (this.level().isClientSide()) {
+            return;
+        }
+        // Explicit manual light requests cancel the show even when selecting the same mode.
+        mx5Dance.reset();
+        mx5ShowDriver = null;
+        syncMx5Parts(mx5Parts.hood(), 0, false);
+        if (getVehicleLightMode() == mode) {
+            return;
+        }
+        this.entityData.set(VEHICLE_LIGHT_MODE, mode.id());
+        this.automaticVehicleLights.reset();
+        this.entityData.set(EFFECTIVE_VEHICLE_LIGHT_MODE,
+                (mode == VehicleLightMode.AUTO || (getVehicleEngineSettings().lightsWithEngine() && !engineRunning())
+                        ? VehicleLightMode.OFF : mode).id());
+    }
+
+    private void tickVehicleLights() {
+        if (level().isClientSide()) return;
+        if (unattendedLights.tick(level().getGameTime(), !getPassengers().isEmpty(),
+                getVehicleLightMode() != VehicleLightMode.OFF, getEffectiveUnattendedLightSettings())) {
+            this.entityData.set(EFFECTIVE_VEHICLE_LIGHT_MODE, VehicleLightMode.OFF.id());
+            this.automaticVehicleLights.reset();
+            return;
+        }
+        if (getVehicleEngineSettings().lightsWithEngine() && !engineRunning()) {
+            this.entityData.set(EFFECTIVE_VEHICLE_LIGHT_MODE, VehicleLightMode.OFF.id());
+            this.automaticVehicleLights.reset();
+            return;
+        }
+        if (getVehicleLightMode() != VehicleLightMode.AUTO) {
+            this.entityData.set(EFFECTIVE_VEHICLE_LIGHT_MODE, getVehicleLightMode().id());
+            return;
+        }
+        long gameTick = this.level().getGameTime();
+        if (!this.automaticVehicleLights.isSampleDue(gameTick)) {
+            return;
+        }
+        // At headlamp height, sky light responds to roofs, caves, time and weather.
+        var sensorPos = BlockPos.containing(this.getX(), this.getY() + 0.75, this.getZ());
+        int ambient = AutomaticVehicleLights.ambientDaylight(
+                this.level().getBrightness(LightLayer.SKY, sensorPos), this.level().getSkyDarken());
+        this.entityData.set(EFFECTIVE_VEHICLE_LIGHT_MODE, this.automaticVehicleLights.sample(gameTick, ambient).id());
+    }
+
+    public Mx5MovingParts mx5State() { return mx5Parts; }
+    public io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLightSettings getUnattendedLightSettings() {
+        return unattendedLightSettings;
+    }
+    public io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLightSettings getEffectiveUnattendedLightSettings() {
+        return io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLightPolicy.apply(unattendedLightSettings);
+    }
+    public boolean areUnattendedLightsSuppressed() { return unattendedLights.suppressed(); }
+    public void setUnattendedLightSettings(io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLightSettings value) {
+        if (level().isClientSide() || value == null || !io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLightSettings.valid(value.seconds())) return;
+        unattendedLightSettings = value;
+        tickVehicleLights();
+    }
+    /** Authorized deliberate input, including reselecting the same mode. Restore/prefab setters never rearm. */
+    public void requestVehicleLightMode(VehicleLightMode mode) {
+        if (level().isClientSide()) return;
+        Objects.requireNonNull(mode);
+        unattendedLights.explicitAction(level().getGameTime(), !getPassengers().isEmpty(), mode != VehicleLightMode.OFF);
+        setVehicleLightMode(mode);
+        tickVehicleLights();
+    }
+    public boolean hasOpeningHood() { return Mx5HoodGeometry.appliesTo(getFrame().model().modelId()); }
+    public boolean isHoodOpen() { return hasOpeningHood() && mx5Parts.hood(); }
+    public boolean isHeadlightDanceActive() { return hasOpeningHood() && mx5Parts.showActive(); }
+    public boolean canOpenHood() {
+        return hasOpeningHood() && getIgnitionState() == VehicleIgnition.OFF
+                && Mx5HoodGeometry.mayOpen(engineRunning(), hSpeed, boostSpeed);
+    }
+    public boolean requestHoodState(boolean open) {
+        if (level().isClientSide() || !hasOpeningHood() || open && !canOpenHood()) return false;
+        syncMx5Parts(open, mx5Parts.flags(), mx5Parts.showActive());
+        return true;
+    }
+    public boolean requestHeadlightDance(ServerPlayer player) {
+        if (level().isClientSide() || !hasOpeningHood() || !isDriving(player)
+                || !player.isAlive() || !Mx5MovingPartsSync.peerCompatible.test(player)) return false;
+        if (!mx5Dance.toggle(level().getGameTime(), true)) return false;
+        mx5ShowDriver = mx5Dance.active() ? player.getUUID() : null;
+        syncMx5Parts(mx5Parts.hood(), mx5Dance.update(level().getGameTime(), true), mx5Dance.active());
+        return true;
+    }
+    public boolean applyMx5RemoteState(long epoch, long sequence, boolean hood, int flags, boolean active) {
+        return level().isClientSide() && hasOpeningHood()
+                && mx5Parts.applyRemote(epoch, sequence, hood, flags, active);
+    }
+    public Mx5VisualPose getMx5VisualPose(float partial) {
+        return hasOpeningHood() ? Mx5VisualPose.sample(mx5HoodAnimation, mx5LeftAnimation, mx5RightAnimation,
+                partial, mx5Parts.hood(), mx5Parts.flags(), getEffectiveVehicleLightMode()) : Mx5VisualPose.CLOSED;
+    }
+    /** Conservative discovery mode; the actual beam/lens checks the sampled readiness of each side. */
+    public VehicleLightMode getProjectionLightMode() {
+        if (hasOpeningHood() && mx5Parts.flags() != 0) return VehicleLightMode.LOW;
+        return getEffectiveVehicleLightMode();
+    }
+    private void syncMx5Parts(boolean hood, int flags, boolean active) {
+        if (mx5Parts.update(hood, flags, active) && hasOpeningHood()) Mx5MovingPartsSync.serverChanged.accept(this);
+    }
+    private void resetMx5AnimationClocks() {
+        mx5HoodAnimation.reset(); mx5LeftAnimation.reset(); mx5RightAnimation.reset();
+    }
+    private void tickMx5MovingParts() {
+        if (!hasOpeningHood()) return;
+        if (level().isClientSide()) {
+            var normal = getEffectiveVehicleLightMode();
+            int duration = Mx5HeadlightDance.activeFromPacked(mx5Parts.flags())
+                    ? Mx5HeadlightDance.MOTION_TICKS : Mx5PopupAnimation.DURATION_TICKS;
+            mx5HoodAnimation.tick(mx5Parts.hood());
+            mx5LeftAnimation.tick(Mx5HeadlightDance.requestedOpen(mx5Parts.flags(), true, normal), duration);
+            mx5RightAnimation.tick(Mx5HeadlightDance.requestedOpen(mx5Parts.flags(), false, normal), duration);
+        } else {
+            var driver = getFirstPassenger();
+            boolean eligible = driver instanceof ServerPlayer player && isDriving(player) && player.isAlive()
+                    && player.getUUID().equals(mx5ShowDriver) && Mx5MovingPartsSync.peerCompatible.test(player);
+            int flags = mx5Dance.update(level().getGameTime(), eligible);
+            if (!mx5Dance.active()) mx5ShowDriver = null;
+            syncMx5Parts(mx5Parts.hood() && canOpenHood(), flags, mx5Dance.active());
+        }
+    }
+
+    public int getIgnitionState() { return this.entityData.get(IGNITION_STATE); }
+    public int getMaximumEngineIdleSeconds() { return this.entityData.get(ENGINE_IDLE_LIMIT); }
+    public boolean isManualEngineShutdownAllowed() { return this.entityData.get(ENGINE_ALLOW_MANUAL_SHUTDOWN); }
+
+    public VehicleEngineSettings getVehicleEngineSettings() {
+        return new VehicleEngineSettings(this.entityData.get(AUTOMATIC_ENGINE_START),
+                this.entityData.get(IDLE_ENGINE_SHUTDOWN), this.entityData.get(LIGHTS_WITH_ENGINE));
+    }
+
+    public VehicleDrivingMode getVehicleDrivingMode() {
+        return VehicleDrivingMode.fromId(entityData.get(VEHICLE_DRIVING_MODE));
+    }
+
+    /** Preference persists while Momentum is absent or the server temporarily disables overrides. */
+    public void setVehicleDrivingMode(VehicleDrivingMode mode) {
+        if (!level().isClientSide()) entityData.set(VEHICLE_DRIVING_MODE, java.util.Objects.requireNonNull(mode).id());
+    }
+
+    public int getVehicleDrivingModeCapabilities() { return entityData.get(VEHICLE_DRIVING_MODE_CAPABILITIES); }
+
+    public void setVehicleEngineSettings(VehicleEngineSettings settings) {
+        if (level().isClientSide() || settings == null) return;
+        var value = VehicleEnginePolicy.apply(settings);
+        this.entityData.set(ENGINE_IDLE_LIMIT, VehicleEnginePolicy.maximumIdleSeconds());
+        this.entityData.set(ENGINE_ALLOW_MANUAL_SHUTDOWN, VehicleEnginePolicy.allowNeverShutdown());
+        this.entityData.set(AUTOMATIC_ENGINE_START, value.automaticStart());
+        this.entityData.set(IDLE_ENGINE_SHUTDOWN, value.idleShutdownSeconds());
+        this.entityData.set(LIGHTS_WITH_ENGINE, value.lightsWithEngine());
+        tickVehicleLights();
+    }
+
+    public void requestIgnition(boolean start) {
+        if(io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this))return;
+        if (level().isClientSide()) return;
+        if (ignition.request(start, level().getGameTime(), !getEngine().isEmpty())) {
+            this.entityData.set(IGNITION_STATE, ignition.state());
+            if (start) playIgnitionSound();
+            else { boostTimer = 0; turboCharge = 0; }
+            tickVehicleLights();
+        }
+    }
+
+    public VehicleAccessState getVehicleAccess() {
+        String value = this.entityData.get(VEHICLE_ACCESS);
+        if (accessCache == null || !Objects.equals(value, cachedAccessJson)) {
+            cachedAccessJson = value;
+            try { accessCache = VehicleAccessState.fromJson(value); }
+            catch (RuntimeException error) { accessCache = VehicleAccessState.QUARANTINED; }
+        }
+        return accessCache;
+    }
+
+    public void setVehicleAccess(VehicleAccessState state) {
+        if(io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this)&&!io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.quietLoading(this))throw new IllegalStateException("Garage carrier is fenced");
+        if (level().isClientSide()) return;
+        unresolvedAccessJson = null;
+        this.entityData.set(VEHICLE_ACCESS, state.toJson());
+    }
+
+    public boolean mayPlayLockFeedback() {
+        long now = level().getGameTime();
+        return lastLockFeedbackTick == Long.MIN_VALUE || now < lastLockFeedbackTick || now - lastLockFeedbackTick >= 10;
+    }
+
+    public void confirmVehicleLock(boolean locked) {
+        if (level().isClientSide()) return;
+        lastLockFeedbackTick = level().getGameTime();
+        var sound = getVehicleAccess().feedback();
+        if (sound.click()) level().playSound(null, getX(), getY(), getZ(),
+                (locked ? AutomobilitySounds.VEHICLE_LOCK : AutomobilitySounds.VEHICLE_UNLOCK).require(), SoundSource.BLOCKS, 0.45f, 1);
+        onVehicleLockConfirmation(locked);
+        lockConfirmation.accept(this, locked);
+    }
+
+    /** Compatibility hook: lock transitions no longer start an auxiliary indicator clock. */
+    public void onVehicleLockConfirmation(boolean locked) {
+        if (!level().isClientSide()) clearVehicleLockSignals();
+    }
+
+    private void playIgnitionSound() {
+        var engineId = this.entityData.get(ENGINE_TYPE).unwrapKey().map(key -> key.identifier()).orElse(null);
+        boolean electric = engineId != null && io.github.foundationgames.automobility.automobile.engine.VehicleIgnitionSoundPolicy.electric(
+                engineId.getNamespace(), engineId.getPath());
+        // Consume the existing draw for both engine types; the EV chime keeps its tuned pitch.
+        float legacyPitch = 0.92f + this.getRandom().nextFloat() * 0.08f;
+        level().playSound(null, getX(), getY(), getZ(),
+                (electric ? AutomobilitySounds.ELECTRIC_ENGINE_START : AutomobilitySounds.ENGINE_START).require(),
+                SoundSource.AMBIENT, 0.6f, electric ? 1f : legacyPitch);
+    }
+
+    private void tickVehicleIgnition() {
+        var driver = getFirstPassenger();
+        boolean driving = driver != null && isDriving(driver);
+        boolean started = ignition.tick(level().getGameTime(), !getPassengers().isEmpty(), driving,
+                reverseBrakeGuard.driveRequested(), reverseBrakeGuard.drivePedalHeld(),
+                !getEngine().isEmpty(), getVehicleEngineSettings());
+        this.entityData.set(IGNITION_STATE, ignition.state());
+        if (started) playIgnitionSound();
+        if (!engineRunning()) { boostTimer = 0; turboCharge = 0; }
     }
 
     public void updateEngineSpeed(float speed) {
@@ -1194,6 +1787,9 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void movementTick() {
+        // PW may temporarily mask input fields at HEAD. prepare is idempotent for the raw
+        // field capture within this game tick; accepted input edges are recorded separately.
+        prepareReverseBrakeIntent();
         Vec3 serverObservedMovement = this.level().isClientSide() ? Vec3.ZERO : this.getMeasuredMovement();
 
         // Handles boosting
@@ -1239,7 +1835,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         this.speedDirection = getYRot() - (drifting ? Math.min(turboCharge * 6, 43 + (-steering * 12)) * driftDir : -steering * 12); //MathHelper.lerp(grip, getYaw(), getYaw() - (drifting ? Math.min(turboCharge * 6, 43 + (-steering * 12)) * driftDir : -steering * 12));
 
         // Handle acceleration
-        if (input.accelerating) {
+        if (input.accelerating && engineRunning()) {
             float speed = Math.max(this.engineSpeed, 0);
             // yeah ...
             double acc =
@@ -1253,15 +1849,17 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
                     // Otherwise, it will receive acceleration as normal
                     // It will receive this acceleration if the automobile is moving straight or wide-drifting (the latter slightly reduces acceleration)
                     : calculateAcceleration(speed, stats) * (drifting ? 0.86 : 1) * (engineSpeed > stats.getComfortableSpeed() ? 0.25f : 1) * grip;
-            this.updateEngineSpeed(this.engineSpeed + (float) acc);
+            this.updateEngineSpeed(io.github.foundationgames.automobility.automobile.driving.VehicleCruiseMotorLimit.constrain(
+                    this, this.engineSpeed, this.engineSpeed + (float) acc));
         }
 
         // Handle braking/reverse
         if (input.braking) {
-            this.updateEngineSpeed(Math.max(this.engineSpeed - 0.15f, -0.25f));
+            this.updateEngineSpeed(engineRunning() ? Math.max(this.engineSpeed - 0.15f, brakingSpeedFloor())
+                    : Math.max(0, this.engineSpeed - 0.15f));
         }
         // Handle when the automobile is rolling to a stop
-        if (!input.accelerating && !input.braking) {
+        if (!engineRunning() || (!input.accelerating && !input.braking)) {
             this.updateEngineSpeed(AUtils.zero(this.engineSpeed, 0.025f));
         }
 
@@ -1373,6 +1971,12 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         });
     }
 
+    /** Read-only freshness check for optional server-authorized assistance. */
+    public boolean hasFreshAcceptedClientInput() {
+        return !level().isClientSide() && AutomobileClientInputPolicy.isFresh(
+                lastAcceptedClientInputTick, level().getGameTime(), CLIENT_INPUT_TIMEOUT_TICKS);
+    }
+
     private void expireStaleClientInput() {
         if (this.level().isClientSide()
                 || !(this.getFirstPassenger() instanceof Player player)
@@ -1384,6 +1988,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             return;
         }
 
+        reverseBrakeGuard.interrupt();
+        resetVehicleDrivingLights();
         if (this.input.accelerating || this.input.braking || this.input.steering != 0
                 || this.input.holdingDrift || this.input.holdingHorn) {
             this.input.clearInputs();
@@ -1600,6 +2206,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     @Override
     public boolean hurtServer(ServerLevel level, DamageSource damageSource, float amount) {
+        if(io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this))return false;
         return false;
     }
 
@@ -1724,7 +2331,127 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
     }
 
+    /**
+     * Supplies an additional raw backward pedal, such as Momentum's configurable brake key.
+     * Call for each accepted input edge, and before movement sampling; drift/handbrake is not
+     * a backward pedal. The base mod does not depend on the optional input provider.
+     */
+    public void setAdditionalBrakeInput(boolean held) {
+        setAdditionalBrakeInput(held, true);
+    }
+
+    /** Feature switches may disable braking, but cannot manufacture a physical release. */
+    public void setAdditionalBrakeInput(boolean physicalHeld, boolean activeEnabled) {
+        boolean valid = refreshReverseBrakeContext();
+        reverseBrakeGuard.acceptAdditionalBrake(physicalHeld, activeEnabled, valid, reverseBrakeSignedSpeed());
+    }
+
+    /** Samples raw intent before external engines apply their temporary propulsion masks. */
+    public void prepareReverseBrakeIntent() {
+        boolean valid = refreshReverseBrakeContext();
+        long tick = reverseBrakeClockTick();
+        if (reverseBrakeInputCaptureTick != tick) {
+            reverseBrakeInputCaptureTick = tick;
+            // Mob front controllers write public fields directly. Player raw intent is owned
+            // exclusively by the accepted Input setters: fuel/energy mixins can mask these
+            // fields before tick HEAD without the player physically releasing a pedal.
+            if (valid && !(this.getFirstPassenger() instanceof Player)) {
+                reverseBrakeGuard.acceptBaseInput(input.accelerating, input.braking,
+                        true, reverseBrakeSignedSpeed());
+            }
+        }
+        reverseBrakeGuard.sample(valid, reverseBrakeSignedSpeed());
+    }
+
+    /** Allocation-free optional external-engine bridge: raw backward=1, reverse blocked=2. */
+    public int prepareReverseDriveIntent(boolean additionalBrakeHeld) {
+        setAdditionalBrakeInput(additionalBrakeHeld);
+        prepareReverseBrakeIntent();
+        return (rawBrakePedalHeld() ? 1 : 0) | (waitingForReverseRelease() ? 2 : 0);
+    }
+
+    /** Combined valid raw pedal intent, never an external engine's temporary input mask. */
+    public boolean rawBrakePedalHeld() {
+        return reverseBrakeGuard.brakeHeld();
+    }
+
+    public boolean waitingForReverseRelease() {
+        return reverseBrakeGuard.waitingForRelease();
+    }
+
+    /** Negative propulsion is permitted only after a genuine release of the brake pedal. */
+    public float brakingSpeedFloor() {
+        return engineRunning() ? reverseBrakeGuard.speedFloor() : 0;
+    }
+
+    private void acceptRawBaseInput(boolean forward, boolean backward) {
+        boolean valid = refreshReverseBrakeContext();
+        reverseBrakeInputCaptureTick = reverseBrakeClockTick();
+        reverseBrakeGuard.acceptBaseInput(forward, backward, valid, reverseBrakeSignedSpeed());
+        if (valid) {
+            drivingLightsForwardPedal = forward;
+            drivingLightsInputDriver = reverseBrakeDriver;
+        }
+    }
+
+    private long reverseBrakeClockTick() {
+        // Server time corrections do not interrupt continuously held client input.
+        // The server keeps its authoritative clock for accepted-input freshness.
+        return this.level().isClientSide() ? this.tickCount : this.level().getGameTime();
+    }
+
+    private boolean refreshReverseBrakeContext() {
+        var driver = this.getFirstPassenger();
+        var attachment = this.getFrontAttachment();
+        boolean driving = driver != null && (this.isDriving(driver)
+                || attachment != null && attachment.isProvidingAlternativeInputs(this, driver));
+        UUID driverId = driving ? driver.getUUID() : null;
+        long tick = reverseBrakeClockTick();
+        boolean driverChanged = !Objects.equals(driverId, reverseBrakeDriver);
+        if (driverChanged) {
+            resetVehicleDrivingLights();
+            if (reverseBrakeHadDriver) {
+                reverseBrakeGuard.interrupt();
+                if (!this.level().isClientSide()) lastAcceptedClientInputTick = Long.MIN_VALUE;
+            }
+            reverseBrakeDriver = driverId;
+            reverseBrakeHadDriver |= driving;
+            reverseBrakeInputCaptureTick = Long.MIN_VALUE;
+        }
+        if (reverseBrakeContextTick != tick) {
+            boolean tickGap = reverseBrakeContextTick != Long.MIN_VALUE
+                    && tick != reverseBrakeContextTick + 1;
+            boolean movedBetweenTicks = false;
+            if (reverseBrakeTickEnd != Long.MIN_VALUE) {
+                double x = this.getX() - reverseBrakeEndX;
+                double y = this.getY() - reverseBrakeEndY;
+                double z = this.getZ() - reverseBrakeEndZ;
+                movedBetweenTicks = !Objects.equals(this.level().dimension(), reverseBrakeEndDimension)
+                        || !Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)
+                        || x * x + y * y + z * z > 16;
+            }
+            if (tickGap || movedBetweenTicks) {
+                reverseBrakeGuard.interrupt();
+                resetVehicleDrivingLights();
+            }
+            reverseBrakeContextTick = tick;
+        }
+        return driving && !this.isRemoved() && (this.level().isClientSide()
+                || !(driver instanceof Player)
+                || AutomobileClientInputPolicy.isFresh(lastAcceptedClientInputTick, tick, CLIENT_INPUT_TIMEOUT_TICKS));
+    }
+
+    private double reverseBrakeSignedSpeed() {
+        if (!Float.isFinite(engineSpeed) || !Float.isFinite(hSpeed)) return Double.NaN;
+        var velocity = this.getDeltaMovement();
+        double heading = Math.toRadians(-this.getYRot());
+        double observed = velocity.x * Math.sin(heading) + velocity.z * Math.cos(heading);
+        if (!Double.isFinite(observed)) return Double.NaN;
+        return Math.max(Math.max(engineSpeed, hSpeed), observed);
+    }
+
     public void boost(float power, int time) {
+        if (!engineRunning()) return;
         if (power > boostPower || time > boostTimer) {
             boostTimer = time;
             boostPower = power;
@@ -1875,6 +2602,9 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     @Override
     protected boolean canAddPassenger(Entity passenger) {
+        if(io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this))return false;
+        if (passenger instanceof Player player && !getVehicleAccess().mayDrive(player.getUUID())) return false;
+        if (!(passenger instanceof Player) && getVehicleAccess().locked()) return false;
         return !isAnimalPassenger(passenger) && this.hasSpaceForPassengers();
     }
 
@@ -1905,16 +2635,25 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.gameEvent(GameEvent.ENTITY_MOUNT, passenger);
         }
 
+        if (!this.level().isClientSide() && passenger instanceof ServerPlayer) {
+            this.pendingPassengerMembershipSync.add(passenger.getUUID());
+        }
+
         this.recentDismounts.remove(passenger.getUUID());
     }
 
     @Override
     protected void removePassenger(Entity passenger) {
         this.deferredDriverRotation.clear();
+        this.renderedRiderSeats.forget(passenger);
         boolean wasDriver = this.isDriving(passenger);
         boolean shouldCoastAfterDriverDismount = wasDriver && this.shouldCoastAfterDriverDismount();
 
         super.removePassenger(passenger);
+
+        if (!this.level().isClientSide() && passenger instanceof ServerPlayer) {
+            this.pendingPassengerMembershipSync.add(passenger.getUUID());
+        }
 
         if (passenger instanceof LivingEntity) {
             int graceTicks = shouldCoastAfterDriverDismount
@@ -1924,12 +2663,35 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
 
         if (wasDriver) {
+            resetVehicleDrivingLights();
             this.stabilizeAfterDriverDismount(shouldCoastAfterDriverDismount);
         }
     }
 
     public boolean isRecentlyDismounted(Entity entity) {
         return this.recentDismounts.containsKey(entity.getUUID());
+    }
+
+    @Override
+    public void updateDataBeforeSync() {
+        super.updateDataBeforeSync();
+        if (this.pendingPassengerMembershipSync.isEmpty()
+                || !(this.level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
+        // Vanilla sends each boarding/departing player an immediate list, then
+        // excludes changed membership from the tracker broadcast. Repair those
+        // intermediate lists after all same-tick changes, including initial
+        // boarding and reboarding, without changing rider ordering or authority.
+        var packet = new ClientboundSetPassengersPacket(this);
+        for (var uuid : this.pendingPassengerMembershipSync) {
+            var player = serverLevel.getServer().getPlayerList().getPlayer(uuid);
+            if (player != null && player.level() == serverLevel) {
+                player.connection.send(packet);
+            }
+        }
+        this.pendingPassengerMembershipSync.clear();
     }
 
     private void tickRecentDismounts() {
@@ -1942,6 +2704,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     private void stabilizeAfterDriverDismount(boolean shouldCoastAfterDriverDismount) {
+        reverseBrakeGuard.interrupt();
         this.input.clearInputs();
         this.boostSpeed = 0;
         this.lastBoostSpeed = 0;
@@ -2103,11 +2866,13 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     @Override
     public boolean hasInventory(@Nullable Player player) {
+        if (player != null && !io.github.foundationgames.automobility.automobile.access.VehicleInventoryAccess.mayUse(this, player)) return false;
         return this.getRearAttachment().hasMenu(player);
     }
 
     @Override
     public void openInventory(Player player) {
+        if (!io.github.foundationgames.automobility.automobile.access.VehicleInventoryAccess.mayUse(this, player)) return;
         var factory = this.getRearAttachment().createMenu(new AutomobileContainerLevelAccess(this));
         if (factory != null) {
             player.openMenu(factory);
@@ -2155,6 +2920,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void destroyAutomobile(boolean drop, RemovalReason reason) {
+        if(io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this))return;
         if (!this.rearAttachment.type.isEmpty()) {
             this.destroyRearAttachment(drop);
         }
@@ -2187,6 +2953,41 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public InteractionResult handleInteraction(Player player, InteractionHand hand) {
+        if(io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this))return InteractionResult.FAIL;
+        var access = getVehicleAccess();
+        if (hasOpeningHood() && hand == InteractionHand.MAIN_HAND && player.isShiftKeyDown()
+                && player.getItemInHand(hand).isEmpty() && player.isAlive() && isAlive() && !isRemoved()
+                && player.level() == level() && player.distanceToSqr(getHeadPos()) <= 6.25) {
+            if (level().isClientSide()) {
+                return CoreClientContentSession.supports(CoreContentProtocol.MX5_ANIMATION)
+                        ? InteractionResult.SUCCESS : InteractionResult.PASS;
+            }
+            if (!(player instanceof ServerPlayer serverPlayer) || !Mx5MovingPartsSync.peerCompatible.test(serverPlayer))
+                return InteractionResult.PASS;
+            if (!access.mayConfigure(player.getUUID())) {
+                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable("vehicle.automobility.access.denied"), true);
+                return InteractionResult.SUCCESS_SERVER;
+            }
+            long now = level().getGameTime();
+            if (mx5LastHoodInteraction != Long.MIN_VALUE && now - mx5LastHoodInteraction >= 0
+                    && now - mx5LastHoodInteraction < 4) return InteractionResult.SUCCESS_SERVER;
+            mx5LastHoodInteraction = now;
+            boolean accepted = requestHoodState(!isHoodOpen());
+            serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                    accepted ? isHoodOpen() ? "vehicle.automobility.hood.opened" : "vehicle.automobility.hood.closed"
+                            : "vehicle.automobility.hood.unavailable"), true);
+            return InteractionResult.SUCCESS_SERVER;
+        }
+        if (!access.mayDrive(player.getUUID())) {
+            if (player instanceof ServerPlayer serverPlayer) serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable("vehicle.automobility.access.denied"), true);
+            return level().isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+        }
+        if (!access.mayConfigure(player.getUUID()) && ((player.isShiftKeyDown() && !access.hasKey(player.getUUID()))
+                || player.getItemInHand(hand).is(AutomobilityItems.CROWBAR.require())
+                || player.getItemInHand(hand).getItem() instanceof AutomobileInteractable)) {
+            if (player instanceof ServerPlayer serverPlayer) serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable("vehicle.automobility.access.denied"), true);
+            return level().isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
+        }
         if (player.isShiftKeyDown()) {
             if (this.hasInventory(player)) {
                 if (!level().isClientSide()) {
@@ -2292,8 +3093,30 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
             moveFunc.accept(passenger, pos.x(), pos.y(), pos.z());
 
+            // RIA redirects the existing List.indexOf above to its logical seat. Capture that
+            // resolved result only after it was used, without reordering passengers or new packets.
+            if (this.level().isClientSide() && passenger instanceof Player) {
+                renderedRiderSeats.capture(passenger, frameModel, idx);
+            }
+
             if (getControllingPassenger() != passenger) whenRotated(this.getYRot() - this.prevYawForRotate, passenger);
         }
+    }
+
+    /** Read-only client cabin anchor actually used by Core or a seat-switching addon. */
+    @Nullable
+    public Vec3 getRenderedCabinSeat(Entity passenger) {
+        var frame = getFrame();
+        if (passenger == null || frame == null || !this.level().isClientSide()) return null;
+        var model = frame.model();
+        int index = renderedRiderSeats.index(passenger, model,
+                passenger.getVehicle() == this && this.hasPassenger(passenger));
+        if (index == 0) return model.driverSeatPos();
+        if (index > 0 && index <= model.passengerSeats().size()) {
+            return model.passengerSeats().get(index - 1);
+        }
+        // Uncaptured state and rear attachments deliberately retain vanilla avatar scale.
+        return null;
     }
 
     @Override
@@ -2374,11 +3197,13 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     @Override
     public boolean canCollideWith(Entity entity) {
+        if(io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this))return false;
         return this.canCollideWithAutomobile(entity);
     }
 
     @Override
     public boolean canBeCollidedWith(Entity entity) {
+        if(io.github.foundationgames.automobility.automobile.garage.GarageTransferAccess.blocked(this))return false;
         return this.canCollideWithAutomobile(entity);
     }
 
@@ -2391,6 +3216,24 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         builder.define(FRAME_TYPE, Holder.direct(AutomobileFrame.EMPTY));
         builder.define(WHEEL_TYPE, Holder.direct(AutomobileWheel.EMPTY));
         builder.define(ENGINE_TYPE, Holder.direct(AutomobileEngine.EMPTY));
+        // Fresh cars use the daylight sensor; saved and legacy selections restore separately.
+        builder.define(VEHICLE_LIGHT_MODE, VehicleLightMode.AUTO.id());
+        builder.define(EFFECTIVE_VEHICLE_LIGHT_MODE, VehicleLightMode.OFF.id());
+        builder.define(IGNITION_STATE, VehicleIgnition.OFF);
+        builder.define(AUTOMATIC_ENGINE_START, true);
+        builder.define(IDLE_ENGINE_SHUTDOWN, VehicleEngineSettings.DEFAULT_IDLE_SECONDS);
+        builder.define(LIGHTS_WITH_ENGINE, true);
+        builder.define(ENGINE_IDLE_LIMIT, 3600);
+        builder.define(ENGINE_ALLOW_MANUAL_SHUTDOWN, true);
+        builder.define(VEHICLE_ACCESS, VehicleAccessState.DEFAULT.toJson());
+        builder.define(VEHICLE_SIGNAL_STATE, 0);
+        builder.define(VEHICLE_DRIVING_LIGHTS, 0);
+        builder.define(VEHICLE_SIGNAL_AUTO_CANCEL, true);
+        builder.define(VEHICLE_COMFORT_SIGNALS, true);
+        builder.define(VEHICLE_LOCK_SIGNAL_CONFIRMATION, false);
+        builder.define(VEHICLE_LOCK_SIGNAL_STATE, 0);
+        builder.define(VEHICLE_DRIVING_MODE, VehicleDrivingMode.INHERIT.id());
+        builder.define(VEHICLE_DRIVING_MODE_CAPABILITIES, 0);
     }
 
     @Override
@@ -2404,6 +3247,9 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         } else if (FRONT_ATTACHMENT_ANIMATION.equals(data)) {
             this.frontAttachment.onTrackedAnimationUpdated(getTrackedFrontAttachmentAnimation());
         } else if (FRAME_TYPE.equals(data)) {
+            this.renderedRiderSeats.clear();
+            // Metadata may arrive after the custom snapshot. Keep incarnation/sequence fencing intact.
+            resetMx5AnimationClocks();
             this.displacement.applyWheelbase(getFrame().model().wheelBase());
 
             this.size = getFrame().makeBounds();
@@ -2852,6 +3698,16 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public static class Input {
+        private final @Nullable AutomobileEntity owner;
+
+        public Input() {
+            this.owner = null;
+        }
+
+        private Input(AutomobileEntity owner) {
+            this.owner = owner;
+        }
+
         public boolean accelerating, braking, holdingDrift, holdingHorn;
         public float steering;
 
@@ -2867,6 +3723,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.steering = (left ? -1 : 0) + (right ? 1 : 0);
             this.holdingDrift = space;
             this.holdingHorn = ctrl;
+            if (owner != null) owner.acceptRawBaseInput(fwd, back);
 
             return changed;
         }
@@ -2880,6 +3737,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
             this.steering = side;
             this.holdingDrift = space;
             this.holdingHorn = ctrl;
+            if (owner != null) owner.acceptRawBaseInput(fwd, back);
 
             return changed;
         }
