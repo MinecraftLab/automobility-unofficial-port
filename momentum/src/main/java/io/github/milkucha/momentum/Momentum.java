@@ -38,6 +38,17 @@ public class Momentum implements ModInitializer {
     public void onInitialize() {
         io.github.milkucha.momentum.network.CruiseMotorServer.initialize();
         io.github.milkucha.momentum.network.ReverseDriveCapability.initialize();
+        io.github.foundationgames.automobility.automobile.drivetrain.VehicleDrivetrainPolicy.install(car -> {
+            var mode = switch (MomentumVehicleDrivingModes.effectivePreset(car)) {
+                case "touring" -> io.github.foundationgames.automobility.automobile.drivetrain.AutomaticShiftController.Mode.TOURING;
+                case "sport" -> io.github.foundationgames.automobility.automobile.drivetrain.AutomaticShiftController.Mode.SPORT;
+                default -> io.github.foundationgames.automobility.automobile.drivetrain.AutomaticShiftController.Mode.BALANCED;
+            };
+            var controls = io.github.milkucha.momentum.api.ExternalEngineDriveApi.state(car);
+            return new io.github.foundationgames.automobility.automobile.drivetrain.VehicleDrivetrainPolicy.Policy(mode,
+                    io.github.foundationgames.automobility.automobile.driving.VehicleCruiseMotorLimit.approvedTargetMetresPerSecond(car),
+                    controls.handbrakeHeld(), controls.unsafeForRecovery());
+        });
         GarageDrivingStats.install((original, rawThreshold, frameId, selected) -> MomentumGarageStats.snapshot(
                 original, rawThreshold, frameId, selected, MomentumConfig.gameplay()));
         VehicleDrivingModeSupport.install(() -> {

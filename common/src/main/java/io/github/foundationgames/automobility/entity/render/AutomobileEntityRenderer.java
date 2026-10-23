@@ -12,6 +12,7 @@ import io.github.foundationgames.automobility.client.lighting.VehicleHeadlightLa
 import io.github.foundationgames.automobility.client.lighting.VehicleLampSnapshot;
 import io.github.foundationgames.automobility.client.lighting.VehicleSmallLampRenderer;
 import io.github.foundationgames.automobility.entity.AutomobileEntity;
+import io.github.foundationgames.automobility.client.dashboard.VehicleCabinDashboard;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -63,6 +64,7 @@ public class AutomobileEntityRenderer extends EntityRenderer<AutomobileEntity, A
     public void extractRenderState(AutomobileEntity entity, State state, float tickDelta) {
         super.extractRenderState(entity, state, tickDelta);
         extractChassisState(entity, state, tickDelta);
+        state.cabinDashboard = VehicleCabinDashboard.capture(entity, state);
     }
 
     /**
@@ -109,6 +111,7 @@ public class AutomobileEntityRenderer extends EntityRenderer<AutomobileEntity, A
         VehicleLampSnapshot lamps = VehicleLampSnapshot.capture(state.automobile);
         VehicleHeadlightLampRenderer.submit(state, pose, submitter, lamps);
         VehicleSmallLampRenderer.submit(state, pose, submitter, lamps);
+        VehicleCabinDashboard.submit(state.cabinDashboard, pose, submitter);
 
         pose.pushPose();
         pose.translate(0, state.verticalOffset, 0);
@@ -119,6 +122,7 @@ public class AutomobileEntityRenderer extends EntityRenderer<AutomobileEntity, A
     }
 
     public static class State extends EntityRenderState {
+        public VehicleCabinDashboard.Captured cabinDashboard;
         public final Quaternionf angularRotation = new Quaternionf();
         public AutomobileEntity automobile;
         public float tickDelta;

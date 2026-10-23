@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.github.foundationgames.automobility.mixin.dashboard",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "CabinPreferencesPersistenceMixin022"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

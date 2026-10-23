@@ -18,6 +18,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
+import io.github.foundationgames.automobility.api.dashboard.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -48,6 +49,7 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
     private final List<GarageUiButton> widgets = new ArrayList<>();
     private GarageUiLayout.Layout layout;
     private GarageUiLayout.Mode mode = OVERVIEW;
+    private boolean radioTuning027;
     private boolean engineTab = true, draggingPreview, rotating = true, ownedParts, exchangePane;
     private boolean hadPending, initializedView;
     private io.github.foundationgames.automobility.entity.GarageService.Components lastDraft;
@@ -61,7 +63,7 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
     private String lastStatus = "";
     private int feedbackTicks;
 
-    private record Camera(float yaw, float zoom, boolean rotating) {}
+    private record Camera(float yaw,float zoom,boolean rotating,boolean radioTuning) {}
 
     public GarageScreen(GarageScreenHandler handler, Inventory inventory, Component title) {
         super(handler, inventory, title, PANEL_WIDTH, PANEL_HEIGHT);
@@ -85,9 +87,10 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
     public @Nullable Button buttonForAction(int menuButtonId) { return actionButtons.get(menuButtonId); }
     public @Nullable Button buttonForView(String id) { return viewButtons.get(id); }
     public String visibleView() { return mode.name().toLowerCase(Locale.ROOT); }
-    public boolean showingEngines() { return engineTab; }
+    public boolean showingEngines() { return !radioTuning027&&engineTab; }
+    public boolean showingRadioTuning027(){return radioTuning027;}
     public boolean showingOwnedParts() { return ownedParts; }
-    public boolean showingExchange() { return exchangePane; }
+    public boolean showingExchange() { return !radioTuning027&&exchangePane; }
     public float previewZoom() { return zoom; }
     public boolean previewTransitionSettled() { return transitionSettled; }
     public boolean reducedMotion() { return minecraft.options.screenEffectScale().get() == 0; }
@@ -101,18 +104,19 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
     private void rememberCamera() {
         if (cameraId != null) {
             if (CAMERAS.size() >= 128 && !CAMERAS.containsKey(cameraId)) CAMERAS.remove(CAMERAS.keySet().iterator().next());
-            CAMERAS.put(cameraId, new Camera(yaw, zoom, rotating));
+            CAMERAS.put(cameraId, new Camera(yaw,zoom,rotating,radioTuning027));
         }
     }
     private void restoreCamera() {
         var selected = menu.selectedChoiceId();
         if (Objects.equals(selected, cameraId)) return;
-        var previousCamera = new Camera(yaw, zoom, rotating);
+        var previousCamera = new Camera(yaw,zoom,rotating,radioTuning027);
         String previousGroup = menu.isCatalog() ? groupKeyFor(cameraId) : "";
         String nextGroup = menu.isCatalog() ? groupKeyFor(selected) : "";
         boolean sameColors = previousGroup.startsWith("family:") && previousGroup.equals(nextGroup);
         rememberCamera(); cameraId = selected;
         var camera = sameColors ? previousCamera : CAMERAS.get(selected);
+        radioTuning027=camera!=null&&camera.radioTuning();
         yaw = camera == null ? 35 : camera.yaw();
         zoom = camera == null ? 1 : camera.zoom();
         rotating = minecraft.options.screenEffectScale().get() != 0 && (camera == null || camera.rotating());
@@ -319,16 +323,20 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
                 part -> new GaragePartBrowser.State(part.id().toString(), part.installed(), part.selected(), part.available(), part.required()));
     }
     private void buildTuning() {
-        var engine = view("engines", layout.at(144, 190, 60, 18), text("engine"), TAB, () -> tune(true));
-        var wheels = view("wheels", layout.at(208, 190, 54, 18), text("wheels"), TAB, () -> tune(false));
-        engine.setSelected(engineTab); wheels.setSelected(!engineTab);
-        var filter = view(ownedParts ? "allParts" : "ownedParts", layout.at(266, 190, 90, 18),
-                text(ownedParts ? "workshop.owned_only" : "workshop.all_parts"), TAB,
+        var radio = view("cabinTuning027",layout.at(266,190,66,18),cabinText027("tab","Radio"),TAB,()->{radioTuning027=true;rebuild();});
+        radio.setSelected(radioTuning027);radio.active=menu.getCarried().isEmpty();
+
+        var engine = view("engines", layout.at(144, 190, 60, 18), text("engine"), TAB, () -> {radioTuning027=false;tune(true);});
+        var wheels = view("wheels", layout.at(208, 190, 54, 18), text("wheels"), TAB, () -> {radioTuning027=false;tune(false);});
+        engine.setSelected(!radioTuning027&&engineTab); wheels.setSelected(!radioTuning027&&!engineTab);
+        if(radioTuning027){buildCabinTuning027();return;}
+        var filter = view(ownedParts ? "allParts" : "ownedParts", layout.at(336,190,40,18),
+                cabinText027(ownedParts?"owned":"all",ownedParts?"Owned":"All"), TAB,
                 () -> { ownedParts = !ownedParts; partPage = 0; rebuild(); });
         filter.setSelected(ownedParts); filter.setTooltip(Tooltip.create(text("workshop.filter_help")));
         var choices = parts(); partPage = Math.clamp(partPage, 0, Math.max(0, (choices.size() - 1) / PARTS_PER_PAGE));
-        var previous = view("previousParts", layout.at(360, 190, 24, 18), Component.literal("‹"), QUIET, () -> { partPage--; rebuild(); });
-        var next = view("nextParts", layout.at(388, 190, 24, 18), Component.literal("›"), QUIET, () -> { partPage++; rebuild(); });
+        var previous = view("previousParts", layout.at(380,190,14,18), Component.literal("‹"), QUIET, () -> { partPage--; rebuild(); });
+        var next = view("nextParts", layout.at(398,190,14,18), Component.literal("›"), QUIET, () -> { partPage++; rebuild(); });
         previous.setTooltip(Tooltip.create(text("polish.previous"))); next.setTooltip(Tooltip.create(text("polish.next")));
         previous.active = partPage > 0; next.active = (partPage + 1) * PARTS_PER_PAGE < choices.size();
         for (int row = 0; row < PARTS_PER_PAGE; row++) {
@@ -361,6 +369,53 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
         inventory.setSelected(!exchangePane); exchange.setSelected(exchangePane);
         exchange.active = menu.getCarried().isEmpty();
         exchange.setTooltip(Tooltip.create(exchangeTooltip()));
+    }
+
+    private static Component cabinText027(String key,String fallback){return Component.translatableWithFallback("garage.automobility.cabin."+key,fallback);}
+    private void buildCabinTuning027(){
+        var car=menu.selectedVehicle();var state=CabinTuningClient027.view(car).orElse(null);
+        var settings=state==null?null:state.preferences().orElse(null);
+        boolean writable=settings!=null&&state.mayConfigure()&&!CabinTuningClient027.pending(car)&&!menu.hasPendingChanges()&&menu.getCarried().isEmpty();
+        var face=view("cabinFace027",layout.at(144,212,268,22),cabinText027("face","Radio panel").copy().append(": ").append(settings==null?Component.literal("…"):cabinText027("face."+settings.face().name().toLowerCase(java.util.Locale.ROOT),switch(settings.face()){case RETRO->"Retro";case CASSETTE->"Cassette";case DIGITAL->"Digital";})),SECONDARY,()->{
+            var current=CabinTuningClient027.view(menu.selectedVehicle()).flatMap(CabinTuningPayloads027.State::preferences).orElse(null);
+            if(current!=null)CabinTuningClient027.save(menu.selectedVehicle(),current.next(CabinTuning027.Face.values()[(current.face().ordinal()+1)%3],current.speakers()));
+        });
+        var speakers=view("cabinSpeakers027",layout.at(144,238,268,22),cabinText027("speakers","Speaker grilles").copy().append(": ").append(settings==null?Component.literal("…"):cabinText027("speakers."+settings.speakers().name().toLowerCase(java.util.Locale.ROOT),switch(settings.speakers()){case COMPACT->"Compact";case TOURING->"Touring";case STUDIO->"Studio";})),SECONDARY,()->{
+            var current=CabinTuningClient027.view(menu.selectedVehicle()).flatMap(CabinTuningPayloads027.State::preferences).orElse(null);
+            if(current!=null)CabinTuningClient027.save(menu.selectedVehicle(),current.next(current.face(),CabinTuning027.Speakers.values()[(current.speakers().ordinal()+1)%3]));
+        });
+        var accent=view("cabinAccent027",layout.at(144,264,268,22),cabinText027("accent","Backlight").copy().append(settings==null?": …":settings.accentRgb()<0?": Auto":String.format(java.util.Locale.ROOT,": #%06X",settings.accentRgb())),SECONDARY,()->{
+            var current=CabinTuningClient027.view(menu.selectedVehicle()).flatMap(CabinTuningPayloads027.State::preferences).orElse(null);
+            if(current!=null){int[]colors={-1,0xffb449,0x95d48b,0x91b8ed,0xf0d4df,0xd1ddcb};int index=0;for(int i=0;i<colors.length;i++)if(colors[i]==current.accentRgb())index=(i+1)%colors.length;CabinTuningClient027.save(menu.selectedVehicle(),current.nextAccent(colors[index]));}
+        });
+        accent.active=writable;
+        Component info=menu.isStored()?cabinText027("retrieve","Retrieve this car to customize its cockpit."):menu.isCatalog()?cabinText027("assemble","Assemble this car before cockpit tuning.")
+                :menu.hasPendingChanges()?cabinText027("parts_first","Apply or cancel the pending part changes first.")
+                :state!=null&&state.status()==CabinTuning027.Status.OPAQUE?cabinText027("opaque","Unknown cockpit data is preserved.")
+                :!CabinTuningClient027.capable()?cabinText027("unavailable","Server cockpit tuning is unavailable."):state==null?cabinText027("waiting","Waiting for the server…"):!state.mayConfigure()?cabinText027("denied","Configuration permission is required.")
+                :CabinTuningClient027.pending(car)?cabinText027("waiting","Waiting for the server…"):cabinText027("help","Changes apply after server confirmation. Visual styles do not change audio or power.");
+        face.active=speakers.active=writable;face.setTooltip(Tooltip.create(info));speakers.setTooltip(Tooltip.create(info));
+        var status=view("cabinHelp027",layout.at(144,290,268,20),info,QUIET,()->{});status.active=false;status.setTooltip(Tooltip.create(info));
+    }
+    private void drawCabinPreview027(GuiGraphicsExtractor graphics){
+        int x=leftPos+432,y=topPos+220;
+        var style=CabinTuningClient027.preferences(menu.selectedVehicle()).orElse(CabinTuning027.Settings.defaults());
+        var display=CabinSettingsClient022.preferences(menu.selectedVehicle()).orElse(CabinPreferences022.Settings.defaults());
+        int color=0xff000000|(style.accentRgb()<0?display.accentRgb():style.accentRgb());
+        graphics.fill(x,y+16,x+150,y+77,0xff11171e);
+        graphics.outline(x+20,y+24,110,42,style.face()==CabinTuning027.Face.RETRO?0xffa9ada5:0xff485459);
+        graphics.fill(x+25,y+29,x+125,y+59,0xff06100d);
+        if(style.face()==CabinTuning027.Face.CASSETTE){graphics.outline(x+91,y+32,29,22,color);graphics.fill(x+96,y+40,x+101,y+45,color);graphics.fill(x+110,y+40,x+115,y+45,color);}
+        if(style.face()==CabinTuning027.Face.RETRO)for(int i=0;i<12;i++)graphics.fill(x+29+i*7,y+53,x+30+i*7,y+57,color);
+        graphics.text(font,Component.literal(style.face()==CabinTuning027.Face.RETRO?"FM":style.face()==CabinTuning027.Face.CASSETTE?"TAPE":"RADIO"),x+29,y+34,color,false);
+        int grille=switch(style.speakers()){case COMPACT->8;case TOURING->12;case STUDIO->16;};
+        for(int side=0;side<2;side++)for(int line=0;line<8;line++){int sx=side==0?x+1:x+149-grille;graphics.fill(sx,y+28+line*4,sx+grille,y+29+line*4,0xff708087);}
+        label(graphics,cabinText027("preview","Appearance preview"),x,y,150,MUTED);
+        label(graphics,cabinText027("models","MX-5 / Defender / T3"),x,y+82,150,MUTED);
+    }
+    private int cabinFingerprint027(){
+        var car=menu.selectedVehicle();var state=CabinTuningClient027.view(car).orElse(null);
+        return Objects.hash(radioTuning027,car==null?null:car.getUUID(),state==null?null:state.sequence(),CabinTuningClient027.pending(car));
     }
 
     private void buildZoom() {
@@ -400,7 +455,7 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
     }
 
     private int fingerprint() {
-        int value = Objects.hash(menu.selectedChoiceId(), menu.isCatalog(), menu.getStatus(), menu.hasPendingChanges(),
+        int value = Objects.hash(cabinFingerprint027(),menu.selectedChoiceId(), menu.isCatalog(), menu.getStatus(), menu.hasPendingChanges(),
                 menu.currentComponents(), menu.previewComponents(), menu.selectedEngineSourceSlot(),menu.engineConfirmationRevision(),menu.engineOwnerReason(),menu.pendingEngine().getComponents(),menu.pendingEngine().getCount(),menu.returnedEngineView().getComponents(),menu.getCarried().isEmpty(), mode, engineTab, ownedParts, exchangePane, reducedMotion());
         for (var car : cars()) value = 31 * value + Objects.hash(car.id(), car.kind(), car.selected(), car.components());
         for (var part : menu.engineOptions()) value = 31 * value + Objects.hash(part.id(),part.buttonId(),part.icon().getComponents(),part.icon().getCount(), part.available(), part.required(), part.enabled(), part.selected(), part.reason());
@@ -410,6 +465,7 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
     }
     @Override protected void containerTick() {
         super.containerTick(); restoreCamera();
+        if(radioTuning027)CabinTuningClient027.observe(menu.selectedVehicle());
         if (reducedMotion() && rotating) { rotating = false; rememberCamera(); }
         var draft = menu.previewComponents();
         if (!Objects.equals(lastDraft, draft)) { partPage = 0; lastDraft = draft; }
@@ -469,7 +525,7 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
         if(mode==TUNING) drawInstalledParts(graphics);
         if (mode == TUNING) {
             GarageUiDraw.surface(graphics, layout.drawer(), GarageUiDraw.Surface.DRAWER);
-            if (exchangePane) drawExchange(graphics);
+            if (radioTuning027) drawCabinPreview027(graphics); else if (exchangePane) drawExchange(graphics);
             else {
                 label(graphics, text("polish.owned_parts"), leftPos + 426, topPos + 214, 162, MUTED);
                 for (int i = GarageScreenHandler.PLAYER_SLOT_START; i < menu.slots.size(); i++) {
@@ -489,6 +545,12 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
             label(graphics, text(current.extended() ? "polish.extended" : "polish.original"), hero.right() - 144, hero.y() + 12, 130, ACCENT);
     }
     private void drawSummaryStats(GuiGraphicsExtractor graphics, GarageDrivingStats.Snapshot current, GarageDrivingStats.Snapshot preview) {
+        if (mode == DETAILS) {
+            var parts = menu.previewComponents() == null ? menu.currentComponents() : menu.previewComponents();
+            GaragePowertrainPresentation.renderCurve(graphics, font, new GarageUiLayout.Box(leftPos + 438, topPos + 63, 146, 112),
+                    menu.currentComponents(), parts, labelMouseX, labelMouseY).ifPresent(value -> hoveredClippedText = value);
+            return;
+        }
         if (current == null || preview == null) return;
         float[] before = {current.acceleration(), current.speedBlocksPerSecond(), current.handling(), current.grip()};
         float[] after = {preview.acceleration(), preview.speedBlocksPerSecond(), preview.handling(), preview.grip()};
@@ -536,7 +598,13 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
                 label(graphics, Component.literal(number(after[i])), leftPos + 510, y, 70, after[i] >= before[i] ? POSITIVE : NEGATIVE);
             }
         }
-        label(graphics, text("polish.detail_help"), leftPos + 148, topPos + 274, 434, MUTED);
+        var physicalPreview = menu.previewComponents() == null ? menu.currentComponents() : menu.previewComponents();
+        label(graphics, Component.translatableWithFallback("gui.automobility.garage.physical.torque", "Torque"), leftPos + 148, topPos + 274, 240, MUTED);
+        label(graphics, GaragePowertrainPresentation.torque(menu.currentComponents()), leftPos + 416, topPos + 274, 70, TEXT);
+        label(graphics, GaragePowertrainPresentation.torque(physicalPreview), leftPos + 510, topPos + 274, 70, ACCENT);
+        label(graphics, Component.translatableWithFallback("gui.automobility.garage.physical.power", "Power"), leftPos + 148, topPos + 288, 240, MUTED);
+        label(graphics, GaragePowertrainPresentation.power(menu.currentComponents()), leftPos + 416, topPos + 288, 70, TEXT);
+        label(graphics, GaragePowertrainPresentation.power(physicalPreview), leftPos + 510, topPos + 288, 70, ACCENT);
     }
     private static String delta(float before, float after) {
         if (!Float.isFinite(before) || !Float.isFinite(after)) return "—";
@@ -631,7 +699,7 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
         graphics.text(font, fitted.visualOrder(), leftPos + x, topPos + y, color, false);
         if (GarageTextTooltip.isHoveredClipped(fitted.fullWidth(), x, y, available, font.lineHeight, labelMouseX, labelMouseY)) hoveredClippedText = value;
     }
-    private boolean inventoryVisible() { return layout != null && layout.inventoryVisible() && !exchangePane; }
+    private boolean inventoryVisible() { return layout != null && layout.inventoryVisible() && !exchangePane && !radioTuning027; }
     private boolean visibleSlot(Slot slot) { return inventoryVisible() && slot != null && menu.slots.indexOf(slot) >= GarageScreenHandler.PLAYER_SLOT_START; }
     @Override protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {}
     @Override protected void extractSlots(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
@@ -698,7 +766,7 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
         if (layout.rail().contains(mouseX, mouseY)) {
             carPage = Math.clamp(carPage + (scrollY < 0 ? 1 : -1), 0, Math.max(0, (carGroups().size() - 1) / CARS_PER_PAGE)); rebuild(); return true;
         }
-        if (mode == TUNING && layout.at(140, 210, 276, 100).contains(mouseX, mouseY)) {
+        if (mode == TUNING && !radioTuning027 && layout.at(140, 210, 276, 100).contains(mouseX, mouseY)) {
             partPage = Math.clamp(partPage + (scrollY < 0 ? 1 : -1), 0, Math.max(0, (parts().size() - 1) / PARTS_PER_PAGE)); rebuild(); return true;
         }
         return inventoryVisible() && super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);

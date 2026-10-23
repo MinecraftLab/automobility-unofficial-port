@@ -33,6 +33,7 @@ public abstract class AutomobileEngineSoundMixin {
 
     @Inject(method = "getPitch", at = @At("HEAD"), cancellable = true)
     private void momentum$enginePitch(AutomobileEntity automobile, CallbackInfoReturnable<Float> cir) {
+        if (io.github.foundationgames.automobility.client.vehicle.VehiclePowertrainPresentation.reading(automobile).isPresent()) return;
         MomentumConfig cfg = MomentumConfig.get();
         if (!MomentumConfig.presentationEnabled()) return;
 
