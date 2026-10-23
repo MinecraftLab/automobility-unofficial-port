@@ -4,7 +4,9 @@
   "version": "${version}",
   "name": "Momentum for Automobility: Unofficial Port",
   "description": "Unofficial Automobility addon port that improves vehicle movement feel and adds a compact driving HUD.",
-  "authors": ["milkucha"],
+  "authors": [
+    "milkucha"
+  ],
   "contact": {
     "homepage": "https://modrinth.com/mod/momentum-for-automobility-unofficial-port",
     "sources": "https://git.offchunk.com/Offchunk/automobility-unofficial-port",
@@ -33,7 +35,11 @@
   "depends": {
     "fabricloader": ">=${fabric_loader_version}",
     "fabric-api": ">=${fabric_api_version}",
-    "minecraft": "26.1.x",
+    "minecraft": [
+      "26.1",
+      "26.1.1",
+      "26.1.2"
+    ],
     "java": ">=25",
     "automobility": ">=${automobility_version}"
   },

@@ -34,7 +34,7 @@ public abstract class AutomobileEngineSoundMixin {
     @Inject(method = "getPitch", at = @At("HEAD"), cancellable = true)
     private void momentum$enginePitch(AutomobileEntity automobile, CallbackInfoReturnable<Float> cir) {
         MomentumConfig cfg = MomentumConfig.get();
-        if (!MomentumConfig.gameplay().enabled) return;
+        if (!MomentumConfig.presentationEnabled()) return;
 
         float ceilingKmh = cfg.sound.enginePitchCeiling;
         float scale = VANILLA_CEILING_KMH / ceilingKmh;

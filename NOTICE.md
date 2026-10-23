@@ -21,3 +21,7 @@ The Fabric Automobility artifact embeds Obj 0.4.0 by Marco Hutter.
 - Original source repository: https://github.com/javagl/Obj
 - Copyright (c) 2008-2015 Marco Hutter - http://www.javagl.de
 - License: MIT, retained in `THIRD_PARTY_LICENSES/obj-0.4.0-LICENSE.txt`
+
+## Original EV startup audio
+
+`assets/automobility/sounds/electric_engine_start.ogg` is an original procedural ready chime created for this port, with no recorded or third-party samples. Attribution: David; CC BY 4.0, as listed in `LICENSE-ASSETS.txt`. The reproducible generator is retained in `artwork/audio/generate_electric_start.py`. Inherited audio keeps its existing notices.

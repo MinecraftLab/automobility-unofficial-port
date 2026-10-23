@@ -1,4 +1,12 @@
 {
+  "momentum.compatibility.driver_required": "在這裡駕駛需要相容的Automobility用戶端。請更新Automobility。",
+  "momentum.compatibility.local_only": "此伺服器上僅啟用Momentum的本地HUD和攝影機。",
+  "config.momentum.option.movement.vehicle_pedal_balance.name": "車輛踏板平衡（實驗）",
+  "config.momentum.option.movement.vehicle_pedal_balance.description": "將 Lorry 前進時的踏板制動力減半。乘用車、未知車架、手煞車、倒車和外部引擎保持不變。由伺服器控制。",
+  "config.momentum.option.movement.forward_pedal_scale.name": "前進煞車力道（實驗性）",
+  "config.momentum.option.movement.forward_pedal_scale.description": "僅在車輛預設之後調整前進煞車：1 保持原力道，0.5 更柔和。不改變倒車、手煞車或外部引擎控制。",
+  "config.momentum.option.camera.comfort_brake_zoom.name": "柔和煞車縮放（實驗性）",
+  "config.momentum.option.camera.comfort_brake_zoom.description": "平滑縮放並限制為 5 度或更低的自設上限。關閉時保留原效果。不改變鏡頭距離或牆壁碰撞。",
   "hint.momentum.reverse_release.title": "安全倒車",
   "hint.momentum.reverse_release.action": "先鬆開煞車，再次按下即可倒車。",
   "option.hud.reverse_release_hint.name": "倒車前鬆開煞車提示",
@@ -67,12 +75,14 @@
   "config.momentum.profile.responsive": "靈敏飄移",
   "config.momentum.key_binding.brake": "煞車：%s",
   "config.momentum.key_binding.handbrake": "手煞車（飄移）：%s",
-  "config.momentum.key_binding.remap_hint": "（在 momentum.json 中編輯 brakeKey / driftKey 以重新綁定）",
+  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
   "config.momentum.value.enabled": "已啟用",
   "config.momentum.value.disabled": "已停用",
   "config.momentum.option.with_default": "%1$s\n\n預設值：%2$s",
   "config.momentum.option.general.drift_profile.name": "飄移設定檔",
   "config.momentum.option.general.drift_profile.description": "選擇按下手煞車（飄移）鍵時觸發的行為。原版採用 Automobility 僅改變速度的飄移；街機提供快速精準的側滑；靈敏模式則提供由轉向控制的大幅滑行。\n\n預設值：%s",
+  "config.momentum.option.general.allow_vehicle_presets.name": "允許車輛獨立駕駛模式",
+  "config.momentum.option.general.allow_vehicle_presets.description": "允許有設定權限的駕駛員為靜止的車輛選擇 Touring、Balanced 或 Sport。停用時使用伺服器設定，已儲存的選擇仍會保留。在遠端伺服器上，此政策為唯讀。\n\n預設：%s",
   "config.momentum.option.general.driving_preset.name": "駕駛調校",
   "config.momentum.option.general.driving_preset.description": "選擇整套移動與轉向調校。舒適平順穩定，均衡適合多種情境，運動則更快更靈敏。自訂會還原你上次手動調整的數值。飄移、攝影機和 HUD 不會改變。\n\n預設值：%s",
   "config.momentum.driving_preset.touring": "舒適",
@@ -210,5 +220,7 @@
   "config.momentum.option.drift.camera_lerp_in.name": "鏡頭進入插值",
   "config.momentum.option.drift.camera_lerp_in.description": "鏡頭移向飄移位移位置的速度。數值越高，跟隨越快；數值越低，移動越平滑。",
   "config.momentum.option.drift.camera_lerp_out.name": "鏡頭退出插值",
-  "config.momentum.option.drift.camera_lerp_out.description": "飄移結束後鏡頭回到中央的速度。數值越高，越快回正；數值越低，越緩慢穩定。"
+  "config.momentum.option.drift.camera_lerp_out.description": "飄移結束後鏡頭回到中央的速度。數值越高，越快回正；數值越低，越緩慢穩定。",
+  "config.momentum.option.hud.reverse_release_hint.name": "倒車前鬆開煞車提示",
+  "config.momentum.option.hud.reverse_release_hint.desc": "僅向駕駛員顯示倒車前鬆開煞車的提醒。不會改變駕駛操作。"
 }

@@ -3,6 +3,7 @@ package io.github.milkucha.momentum.command;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import io.github.milkucha.momentum.config.MomentumConfig;
+import io.github.milkucha.momentum.MomentumDrivingModel;
 import io.github.milkucha.momentum.network.GameplayConfigSync;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
@@ -28,6 +29,10 @@ public final class MomentumCommands {
                     .then(Commands.literal("sync")
                             .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                             .executes(MomentumCommands::sync))
+                    .then(Commands.literal("driving")
+                            .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                            .then(Commands.literal("original").executes(c -> driving(c, false)))
+                            .then(Commands.literal("extended").executes(c -> driving(c, true))))
                     .then(Commands.literal("preset")
                             .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                             .then(preset("touring", MomentumConfig.DrivingPreset.TOURING))
@@ -53,8 +58,12 @@ public final class MomentumCommands {
     }
 
     private static int reload(CommandContext<CommandSourceStack> context) {
-        MomentumConfig.reload();
-        int recipients = GameplayConfigSync.sendToAll(context.getSource().getServer());
+        var result = MomentumDrivingModel.reload(context.getSource().getServer(), true);
+        int recipients = result.recipients();
+        if (result.modelChangeBlocked())
+            context.getSource().sendFailure(Component.translatableWithFallback(
+                    "command.momentum.reload.model_blocked",
+                    "Other settings reloaded; driving model unchanged. Park all loaded cars before changing it."));
         context.getSource().sendSuccess(() -> Component.translatable(
                 "command.momentum.reload.success", recipients), false);
         return Command.SINGLE_SUCCESS;
@@ -64,6 +73,19 @@ public final class MomentumCommands {
         int recipients = GameplayConfigSync.sendToAll(context.getSource().getServer());
         context.getSource().sendSuccess(() -> Component.translatable(
                 "command.momentum.sync.success", recipients), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int driving(CommandContext<CommandSourceStack> context, boolean extended) {
+        if (!MomentumDrivingModel.change(context.getSource().getServer(), extended)) {
+            context.getSource().sendFailure(Component.translatableWithFallback(
+                    "command.momentum.driving.moving", "Park all loaded cars before changing the driving model."));
+            return 0;
+        }
+        context.getSource().sendSuccess(() -> Component.translatableWithFallback(
+                "command.momentum.driving.success", "Server driving model: %s",
+                Component.translatableWithFallback("vehicle.automobility.driving.model."
+                        + (extended ? "extended" : "original"), extended ? "Extended" : "Original")), true);
         return Command.SINGLE_SUCCESS;
     }
 

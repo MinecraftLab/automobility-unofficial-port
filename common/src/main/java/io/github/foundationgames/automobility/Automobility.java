@@ -59,9 +59,12 @@ public class Automobility {
                     GarageScreenHandler::new, GarageScreenHandler.OpeningData.STREAM_CODEC));
 
     public static void init() {
+        io.github.foundationgames.automobility.automobile.engine.VehicleEnginePolicy.load();
+        io.github.foundationgames.automobility.automobile.light.VehicleUnattendedLightPolicy.load();
         AutomobilitySounds.init();
         AutomobilityBlocks.init();
         AutomobilityItems.init();
+        io.github.foundationgames.automobility.item.NewVehiclePrefabs.register();
         AutomobilityEntities.init();
         AutomobilityParticles.init();
         initOther();

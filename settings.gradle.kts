@@ -10,4 +10,5 @@ pluginManagement {
     }
 }
 
+// Momentum remains an internal source/test module; only :fabric distributes a mod.
 include("common", "fabric", "momentum")

@@ -1,4 +1,12 @@
 {
+  "momentum.compatibility.driver_required": "Pour conduire ici, un client Automobility compatible est nécessaire. Mettez Automobility à jour.",
+  "momentum.compatibility.local_only": "Seuls le HUD et la caméra locaux de Momentum sont actifs sur ce serveur.",
+  "config.momentum.option.movement.vehicle_pedal_balance.name": "Équilibrage du frein (expérimental)",
+  "config.momentum.option.movement.vehicle_pedal_balance.description": "Divise par deux le freinage avant du Lorry. Voitures, châssis inconnus, frein à main, marche arrière et moteurs externes restent inchangés. Réglage serveur.",
+  "config.momentum.option.movement.forward_pedal_scale.name": "Force du frein avant (expérimental)",
+  "config.momentum.option.movement.forward_pedal_scale.description": "Multiplie le freinage vers l’avant après le profil du véhicule : 1 garde la force, 0.5 est plus doux. Marche arrière, frein à main et moteurs externes restent inchangés.",
+  "config.momentum.option.camera.comfort_brake_zoom.name": "Zoom de freinage doux (expérimental)",
+  "config.momentum.option.camera.comfort_brake_zoom.description": "Lisse le zoom et le limite à 5 degrés ou à votre limite inférieure. Désactivé conserve l’ancien effet. Distance et collisions de caméra restent inchangées.",
   "hint.momentum.reverse_release.title": "Marche arrière sécurisée",
   "hint.momentum.reverse_release.action": "Relâchez le frein, puis actionnez-le à nouveau pour reculer.",
   "option.hud.reverse_release_hint.name": "Rappel avant la marche arrière",
@@ -67,12 +75,14 @@
   "config.momentum.profile.responsive": "Dérapage réactif",
   "config.momentum.key_binding.brake": "Frein : %s",
   "config.momentum.key_binding.handbrake": "Frein à main (dérapage) : %s",
-  "config.momentum.key_binding.remap_hint": "(Modifiez brakeKey / driftKey dans momentum.json pour réaffecter les touches)",
+  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
   "config.momentum.value.enabled": "activé",
   "config.momentum.value.disabled": "désactivé",
   "config.momentum.option.with_default": "%1$s\n\nPar défaut : %2$s",
   "config.momentum.option.general.drift_profile.name": "Profil de dérapage",
   "config.momentum.option.general.drift_profile.description": "Choisit le comportement du frein à main. D'origine utilise le dérapage d'Automobility fondé sur la vitesse, Arcade produit une glisse rapide et précise, et Réactif un dérapage profond contrôlé par la direction.\n\nPar défaut : %s",
+  "config.momentum.option.general.allow_vehicle_presets.name": "Autoriser les modes par véhicule",
+  "config.momentum.option.general.allow_vehicle_presets.description": "Permet aux conducteurs autorisés de choisir Touring, Balanced ou Sport pour une voiture à l'arrêt. Sinon, le réglage du serveur s'applique ; les choix enregistrés sont conservés. Cette règle est en lecture seule sur un serveur distant.\n\nPar défaut : %s",
   "config.momentum.option.general.driving_preset.name": "Réglage de conduite",
   "config.momentum.option.general.driving_preset.description": "Choisissez un réglage complet du mouvement et de la direction. Confort est souple et stable, Équilibré est polyvalent et Sport est plus vif et direct. Personnalisé restaure vos derniers réglages manuels. Le dérapage, la caméra et le HUD ne changent pas.\n\nPar défaut : %s",
   "config.momentum.driving_preset.touring": "Confort",
@@ -210,5 +220,7 @@
   "config.momentum.option.drift.camera_lerp_in.name": "Entrée de la caméra",
   "config.momentum.option.drift.camera_lerp_in.description": "Vitesse à laquelle la caméra rejoint le décalage du dérapage. Une valeur élevée suit immédiatement, une valeur faible se déplace doucement.",
   "config.momentum.option.drift.camera_lerp_out.name": "Retour de la caméra",
-  "config.momentum.option.drift.camera_lerp_out.description": "Vitesse à laquelle la caméra revient au centre après le dérapage. Une valeur élevée revient d'un coup, une valeur faible se stabilise lentement."
+  "config.momentum.option.drift.camera_lerp_out.description": "Vitesse à laquelle la caméra revient au centre après le dérapage. Une valeur élevée revient d'un coup, une valeur faible se stabilise lentement.",
+  "config.momentum.option.hud.reverse_release_hint.name": "Rappel avant la marche arrière",
+  "config.momentum.option.hud.reverse_release_hint.desc": "Rappelle uniquement au conducteur de relâcher le frein avant de reculer. Ne modifie pas les commandes de conduite."
 }

@@ -30,6 +30,7 @@ public enum AutomobileHud {;
             return;
         }
 
+        if(io.github.foundationgames.automobility.client.vehicle.UnifiedVehicleHud.unified()) return;
         renderSpeedometer(graphics, auto);
 
         if (!Platform.get().controller().inControllerMode()) {

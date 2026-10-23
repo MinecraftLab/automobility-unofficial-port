@@ -1,0 +1,50 @@
+New vehicle artwork: Creative Commons Attribution 4.0 International (CC BY 4.0)
+
+Creator and attribution name: David.
+Project: Automobility: Unofficial Port.
+Project URL: https://modrinth.com/mod/automobility-unofficial-port
+License URL: https://creativecommons.org/licenses/by/4.0/
+Complete legal terms: LICENSE-CC-BY-4.0.txt, bundled alongside this notice.
+
+David selected this license for his new authored vehicle artwork on 2026-10-11.
+Credit the creator, retain the license reference, and identify later changes.
+This is a scoped asset license, not a relicense of the entire mod.
+
+The license applies only to the following files, relative to
+common/src/main/resources/assets/automobility/ in source, or to
+assets/automobility/ in the distributed Automobility JAR:
+
+models/entity/automobile/frame/defender_90/main.obj
+textures/entity/automobile/frame/defender_90.png
+models/entity/automobile/wheel/defender_terrain/main.obj
+textures/entity/automobile/wheel/defender_terrain.png
+models/entity/automobile/frame/vw_t3/main.obj
+textures/entity/automobile/frame/vw_t3.png
+models/entity/automobile/wheel/t3_steel/main.obj
+textures/entity/automobile/wheel/t3_steel.png
+models/entity/automobile/frame/mx5_na/main.obj
+models/entity/automobile/frame/mx5_na_hood/main.obj
+models/entity/automobile/frame/mx5_na_headlights_left/main.obj
+models/entity/automobile/frame/mx5_na_headlights_right/main.obj
+textures/entity/automobile/frame/mx5_na.png
+models/entity/automobile/wheel/mx5_alloy/main.obj
+textures/entity/automobile/wheel/mx5_alloy.png
+
+All other files retain their existing license. In particular, this notice does
+not cover inherited FoundationGames engines, wheels, shared item icons, UI,
+sounds, reference photographs, third-party libraries, or code/recipe/registry
+JSON changes. Original MIT notices and third-party attribution are retained.
+The incomplete Skoda 120 L and skoda_steel are not included in this candidate.
+Editor projects containing upstream reference engines are not distributed here.
+
+Vehicle names identify the represented models. No affiliation with or
+endorsement by their manufacturers is claimed, and this asset license grants
+no rights in third-party trademarks.
+
+
+Additional original vehicle audio (2026-10-19):
+
+The same CC BY 4.0 license and David attribution also apply explicitly to
+`sounds/electric_engine_start.ogg`. This short EV ready chime was procedurally
+synthesized for this port without recorded or third-party samples. This
+addition does not relicense any other inherited sound asset.

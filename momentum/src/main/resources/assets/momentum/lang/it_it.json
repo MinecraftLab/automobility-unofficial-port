@@ -1,4 +1,12 @@
 {
+  "momentum.compatibility.driver_required": "Per guidare qui serve un client Automobility compatibile. Aggiorna Automobility.",
+  "momentum.compatibility.local_only": "Su questo server sono attivi solo HUD e telecamera locali di Momentum.",
+  "config.momentum.option.movement.vehicle_pedal_balance.name": "Bilanciamento del pedale (sperimentale)",
+  "config.momentum.option.movement.vehicle_pedal_balance.description": "Dimezza il pedale in avanti del Lorry. Auto, telai sconosciuti, freno a mano, retromarcia e motori esterni restano invariati. Controllato dal server.",
+  "config.momentum.option.movement.forward_pedal_scale.name": "Forza del freno in avanti (sperimentale)",
+  "config.momentum.option.movement.forward_pedal_scale.description": "Scala solo la frenata in avanti dopo il profilo: 1 conserva la forza, 0.5 è più dolce. Retromarcia, freno a mano e motori esterni non cambiano.",
+  "config.momentum.option.camera.comfort_brake_zoom.name": "Zoom di frenata dolce (sperimentale)",
+  "config.momentum.option.camera.comfort_brake_zoom.description": "Rende fluido lo zoom e lo limita a 5 gradi o al limite inferiore scelto. Disattivato conserva il vecchio effetto. Distanza e collisioni della camera non cambiano.",
   "hint.momentum.reverse_release.title": "Retromarcia sicura",
   "hint.momentum.reverse_release.action": "Rilascia il freno, poi azionalo di nuovo per andare in retromarcia.",
   "option.hud.reverse_release_hint.name": "Promemoria prima della retromarcia",
@@ -67,12 +75,14 @@
   "config.momentum.profile.responsive": "Derapata reattiva",
   "config.momentum.key_binding.brake": "Freno: %s",
   "config.momentum.key_binding.handbrake": "Freno a mano (derapata): %s",
-  "config.momentum.key_binding.remap_hint": "(Modifica brakeKey / driftKey in momentum.json per riassegnare i tasti)",
+  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
   "config.momentum.value.enabled": "attivo",
   "config.momentum.value.disabled": "disattivo",
   "config.momentum.option.with_default": "%1$s\n\nPredefinito: %2$s",
   "config.momentum.option.general.drift_profile.name": "Profilo derapata",
   "config.momentum.option.general.drift_profile.description": "Sceglie il comportamento del freno a mano. Originale usa la derapata di Automobility basata sulla velocità, Arcade offre uno slittamento rapido e preciso, Reattiva una derapata profonda controllata dallo sterzo.\n\nPredefinito: %s",
+  "config.momentum.option.general.allow_vehicle_presets.name": "Consenti modalità per veicolo",
+  "config.momentum.option.general.allow_vehicle_presets.description": "Consente ai conducenti autorizzati di scegliere Touring, Balanced o Sport per un'auto ferma. Se disattivato, vale la taratura del server; le scelte salvate restano. Su un server remoto questa regola è di sola lettura.\n\nPredefinito: %s",
   "config.momentum.option.general.driving_preset.name": "Assetto di guida",
   "config.momentum.option.general.driving_preset.description": "Scegli un assetto completo per movimento e sterzo. Turismo è fluido e stabile, Bilanciato è versatile e Sportivo è più rapido e diretto. Personalizzato ripristina gli ultimi valori regolati manualmente. Derapata, telecamera e HUD non cambiano.\n\nPredefinito: %s",
   "config.momentum.driving_preset.touring": "Turismo",
@@ -210,5 +220,7 @@
   "config.momentum.option.drift.camera_lerp_in.name": "Entrata telecamera",
   "config.momentum.option.drift.camera_lerp_in.description": "Rapidità con cui la telecamera raggiunge lo spostamento della derapata. Valori alti seguono subito; valori bassi si muovono dolcemente.",
   "config.momentum.option.drift.camera_lerp_out.name": "Ritorno telecamera",
-  "config.momentum.option.drift.camera_lerp_out.description": "Rapidità con cui la telecamera torna al centro dopo la derapata. Valori alti tornano subito; valori bassi si assestano lentamente."
+  "config.momentum.option.drift.camera_lerp_out.description": "Rapidità con cui la telecamera torna al centro dopo la derapata. Valori alti tornano subito; valori bassi si assestano lentamente.",
+  "config.momentum.option.hud.reverse_release_hint.name": "Promemoria prima della retromarcia",
+  "config.momentum.option.hud.reverse_release_hint.desc": "Ricorda solo al conducente di rilasciare il freno prima della retromarcia. Non modifica i comandi di guida."
 }

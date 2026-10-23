@@ -1,0 +1,101 @@
+{
+  "weight": 0.98,
+  "width": 1.96875,
+  "hitboxes": [
+    {
+      "origin": [
+        0,
+        1.009375,
+        1.521875
+      ],
+      "width": 1.84375,
+      "height": 2.01875
+    },
+    {
+      "origin": [
+        0,
+        1.009375,
+        0.0031249999999998224
+      ],
+      "width": 1.84375,
+      "height": 2.01875
+    },
+    {
+      "origin": [
+        0,
+        1.009375,
+        -1.515625
+      ],
+      "width": 1.84375,
+      "height": 2.01875
+    }
+  ],
+  "display": {
+    "texture": "automobility:textures/entity/automobile/frame/vw_t3.png",
+    "model": "automobility:frame/vw_t3",
+    "wheels": [
+      {
+        "forward": 21.2,
+        "right": -12.85,
+        "scale": 1,
+        "yaw": 0,
+        "end": "front",
+        "side": "left"
+      },
+      {
+        "forward": 21.2,
+        "right": 12.85,
+        "scale": 1,
+        "yaw": 180,
+        "end": "front",
+        "side": "right"
+      },
+      {
+        "forward": -21.4,
+        "right": -12.85,
+        "scale": 1,
+        "yaw": 0,
+        "end": "back",
+        "side": "left"
+      },
+      {
+        "forward": -21.4,
+        "right": 12.85,
+        "scale": 1,
+        "yaw": 180,
+        "end": "back",
+        "side": "right"
+      }
+    ],
+    "length_pixels": 72.9,
+    "driver_seat": [
+      4.0,
+      5,
+      23
+    ],
+    "passenger_seats": [
+      [
+        -4.0,
+        5,
+        23
+      ],
+      [
+        4.0,
+        5,
+        -10
+      ],
+      [
+        -4.0,
+        5,
+        -10
+      ]
+    ],
+    "engine_position": [
+      0,
+      2,
+      -28.2
+    ],
+    "front_attachment_offset": 39.5,
+    "rear_attachment_offset": 39.4
+  }
+}

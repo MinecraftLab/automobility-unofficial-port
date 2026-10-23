@@ -2,6 +2,7 @@ package io.github.milkucha.momentum.mixin;
 
 import io.github.foundationgames.automobility.entity.AutomobileEntity;
 import io.github.milkucha.momentum.config.MomentumConfig;
+import io.github.milkucha.momentum.MomentumCameraPolicy;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,8 +29,8 @@ public class CameraLockMixin {
     private void momentum$blockMouseLook(double yaw, double pitch, CallbackInfo ci) {
         if (!((Object) this instanceof LocalPlayer player)) return;
         if (!(player.getVehicle() instanceof AutomobileEntity)) return;
-        if (!MomentumConfig.gameplay().enabled) return;
-        if (!MomentumConfig.get().camera.lock) return;
+        var camera = MomentumConfig.get().camera;
+        if (!MomentumCameraPolicy.lockActive(MomentumConfig.presentationEnabled(), camera.enabled, camera.lock)) return;
         ci.cancel();
     }
 }

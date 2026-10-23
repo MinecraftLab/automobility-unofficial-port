@@ -3,12 +3,13 @@ package io.github.milkucha.momentum;
 import io.github.foundationgames.automobility.entity.AutomobileEntity;
 import io.github.milkucha.momentum.accessor.SteeringDebugAccessor;
 import io.github.milkucha.momentum.config.MomentumConfig;
+import io.github.milkucha.momentum.network.ClientPhysicsSession;
 
 public final class MomentumCruiseControl {
     private static final double TO_KMH = 72.0;
 
     private static boolean active = false;
-    private static int entityId = -1;
+    private static final CruiseVehicleContext CONTEXT = new CruiseVehicleContext();
     private static final CruiseTargetState TARGET = new CruiseTargetState();
     private static float lastSpeedKmh = 0f;
     private static boolean accelerating = false;
@@ -18,18 +19,16 @@ public final class MomentumCruiseControl {
     }
 
     public static ActionResult toggle(AutomobileEntity auto) {
-        if (!MomentumConfig.gameplay().enabled || !MomentumConfig.gameplay().cruise.enabled) {
+        maintainSession(auto);
+        if (cancelForStoppedEngine(auto)) return result(Action.UNAVAILABLE);
+        if (!isEnabled()) {
             cancel(CancellationReason.NONE);
             return result(Action.UNAVAILABLE);
         }
 
-        if (active && entityId == auto.getId()) {
+        if (active && sameContext(auto)) {
             cancel(CancellationReason.NONE);
             return result(Action.DISENGAGED);
-        }
-
-        if (entityId != -1 && entityId != auto.getId()) {
-            clearSession();
         }
 
         if (isReversing(auto)) {
@@ -49,17 +48,16 @@ public final class MomentumCruiseControl {
     }
 
     public static ActionResult resume(AutomobileEntity auto) {
+        maintainSession(auto);
+        if (cancelForStoppedEngine(auto)) return result(Action.UNAVAILABLE);
         MomentumConfig config = MomentumConfig.gameplay();
-        if (!config.enabled || !config.cruise.enabled || isReversing(auto)) {
+        if (!isEnabled() || isReversing(auto)) {
             return result(Action.UNAVAILABLE);
         }
-        if (active && entityId == auto.getId()) {
+        if (active && sameContext(auto)) {
             return result(Action.ALREADY_ACTIVE);
         }
-        if (!TARGET.hasStoredTarget() || entityId != auto.getId()) {
-            if (entityId != -1 && entityId != auto.getId()) {
-                clearSession();
-            }
+        if (!TARGET.hasStoredTarget() || !sameContext(auto)) {
             return result(Action.NO_SAVED_TARGET);
         }
 
@@ -75,11 +73,13 @@ public final class MomentumCruiseControl {
     }
 
     public static ActionResult adjustTarget(AutomobileEntity auto, int direction) {
-        if (!active || entityId != auto.getId()) {
+        maintainSession(auto);
+        if (cancelForStoppedEngine(auto)) return result(Action.UNAVAILABLE);
+        if (!active || !sameContext(auto)) {
             return result(Action.NOT_ACTIVE);
         }
         MomentumConfig config = MomentumConfig.gameplay();
-        if (!config.enabled || !config.cruise.enabled) {
+        if (!isEnabled()) {
             cancel(CancellationReason.CONFIG_CHANGED);
             return result(Action.UNAVAILABLE);
         }
@@ -94,10 +94,12 @@ public final class MomentumCruiseControl {
     }
 
     public static AdjustedInput adjustInput(AutomobileEntity auto, boolean fwd, boolean back, boolean left, boolean right, boolean space, boolean ctrl) {
+        maintainSession(auto);
+        if (cancelForStoppedEngine(auto)) return null;
         if (!active) {
             return null;
         }
-        if (!MomentumConfig.gameplay().enabled || !MomentumConfig.gameplay().cruise.enabled || entityId != auto.getId()) {
+        if (!isEnabled() || !sameContext(auto)) {
             cancel(CancellationReason.CONFIG_CHANGED);
             return null;
         }
@@ -125,8 +127,12 @@ public final class MomentumCruiseControl {
         }
 
         if (fwd) {
+            io.github.milkucha.momentum.network.CruiseMotorClient.manualForward();
             TARGET.set(Math.max(TARGET.targetKmh(), speed), cruise.minActivationKmh, cruise.maxTargetKmh);
             accelerating = true;
+        } else if (io.github.milkucha.momentum.network.CruiseMotorClient.update(auto, TARGET.targetKmh())) {
+            // A grant only caps ordinary paid acceleration. Overspeed still uses the original coast path.
+            accelerating = speed <= TARGET.targetKmh() + 0.01f;
         } else if (accelerating) {
             if (speed >= TARGET.targetKmh() - cruise.cutThrottleBelowTargetKmh) {
                 accelerating = false;
@@ -140,7 +146,7 @@ public final class MomentumCruiseControl {
     }
 
     public static void cancelOnImpact(AutomobileEntity auto, float speedKmh) {
-        if (active && auto != null && entityId == auto.getId()
+        if (active && auto != null && sameContext(auto)
                 && speedKmh >= MomentumConfig.gameplay().cruise.impactCancelMinSpeedKmh) {
             cancel(CancellationReason.IMPACT);
         }
@@ -153,24 +159,40 @@ public final class MomentumCruiseControl {
 
     /** Clears all state when the driver leaves or the client disconnects. */
     public static void clearSession() {
+        io.github.milkucha.momentum.network.CruiseMotorClient.cancel();
         active = false;
-        entityId = -1;
+        CONTEXT.clear();
         TARGET.clear();
         lastSpeedKmh = 0f;
         accelerating = false;
         pendingCancellation = CancellationReason.NONE;
     }
 
+    /** Driver assistance is independent of Original/Extended; remote use still needs the exact handshake. */
+    public static boolean isEnabled() {
+        return ClientPhysicsSession.physicsAllowed(MomentumConfig.hasServerGameplayConfig())
+                && MomentumConfig.gameplay().cruise.enabled;
+    }
+
+    /** Accepted mapped pedals cancel assistance even when Extended drift/brake effects are disabled. */
+    public static void cancelOnDriverInput(boolean brake, boolean drift) {
+        if (!active) return;
+        if (brake) cancel(CancellationReason.BRAKE);
+        else if (drift) cancel(CancellationReason.DRIFT);
+    }
+
     public static boolean isActive() {
-        return active;
+        return isEnabled() && active;
     }
 
     public static boolean isActiveFor(AutomobileEntity auto) {
-        return active && auto != null && entityId == auto.getId();
+        if (!isEnabled() || !sameContext(auto) || !auto.engineRunning()) return false;
+        return active && sameContext(auto);
     }
 
     public static boolean canResumeFor(AutomobileEntity auto) {
-        return !active && auto != null && entityId == auto.getId() && TARGET.hasStoredTarget();
+        if (!isEnabled() || !sameContext(auto) || !auto.engineRunning()) return false;
+        return !active && sameContext(auto) && TARGET.hasStoredTarget();
     }
 
     public static float getTargetKmh() {
@@ -178,7 +200,7 @@ public final class MomentumCruiseControl {
     }
 
     public static boolean isAccelerating() {
-        return active && accelerating;
+        return isActive() && accelerating;
     }
 
     public static float currentKmh(AutomobileEntity auto) {
@@ -195,9 +217,28 @@ public final class MomentumCruiseControl {
         return reason;
     }
 
+    private static boolean sameContext(AutomobileEntity auto) {
+        return auto != null && !auto.isRemoved() && auto.isDriving(auto.getFirstPassenger())
+                && CONTEXT.matches(auto, auto.level(), auto.getFirstPassenger());
+    }
+
+    /** Only actual driver execution may invalidate a session; other-car HUD queries stay read-only. */
+    public static void maintainSession(AutomobileEntity auto) {
+        if (CONTEXT.differs(auto, auto == null ? null : auto.level(),
+                auto == null ? null : auto.getFirstPassenger())) clearSession();
+    }
+
+    private static boolean cancelForStoppedEngine(AutomobileEntity auto) {
+        if (auto != null && auto.engineRunning()) return false;
+        if (auto == null || sameContext(auto)) {
+            if (active) cancel(CancellationReason.ENGINE_STOPPED);
+        }
+        return true;
+    }
+
     private static void engage(AutomobileEntity auto, float target, float currentSpeed) {
         active = true;
-        entityId = auto.getId();
+        CONTEXT.bind(auto, auto.level(), auto.getFirstPassenger());
         lastSpeedKmh = currentSpeed;
         MomentumConfig.Cruise cruise = MomentumConfig.gameplay().cruise;
         accelerating = currentSpeed <= target - cruise.resumeThrottleBelowTargetKmh;
@@ -205,6 +246,7 @@ public final class MomentumCruiseControl {
     }
 
     private static void cancel(CancellationReason reason) {
+        io.github.milkucha.momentum.network.CruiseMotorClient.cancel();
         active = false;
         lastSpeedKmh = 0f;
         accelerating = false;
@@ -233,7 +275,8 @@ public final class MomentumCruiseControl {
         DRIFT,
         REVERSE,
         IMPACT,
-        CONFIG_CHANGED
+        CONFIG_CHANGED,
+        ENGINE_STOPPED
     }
 
     public record ActionResult(Action action, float targetKmh, float minimumKmh) {

@@ -74,7 +74,8 @@ public class BaseChestRearAttachment extends BlockRearAttachment {
     }
 
     public boolean isMenuValid(Player player) {
-        return AttachmentMenuValidity.isValid(
+        return io.github.foundationgames.automobility.automobile.access.VehicleInventoryAccess.mayUse(this.automobile(), player)
+                && AttachmentMenuValidity.isValid(
                 this.wasRemoved(),
                 this.automobile().isAlive(),
                 player.level() == this.automobile().level(),

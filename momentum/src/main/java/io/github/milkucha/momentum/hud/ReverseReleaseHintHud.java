@@ -11,15 +11,15 @@ import net.minecraft.util.FormattedCharSequence;
 final class ReverseReleaseHintHud {
     private ReverseReleaseHintHud() {}
 
-    static void render(GuiGraphicsExtractor graphics, Minecraft client, AutomobileEntity auto,
+    static int render(GuiGraphicsExtractor graphics, Minecraft client, AutomobileEntity auto,
                        MomentumConfig.BarHud config, int screenWidth, int screenHeight,
                        int mainX, int mainY) {
-        if (client.player == null || client.level == null) return;
+        if (client.player == null || client.level == null) return Integer.MAX_VALUE;
         if (!ReverseReleaseHintLayout.visible(auto.isDriving(client.player),
-                client.screen != null, MomentumConfig.gameplay().enabled && config.enabled,
+                client.screen != null, MomentumHudContributor.dashboardEnabled(),
                 config.compactDashboard, config.reverseReleaseHint, auto.waitingForReverseRelease(),
-                auto.rawBrakePedalHeld(), ReverseReleaseHintLayout.stationary(auto.getEffectiveSpeed()))) return;
-        if (screenWidth < 104) return;
+                auto.rawBrakePedalHeld(), ReverseReleaseHintLayout.stationary(auto.getEffectiveSpeed()))) return Integer.MAX_VALUE;
+        if (screenWidth < 104) return Integer.MAX_VALUE;
 
         var title = Component.translatable("hint.momentum.reverse_release.title");
         var action = Component.translatable("hint.momentum.reverse_release.action");
@@ -29,7 +29,7 @@ final class ReverseReleaseHintHud {
         var actionLines = client.font.split(action, width - 12);
         var panel = ReverseReleaseHintLayout.resolve(screenWidth, screenHeight, mainX, mainY,
                 width, client.font.lineHeight, titleLines.size() + actionLines.size());
-        if (panel == null) return;
+        if (panel == null) return Integer.MAX_VALUE;
 
         graphics.fill(panel.x(), panel.y(), panel.x() + panel.width(), panel.y() + panel.height(), 0xE016181A);
         graphics.fill(panel.x(), panel.y(), panel.x() + 2, panel.y() + panel.height(), 0xFFFFD36E);
@@ -48,5 +48,6 @@ final class ReverseReleaseHintHud {
         } finally {
             graphics.disableScissor();
         }
+        return panel.y();
     }
 }

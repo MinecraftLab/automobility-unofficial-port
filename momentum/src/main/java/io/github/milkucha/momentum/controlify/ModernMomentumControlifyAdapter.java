@@ -37,7 +37,7 @@ public final class ModernMomentumControlifyAdapter implements ControlifyEntrypoi
             AutomobileEntity auto = player != null && player.getVehicle() instanceof AutomobileEntity vehicle
                     ? vehicle : null;
             sink.contributeFact(id("driving_automobile"), auto != null && auto.isDriving(player)
-                    && MomentumConfig.gameplay().enabled && MomentumConfig.gameplay().cruise.enabled);
+                    && MomentumCruiseControl.isEnabled());
             sink.contributeFact(id("cruise_active"), auto != null && MomentumCruiseControl.isActiveFor(auto));
             sink.contributeFact(id("cruise_resumable"), auto != null && MomentumCruiseControl.canResumeFor(auto));
         });
@@ -68,7 +68,7 @@ public final class ModernMomentumControlifyAdapter implements ControlifyEntrypoi
     private static boolean isDriving(Minecraft client) {
         return client.screen == null && client.player != null
                 && client.player.getVehicle() instanceof AutomobileEntity auto && auto.isDriving(client.player)
-                && MomentumConfig.gameplay().enabled && MomentumConfig.gameplay().cruise.enabled;
+                && MomentumCruiseControl.isEnabled();
     }
 
     private static Identifier id(String path) {

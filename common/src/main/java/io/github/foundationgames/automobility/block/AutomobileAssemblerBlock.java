@@ -2,6 +2,7 @@ package io.github.foundationgames.automobility.block;
 
 import com.mojang.serialization.MapCodec;
 import io.github.foundationgames.automobility.block.entity.AutomobileAssemblerBlockEntity;
+import io.github.foundationgames.automobility.screen.GarageScreenHandler;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -75,7 +76,14 @@ public class AutomobileAssemblerBlock extends HorizontalDirectionalBlock impleme
     }
 
     @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return GarageScreenHandler.open(level, pos, player) ? InteractionResult.SUCCESS : InteractionResult.PASS;
+    }
+
+    @Override
     protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
+        if (stack.isEmpty() && hand == InteractionHand.MAIN_HAND)
+            return GarageScreenHandler.open(level, pos, player) ? InteractionResult.SUCCESS : InteractionResult.PASS;
         if (level.getBlockEntity(pos) instanceof AutomobileAssemblerBlockEntity assembler) {
             return assembler.interact(player, stack, hand);
         }

@@ -2,9 +2,10 @@ package io.github.milkucha.momentum.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.github.milkucha.momentum.Momentum;
 import net.fabricmc.loader.api.FabricLoader;
-import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -21,6 +22,8 @@ public class MomentumConfig {
     public int configRevision = 0;
 
     public boolean enabled   = true;
+    /** Server policy: named vehicle tunes may overlay the eight chassis values only. */
+    public boolean allowVehiclePresets = true;
 
     /**
      * A high-level chassis tune. Drift, camera, HUD, sound, keys and cruise control are deliberately
@@ -30,10 +33,10 @@ public class MomentumConfig {
     /** Last hand-tuned chassis values, retained while a named preset is active. */
     public DrivingSettings customDrivingSettings;
 
-    /** GLFW key code for the brake action. Default: S (83). Edit in momentum.json to remap. */
-    public int brakeKey = GLFW.GLFW_KEY_S;
-    /** GLFW key code for the handbrake/drift action. Default: Space (32). Edit in momentum.json to remap. */
-    public int driftKey = GLFW.GLFW_KEY_SPACE;
+    /** Legacy GLFW key code, retained for config compatibility. Default: S (83). */
+    public int brakeKey = 83;
+    /** Legacy GLFW key code, retained for config compatibility. Default: Space (32). */
+    public int driftKey = 32;
 
     public Movement movement = new Movement();
     public Steering steering = new Steering();
@@ -146,6 +149,9 @@ public class MomentumConfig {
         public float coastDecay               = 0.007f;
         public float accelerationScale        = 5.5f;
         public float brakeDecay               = 0.03f;
+        /** Accepted new-install pedal tune; independent of named chassis presets. */
+        public float forwardPedalScale        = 0.75f;
+        public boolean vehiclePedalBalance    = true;
         public float comfortableSpeedMultiplier = 1.25f;
     }
 
@@ -169,6 +175,8 @@ public class MomentumConfig {
         public boolean reverseFlip        = true;
         public float   reverseFlipLerp    = 0.2f;  // lerp factor per tick (ease-out toward 180°)
         public float   brakeZoomFov       = 10f;   // max FOV reduction clamp (degrees)
+        /** Default preserves the existing spring display. Private comfort caps and filters it. */
+        public boolean comfortBrakeZoom  = false;
         // Spring-damper brake zoom: deceleration (hSpeed delta/tick) drives a mass-spring camera.
         // When the vehicle stops, accumulated velocity carries the zoom briefly - inertia feel.
         public float   brakeZoomInputScale = 10f;  // decel units → zoom force multiplier
@@ -302,7 +310,7 @@ public class MomentumConfig {
     private static final Path CONFIG_PATH = FabricLoader.getInstance()
             .getConfigDir().resolve("momentum.json");
 
-    private static MomentumConfig instance;
+    private static volatile MomentumConfig instance;
     private static volatile MomentumConfig serverGameplayConfig;
 
     public static MomentumConfig get() {
@@ -310,17 +318,73 @@ public class MomentumConfig {
         return instance;
     }
 
+    // Session fallback is never the saved local config or a server snapshot.
+    private static final MomentumConfig UNVERIFIED_GAMEPLAY = inactiveGameplay();
+
+    private static MomentumConfig inactiveGameplay() {
+        var config = new MomentumConfig();
+        config.enabled = false;
+        return config;
+    }
+
     public static MomentumConfig gameplay() {
-        var serverConfig = serverGameplayConfig;
-        return serverConfig != null ? serverConfig : get();
+        return gameplayFor(serverGameplayConfig,
+                io.github.milkucha.momentum.network.ClientPhysicsSession.physicsAllowed(hasServerGameplayConfig()),
+                MomentumConfig::get);
+    }
+
+    static MomentumConfig gameplayFor(MomentumConfig serverConfig, boolean allowed,
+            java.util.function.Supplier<MomentumConfig> local) {
+        if (!allowed) {
+            UNVERIFIED_GAMEPLAY.enabled = false;
+            return UNVERIFIED_GAMEPLAY;
+        }
+        return serverConfig != null ? serverConfig : local.get();
+    }
+
+    /** Local presentation stays available when a remote peer cannot negotiate gameplay. */
+    public static boolean presentationEnabled() {
+        return get().enabled;
+    }
+
+    /** Dashboard visibility is local and independent of the selected driving physics. */
+    public boolean dashboardEnabled() {
+        return barHud.enabled;
+    }
+
+    public static boolean clientDrivingBlocked() {
+        var snapshot = serverGameplayConfig;
+        return io.github.milkucha.momentum.network.ClientPhysicsSession.blocksDriving(
+                snapshot != null, snapshot == null || snapshot.enabled);
     }
 
     public static boolean hasServerGameplayConfig() {
         return serverGameplayConfig != null;
     }
 
-    public static void reload() {
-        instance = load();
+    /** Local reloads never select a server driving model. Integrated callers use the server bridge. */
+    public static void reload() { reloadPreservingModel(); }
+
+    public static void reloadPreservingModel() {
+        var candidate = reconcileReload(readReloadCandidate(), get().enabled, false);
+        installAndSave(candidate);
+    }
+
+    /** Detached policy decision; do not publish or save an unapproved model from disk. */
+    public static MomentumConfig reconcileReload(MomentumConfig candidate, boolean activeModel, boolean allowChange) {
+        if (!allowChange) candidate.enabled = activeModel;
+        return candidate;
+    }
+
+    public static void installAndSave(MomentumConfig candidate) {
+        candidate.save();
+        instance = candidate;
+    }
+
+    public static boolean saveIfCurrent(MomentumConfig candidate) {
+        if (candidate != get()) return false;
+        candidate.save();
+        return true;
     }
 
     public static String serializeForSync() {
@@ -329,11 +393,10 @@ public class MomentumConfig {
 
     public static boolean applyServerGameplayConfig(String json) {
         try {
-            var loaded = GSON.fromJson(json, MomentumConfig.class);
+            var loaded = decodeExistingJson(json);
             if (loaded == null) {
                 return false;
             }
-            loaded.sanitize();
             serverGameplayConfig = loaded;
             return true;
         } catch (RuntimeException e) {
@@ -346,14 +409,48 @@ public class MomentumConfig {
         serverGameplayConfig = null;
     }
 
+    /**
+     * Saved configs and server snapshots are not new installations. A missing/null pedal key
+     * retains its legacy value rather than inheriting the client's new-install defaults.
+     * Presence is checked per key: explicit user/server choices, including false and 1, survive.
+     * The HUD migration revision is deliberately unrelated to these gameplay preferences.
+     */
+    static MomentumConfig decodeExistingJson(String json) {
+        var tree = JsonParser.parseString(json);
+        if (tree.isJsonNull()) return null;
+        var object = tree.getAsJsonObject();
+        var loaded = GSON.fromJson(object, MomentumConfig.class);
+        if (loaded.movement == null) loaded.movement = new Movement();
+        var movementJson = object.get("movement");
+        JsonObject movement = movementJson != null && movementJson.isJsonObject()
+                ? movementJson.getAsJsonObject() : null;
+        if (movement == null || !movement.has("forwardPedalScale")
+                || movement.get("forwardPedalScale").isJsonNull()) {
+            loaded.movement.forwardPedalScale = 1f;
+        }
+        if (movement == null || !movement.has("vehiclePedalBalance")
+                || movement.get("vehiclePedalBalance").isJsonNull()) {
+            loaded.movement.vehiclePedalBalance = false;
+        }
+        loaded.sanitize();
+        return loaded;
+    }
+
     public static MomentumConfig load() {
+        var candidate = readReloadCandidate();
+        if(FabricLoader.getInstance().getEnvironmentType()!=net.fabricmc.api.EnvType.CLIENT
+                || io.github.foundationgames.automobility.client.vehicle.VehicleUiState.recoveryReady()) candidate.save();
+        else Momentum.LOGGER.warn("Preserving config until legacy UI recovery succeeds");
+        return candidate;
+    }
+
+    /** Same decoder/migration as startup, with no write before the server accepts the model. */
+    public static MomentumConfig readReloadCandidate() {
         if (Files.exists(CONFIG_PATH)) {
             try {
                 String json = Files.readString(CONFIG_PATH);
-                MomentumConfig loaded = GSON.fromJson(json, MomentumConfig.class);
+                MomentumConfig loaded = decodeExistingJson(json);
                 if (loaded != null) {
-                    loaded.sanitize();
-                    loaded.save();
                     return loaded;
                 }
                 backupMalformedConfig();
@@ -365,9 +462,18 @@ public class MomentumConfig {
                 Momentum.LOGGER.warn("Momentum config is malformed; using defaults", e);
             }
         }
+        MomentumConfig defaults = freshInstallation();
+        return defaults;
+    }
+
+    /** New integrated installations retain the original driving model until explicitly enabled.
+     * The constructor and existing JSON decoder keep historical Momentum defaults, so an old
+     * configuration missing an optional field is never silently migrated to different physics.
+     */
+    public static MomentumConfig freshInstallation() {
         MomentumConfig defaults = new MomentumConfig();
+        defaults.enabled = false;
         defaults.sanitize();
-        defaults.save();
         return defaults;
     }
 
@@ -444,6 +550,7 @@ public class MomentumConfig {
         movement.coastDecay = finite(movement.coastDecay, 0f, 1f, defaults.movement.coastDecay);
         movement.accelerationScale = finite(movement.accelerationScale, 0.01f, 100f, defaults.movement.accelerationScale);
         movement.brakeDecay = finite(movement.brakeDecay, 0f, 1f, defaults.movement.brakeDecay);
+        movement.forwardPedalScale = finite(movement.forwardPedalScale, 0.25f, 1f, defaults.movement.forwardPedalScale);
         movement.comfortableSpeedMultiplier = finite(movement.comfortableSpeedMultiplier, 0.1f, 10f, defaults.movement.comfortableSpeedMultiplier);
 
         steering.rampRate = finite(steering.rampRate, 0f, 1f, defaults.steering.rampRate);
@@ -463,6 +570,25 @@ public class MomentumConfig {
         camera.brakeZoomDamping = finite(camera.brakeZoomDamping, 0f, 1f, defaults.camera.brakeZoomDamping);
 
         migrateRosenvikCompactPreset();
+        sanitizeHudLayout(barHud);
+
+        cruise.targetStepKmh = finite(cruise.targetStepKmh, 1f, 25f, defaults.cruise.targetStepKmh);
+        cruise.minActivationKmh = finite(cruise.minActivationKmh, 0f, 10_000f, defaults.cruise.minActivationKmh);
+        cruise.maxTargetKmh = finite(cruise.maxTargetKmh, cruise.minActivationKmh, 10_000f, defaults.cruise.maxTargetKmh);
+        cruise.resumeThrottleBelowTargetKmh = finite(cruise.resumeThrottleBelowTargetKmh, 0f, 1000f, defaults.cruise.resumeThrottleBelowTargetKmh);
+        cruise.cutThrottleBelowTargetKmh = finite(cruise.cutThrottleBelowTargetKmh, 0f, 1000f, defaults.cruise.cutThrottleBelowTargetKmh);
+        cruise.impactCancelMinSpeedKmh = finite(cruise.impactCancelMinSpeedKmh, 0f, 10_000f, defaults.cruise.impactCancelMinSpeedKmh);
+        cruise.impactCancelDropKmh = finite(cruise.impactCancelDropKmh, 0f, 10_000f, defaults.cruise.impactCancelDropKmh);
+
+        sanitizeArcade(defaults.arcadeDrift);
+        sanitizeResponsive(defaults.responsiveDrift);
+        sound.enginePitchCeiling = finite(sound.enginePitchCeiling, 1f, 10_000f, defaults.sound.enginePitchCeiling);
+    }
+
+    /** Detached presentation sanitizer: preserves legacy placement and never migrates or saves gameplay. */
+    public static BarHud sanitizeHudLayout(BarHud value) {
+        BarHud barHud=value==null?new BarHud():value;
+        var defaults=new MomentumConfig();
         barHud.x = bounded(barHud.x, -1, 1_000_000);
         barHud.y = bounded(barHud.y, -1, 1_000_000);
         barHud.xFraction = finite(barHud.xFraction, 0f, 1f, defaults.barHud.xFraction);
@@ -479,18 +605,7 @@ public class MomentumConfig {
         barHud.debugX = bounded(barHud.debugX, -1, 1_000_000);
         barHud.debugY = bounded(barHud.debugY, 0, 1_000_000);
         barHud.debugXFraction = finite(barHud.debugXFraction, 0f, 1f, defaults.barHud.debugXFraction);
-
-        cruise.targetStepKmh = finite(cruise.targetStepKmh, 1f, 25f, defaults.cruise.targetStepKmh);
-        cruise.minActivationKmh = finite(cruise.minActivationKmh, 0f, 10_000f, defaults.cruise.minActivationKmh);
-        cruise.maxTargetKmh = finite(cruise.maxTargetKmh, cruise.minActivationKmh, 10_000f, defaults.cruise.maxTargetKmh);
-        cruise.resumeThrottleBelowTargetKmh = finite(cruise.resumeThrottleBelowTargetKmh, 0f, 1000f, defaults.cruise.resumeThrottleBelowTargetKmh);
-        cruise.cutThrottleBelowTargetKmh = finite(cruise.cutThrottleBelowTargetKmh, 0f, 1000f, defaults.cruise.cutThrottleBelowTargetKmh);
-        cruise.impactCancelMinSpeedKmh = finite(cruise.impactCancelMinSpeedKmh, 0f, 10_000f, defaults.cruise.impactCancelMinSpeedKmh);
-        cruise.impactCancelDropKmh = finite(cruise.impactCancelDropKmh, 0f, 10_000f, defaults.cruise.impactCancelDropKmh);
-
-        sanitizeArcade(defaults.arcadeDrift);
-        sanitizeResponsive(defaults.responsiveDrift);
-        sound.enginePitchCeiling = finite(sound.enginePitchCeiling, 1f, 10_000f, defaults.sound.enginePitchCeiling);
+        return barHud;
     }
 
     private void sanitizeDrivingPreset() {
@@ -580,7 +695,7 @@ public class MomentumConfig {
     }
 
     private static int validKey(int key, int fallback) {
-        return key >= GLFW.GLFW_KEY_UNKNOWN && key <= GLFW.GLFW_KEY_LAST ? key : fallback;
+        return key >= -1 && key <= 348 ? key : fallback;
     }
 
     private static float finite(float value, float min, float max, float fallback) {

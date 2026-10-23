@@ -59,8 +59,7 @@ public final class LegacyMomentumControlifyAdapter implements ControlifyEntrypoi
         Fact<InGameCtx> driving = Fact.of(id("driving_automobile"), ctx ->
                 ctx.player().getVehicle() instanceof AutomobileEntity auto
                         && auto.isDriving(ctx.player())
-                        && MomentumConfig.gameplay().enabled
-                        && MomentumConfig.gameplay().cruise.enabled);
+                        && MomentumCruiseControl.isEnabled());
         Fact<InGameCtx> active = Fact.of(id("cruise_active"), ctx ->
                 ctx.player().getVehicle() instanceof AutomobileEntity auto
                         && MomentumCruiseControl.isActiveFor(auto));
@@ -130,8 +129,7 @@ public final class LegacyMomentumControlifyAdapter implements ControlifyEntrypoi
                 && client.player != null
                 && client.player.getVehicle() instanceof AutomobileEntity auto
                 && auto.isDriving(client.player)
-                && MomentumConfig.gameplay().enabled
-                && MomentumConfig.gameplay().cruise.enabled;
+                && MomentumCruiseControl.isEnabled();
     }
 
     private static Identifier id(String path) {

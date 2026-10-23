@@ -27,6 +27,10 @@ public final class ServerKeyState {
     public static boolean getBrake(UUID playerId) { return get(playerId, 0); }
     public static boolean getDrift(UUID playerId) { return get(playerId, 1); }
 
+    public static void clearAll() {
+        STATES.clear();
+    }
+
     public static void remove(UUID playerId) {
         STATES.remove(playerId);
     }

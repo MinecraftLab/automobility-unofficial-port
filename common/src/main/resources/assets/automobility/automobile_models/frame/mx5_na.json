@@ -1,0 +1,5 @@
+{
+  "type": "automobility:obj",
+  "material": "cutout_backfaces",
+  "model_layer": "automobility:automobile/frame/mx5_na/main"
+}

@@ -1,0 +1,10 @@
+{
+  "size": 1.05,
+  "grip": 0.5,
+  "display": {
+    "radius": 5.15,
+    "width": 2.75,
+    "texture": "automobility:textures/entity/automobile/wheel/mx5_alloy.png",
+    "model": "automobility:wheel/mx5_alloy"
+  }
+}

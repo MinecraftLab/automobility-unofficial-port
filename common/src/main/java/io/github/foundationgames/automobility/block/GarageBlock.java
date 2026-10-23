@@ -23,20 +23,6 @@ public class GarageBlock extends Block {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (level.isClientSide()) return InteractionResult.SUCCESS;
-        if (!player.mayBuild() || !level.mayInteract(player, pos)) return InteractionResult.PASS;
-        var cars = level.getEntitiesOfClass(AutomobileEntity.class, new AABB(pos).inflate(SERVICE_RADIUS),
-                car -> car.isAlive() && car.distanceToSqr(Vec3.atCenterOf(pos)) <= SERVICE_RADIUS * SERVICE_RADIUS);
-        // Never silently service the wrong car in a crowded garage.
-        if (cars.size() != 1) {
-            player.sendOverlayMessage(Component.translatable(cars.isEmpty()
-                    ? "garage.automobility.no_vehicle" : "garage.automobility.multiple_vehicles"));
-            return InteractionResult.CONSUME;
-        }
-        var car = cars.getFirst();
-        var data = new GarageScreenHandler.OpeningData(pos, car.getId(), car.getUUID(), car.getDisplayName());
-        player.openMenu(Platform.get().extendedMenuProvider(Component.translatable("block.automobility.garage"),
-                (id, inv, user) -> new GarageScreenHandler(id, inv, data), user -> data));
-        return InteractionResult.CONSUME;
+        return GarageScreenHandler.open(level, pos, player) ? InteractionResult.SUCCESS : InteractionResult.PASS;
     }
 }

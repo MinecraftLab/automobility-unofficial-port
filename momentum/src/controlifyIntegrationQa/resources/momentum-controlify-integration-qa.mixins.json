@@ -1,8 +1,0 @@
-{
-  "required": true,
-  "package": "io.github.milkucha.momentum.qa.mixin",
-  "compatibilityLevel": "JAVA_25",
-  "plugin": "io.github.milkucha.momentum.qa.ControlifyQaMixinPlugin",
-  "client": [],
-  "injectors": {"defaultRequire": 1}
-}

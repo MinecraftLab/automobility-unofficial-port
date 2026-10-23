@@ -1,4 +1,12 @@
 {
+  "momentum.compatibility.driver_required": "यहाँ वाहन चलाने के लिए संगत Automobility क्लाइंट चाहिए। Automobility अपडेट करें।",
+  "momentum.compatibility.local_only": "इस सर्वर पर केवल Momentum का स्थानीय HUD और कैमरा सक्रिय है।",
+  "config.momentum.option.movement.vehicle_pedal_balance.name": "वाहन पेडल संतुलन (प्रयोगात्मक)",
+  "config.momentum.option.movement.vehicle_pedal_balance.description": "Lorry के आगे के पेडल की ताकत आधी करता है। कार, अज्ञात फ्रेम, हैंडब्रेक, रिवर्स और बाहरी इंजन नहीं बदलते। सर्वर नियंत्रित।",
+  "config.momentum.option.movement.forward_pedal_scale.name": "आगे के ब्रेक की शक्ति (प्रयोगात्मक)",
+  "config.momentum.option.movement.forward_pedal_scale.description": "वाहन प्रोफ़ाइल के बाद केवल आगे का ब्रेक बदलता है: 1 मूल शक्ति, 0.5 नरम ब्रेक। रिवर्स, हैंडब्रेक और बाहरी इंजन नहीं बदलते।",
+  "config.momentum.option.camera.comfort_brake_zoom.name": "नरम ब्रेक ज़ूम (प्रयोगात्मक)",
+  "config.momentum.option.camera.comfort_brake_zoom.description": "ज़ूम को सुचारु बनाकर 5 डिग्री या आपकी छोटी सीमा तक रखता है। बंद करने पर पुराना प्रभाव रहता है। कैमरा दूरी और दीवार की टक्कर नहीं बदलती।",
   "hint.momentum.reverse_release.title": "सुरक्षित रिवर्स",
   "hint.momentum.reverse_release.action": "पीछे चलने के लिए ब्रेक छोड़ें, फिर दोबारा दबाएँ।",
   "option.hud.reverse_release_hint.name": "रिवर्स से पहले ब्रेक छोड़ने का संकेत",
@@ -67,12 +75,14 @@
   "config.momentum.profile.responsive": "रेस्पॉन्सिव ड्रिफ्ट",
   "config.momentum.key_binding.brake": "ब्रेक: %s",
   "config.momentum.key_binding.handbrake": "हैंडब्रेक (ड्रिफ्ट): %s",
-  "config.momentum.key_binding.remap_hint": "(दोबारा मैप करने के लिए momentum.json में brakeKey / driftKey संपादित करें)",
+  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
   "config.momentum.value.enabled": "चालू",
   "config.momentum.value.disabled": "बंद",
   "config.momentum.option.with_default": "%1$s\n\nडिफ़ॉल्ट: %2$s",
   "config.momentum.option.general.drift_profile.name": "ड्रिफ्ट प्रोफ़ाइल",
   "config.momentum.option.general.drift_profile.description": "हैंडब्रेक (ड्रिफ्ट) कुंजी से शुरू होने वाला व्यवहार चुनें। वैनिला में Automobility का केवल गति बदलने वाला ड्रिफ्ट है; आर्केड तेज़ और सटीक साइड-स्लिप देता है; रेस्पॉन्सिव स्टीयरिंग से नियंत्रित गहरा स्लाइड देता है।\n\nडिफ़ॉल्ट: %s",
+  "config.momentum.option.general.allow_vehicle_presets.name": "प्रति वाहन ड्राइविंग मोड की अनुमति",
+  "config.momentum.option.general.allow_vehicle_presets.description": "अधिकृत चालकों को रुकी हुई कार के लिए Touring, Balanced या Sport चुनने दें। बंद होने पर सर्वर की सेटिंग लागू होती है; सहेजे गए विकल्प रहते हैं। दूरस्थ सर्वर पर यह नीति केवल पढ़ी जा सकती है।\n\nडिफ़ॉल्ट: %s",
   "config.momentum.option.general.driving_preset.name": "ड्राइविंग ट्यून",
   "config.momentum.option.general.driving_preset.description": "मूवमेंट और स्टीयरिंग का पूरा ट्यून चुनें। आरामदायक सहज और स्थिर है, संतुलित हर तरह की ड्राइविंग के लिए है और स्पोर्ट तेज़ व अधिक सीधा है। कस्टम आपके अंतिम हाथ से बदले गए मान वापस लाता है। ड्रिफ्ट, कैमरा और HUD नहीं बदलते।\n\nडिफ़ॉल्ट: %s",
   "config.momentum.driving_preset.touring": "आरामदायक",
@@ -210,5 +220,7 @@
   "config.momentum.option.drift.camera_lerp_in.name": "कैमरा लर्प इन",
   "config.momentum.option.drift.camera_lerp_in.description": "कैमरा ड्रिफ्ट ऑफ़सेट की ओर कितनी जल्दी जाता है। अधिक मान तुरंत साथ चलता है; कम मान आसानी से चलता है।",
   "config.momentum.option.drift.camera_lerp_out.name": "कैमरा लर्प आउट",
-  "config.momentum.option.drift.camera_lerp_out.description": "ड्रिफ्ट के बाद कैमरा कितनी जल्दी केंद्र में लौटता है। अधिक मान तुरंत लौटता है; कम मान धीरे स्थिर होता है।"
+  "config.momentum.option.drift.camera_lerp_out.description": "ड्रिफ्ट के बाद कैमरा कितनी जल्दी केंद्र में लौटता है। अधिक मान तुरंत लौटता है; कम मान धीरे स्थिर होता है।",
+  "config.momentum.option.hud.reverse_release_hint.name": "रिवर्स से पहले ब्रेक छोड़ने का संकेत",
+  "config.momentum.option.hud.reverse_release_hint.desc": "केवल चालक को रिवर्स से पहले ब्रेक छोड़ने की याद दिलाएँ। इससे वाहन के नियंत्रण नहीं बदलते।"
 }

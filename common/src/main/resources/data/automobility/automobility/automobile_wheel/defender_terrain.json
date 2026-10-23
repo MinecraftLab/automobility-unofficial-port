@@ -1,0 +1,10 @@
+{
+  "size": 0.85,
+  "grip": 0.8,
+  "display": {
+    "radius": 6.468,
+    "width": 3.85,
+    "texture": "automobility:textures/entity/automobile/wheel/defender_terrain.png",
+    "model": "automobility:wheel/defender_terrain"
+  }
+}
