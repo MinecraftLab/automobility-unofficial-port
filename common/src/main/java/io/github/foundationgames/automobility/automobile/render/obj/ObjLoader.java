@@ -30,6 +30,7 @@ public class ObjLoader implements ResourceManagerReloadListener {
 
     @Override
     public void onResourceManagerReload(ResourceManager resourceManager) {
+        ObjDrawCompatibility.onReload(resourceManager);
         this.objs.clear();
 
         new FileToIdConverter("models/entity", ".obj").listMatchingResources(resourceManager).forEach((rl, res) -> {

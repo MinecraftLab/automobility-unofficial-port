@@ -1,0 +1,91 @@
+{
+  "weight": 0.65,
+  "width": 1.8,
+  "hitboxes": [
+    {
+      "origin": [
+        0,
+        0.60625,
+        1.3250000000000002
+      ],
+      "width": 1.675,
+      "height": 1.2125
+    },
+    {
+      "origin": [
+        0,
+        0.60625,
+        2.220446049250313e-16
+      ],
+      "width": 1.675,
+      "height": 1.2125
+    },
+    {
+      "origin": [
+        0,
+        0.60625,
+        -1.325
+      ],
+      "width": 1.675,
+      "height": 1.2125
+    }
+  ],
+  "display": {
+    "texture": "automobility:textures/entity/automobile/frame/mx5_na.png",
+    "model": "automobility:frame/mx5_na",
+    "wheels": [
+      {
+        "forward": 18.1,
+        "right": -11.5,
+        "scale": 1,
+        "yaw": 0,
+        "end": "front",
+        "side": "left"
+      },
+      {
+        "forward": 18.1,
+        "right": 11.5,
+        "scale": 1,
+        "yaw": 180,
+        "end": "front",
+        "side": "right"
+      },
+      {
+        "forward": -18.2,
+        "right": -11.5,
+        "scale": 1,
+        "yaw": 0,
+        "end": "back",
+        "side": "left"
+      },
+      {
+        "forward": -18.2,
+        "right": 11.5,
+        "scale": 1,
+        "yaw": 180,
+        "end": "back",
+        "side": "right"
+      }
+    ],
+    "length_pixels": 63.6,
+    "driver_seat": [
+      5.8,
+      1.8,
+      -3.8
+    ],
+    "passenger_seats": [
+      [
+        -5.8,
+        1.8,
+        -3.8
+      ]
+    ],
+    "engine_position": [
+      0,
+      0.3,
+      16.6
+    ],
+    "front_attachment_offset": 34.8,
+    "rear_attachment_offset": 34.8
+  }
+}

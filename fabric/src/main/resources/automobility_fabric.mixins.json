@@ -4,9 +4,13 @@
   "package": "io.github.foundationgames.automobility.fabric.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "ServerContentConnectionAccess"
   ],
   "client": [
-    "CameraMixin"
+    "RetainedFrameLifecycleMixin",
+    "CameraMixin",
+    "ClientContentConnectionAccess",
+    "AutomobilityOptionsEntryMixin"
   ],
   "injectors": {
     "defaultRequire": 1

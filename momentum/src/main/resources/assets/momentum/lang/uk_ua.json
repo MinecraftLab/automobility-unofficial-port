@@ -1,4 +1,12 @@
 {
+  "momentum.compatibility.driver_required": "Для керування тут потрібен сумісний клієнт Automobility. Оновіть Automobility.",
+  "momentum.compatibility.local_only": "На цьому сервері активні лише локальні HUD і камера Momentum.",
+  "config.momentum.option.movement.vehicle_pedal_balance.name": "Баланс педального гальма (експеримент)",
+  "config.momentum.option.movement.vehicle_pedal_balance.description": "Удвічі зменшує силу педалі Lorry під час руху вперед. Легкові авто, невідомі рами, ручне гальмо, задній хід і зовнішні двигуни без змін. Керується сервером.",
+  "config.momentum.option.movement.forward_pedal_scale.name": "Сила гальмування вперед (експериментально)",
+  "config.momentum.option.movement.forward_pedal_scale.description": "Змінює лише гальмування вперед після профілю авто: 1 зберігає силу, 0.5 гальмує м’якше. Задній хід, ручне гальмо й зовнішні двигуни не змінюються.",
+  "config.momentum.option.camera.comfort_brake_zoom.name": "Плавний зум гальмування (експериментально)",
+  "config.momentum.option.camera.comfort_brake_zoom.description": "Згладжує зум і обмежує його до 5 градусів або меншого заданого ліміту. Вимкнення зберігає попередній ефект. Відстань камери й зіткнення зі стінами не змінюються.",
   "hint.momentum.reverse_release.title": "Безпечний рух заднім ходом",
   "hint.momentum.reverse_release.action": "Відпустіть гальмо, а потім натисніть його знову, щоб їхати назад.",
   "option.hud.reverse_release_hint.name": "Підказка перед заднім ходом",
@@ -67,12 +75,14 @@
   "config.momentum.profile.responsive": "Чутливий дрифт",
   "config.momentum.key_binding.brake": "Гальмо: %s",
   "config.momentum.key_binding.handbrake": "Ручне гальмо (дрифт): %s",
-  "config.momentum.key_binding.remap_hint": "(Щоб перепризначити, змініть brakeKey / driftKey у momentum.json)",
+  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
   "config.momentum.value.enabled": "увімкнено",
   "config.momentum.value.disabled": "вимкнено",
   "config.momentum.option.with_default": "%1$s\n\nТипово: %2$s",
   "config.momentum.option.general.drift_profile.name": "Профіль дрифту",
   "config.momentum.option.general.drift_profile.description": "Виберіть поведінку, яку активує клавіша ручного гальма (дрифту). Класичний профіль використовує дрифт Automobility, що змінює лише швидкість; аркадний дає швидке й точне бокове ковзання; чутливий — глибоке ковзання, кероване поворотом керма.\n\nТипово: %s",
+  "config.momentum.option.general.allow_vehicle_presets.name": "Дозволити режими для автомобілів",
+  "config.momentum.option.general.allow_vehicle_presets.description": "Дозволяє водіям із правом налаштування вибирати Touring, Balanced або Sport для нерухомого авто. Якщо вимкнено, діє налаштування сервера; збережений вибір залишається. На віддаленому сервері цю політику можна лише читати.\n\nТипово: %s",
   "config.momentum.option.general.driving_preset.name": "Налаштування керування",
   "config.momentum.option.general.driving_preset.description": "Виберіть повне налаштування руху й кермування. Комфортне плавне та стабільне, Збалансоване універсальне, а Спортивне швидше й гостріше. Власне відновлює останні значення, налаштовані вручну. Дрифт, камера й HUD не змінюються.\n\nТипово: %s",
   "config.momentum.driving_preset.touring": "Комфортне",
@@ -210,5 +220,7 @@
   "config.momentum.option.drift.camera_lerp_in.name": "Плавність входу камери",
   "config.momentum.option.drift.camera_lerp_in.description": "Як швидко камера рухається до зміщення дрифту. Вищі значення слідують миттєво; нижчі рухаються плавно.",
   "config.momentum.option.drift.camera_lerp_out.name": "Плавність виходу камери",
-  "config.momentum.option.drift.camera_lerp_out.description": "Як швидко камера повертається в центр після дрифту. Вищі значення повертають її різко; нижчі стабілізують повільно."
+  "config.momentum.option.drift.camera_lerp_out.description": "Як швидко камера повертається в центр після дрифту. Вищі значення повертають її різко; нижчі стабілізують повільно.",
+  "config.momentum.option.hud.reverse_release_hint.name": "Підказка перед заднім ходом",
+  "config.momentum.option.hud.reverse_release_hint.desc": "Нагадує лише водієві відпустити гальмо перед рухом назад. Не змінює керування автомобілем."
 }

@@ -1,0 +1,17 @@
+{
+  "type": "automobility:auto_mechanic_table",
+  "category": "automobility:wheels",
+  "sortnum": 462,
+  "ingredients": [
+    "minecraft:iron_ingot",
+    "minecraft:iron_ingot",
+    "minecraft:black_wool",
+    "minecraft:black_wool",
+    "minecraft:iron_nugget",
+    "minecraft:black_wool"
+  ],
+  "result": {
+    "item": "automobility:automobile_wheel",
+    "component": "automobility:mx5_alloy"
+  }
+}

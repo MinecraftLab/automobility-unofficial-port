@@ -10,6 +10,13 @@ public class AutomobilitySounds {
     public static final Eventual<SoundEvent> COLLISION = register("entity.automobile.collision");
     public static final Eventual<SoundEvent> LANDING = register("entity.automobile.landing");
     public static final Eventual<SoundEvent> SKID = register("entity.automobile.skid");
+    public static final Eventual<SoundEvent> ENGINE_START = register("entity.automobile.engine_start");
+    public static final Eventual<SoundEvent> ELECTRIC_ENGINE_START = register("entity.automobile.electric_engine_start");
+    public static final Eventual<SoundEvent> VEHICLE_LOCK = register("entity.automobile.vehicle_lock");
+    public static final Eventual<SoundEvent> VEHICLE_UNLOCK = register("entity.automobile.vehicle_unlock");
+    public static final Eventual<SoundEvent> VEHICLE_LOCK_HORN = register("entity.automobile.vehicle_lock_horn");
+    public static final Eventual<SoundEvent> VEHICLE_SIGNAL_TICK = register("entity.automobile.vehicle_signal_tick");
+    public static final Eventual<SoundEvent> VEHICLE_SIGNAL_TOCK = register("entity.automobile.vehicle_signal_tock");
 
     public static final Eventual<SoundEvent> STONE_ENGINE = register("entity.automobile.stone_engine");
     public static final Eventual<SoundEvent> COPPER_ENGINE = register("entity.automobile.copper_engine");

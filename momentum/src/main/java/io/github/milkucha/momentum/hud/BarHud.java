@@ -26,6 +26,7 @@ import java.util.List;
 public class BarHud {
 
     private static final double TO_KMH = 72.0;
+    private static final HudSpeedDisplayState SPEED_DISPLAY = new HudSpeedDisplayState();
 
     private static final int COL_PANEL_BG = 0xD916181A;
     private static final int COL_PANEL_TOP = 0xFF3B3F42;
@@ -46,7 +47,31 @@ public class BarHud {
             {0b111, 0b101, 0b111, 0b001, 0b111}
     };
 
+    /** Sample only the numeric readout once per client tick, even while the HUD is hidden. */
+    public static void updateSpeedDisplay(Minecraft client) {
+        if (client.player == null || client.level == null
+                || !MomentumHudContributor.dashboardEnabled()) {
+            SPEED_DISPLAY.reset();
+            return;
+        }
+        if (!(client.player.getVehicle() instanceof AutomobileEntity auto)) {
+            SPEED_DISPLAY.reset();
+            return;
+        }
+        SPEED_DISPLAY.update(client.level, auto, client.level.getGameTime(),
+                auto.getEffectiveSpeed() * TO_KMH);
+    }
+
+    public static void resetSpeedDisplay() {
+        SPEED_DISPLAY.reset();
+    }
+
+    public static int displayedSpeed(AutomobileEntity auto) {
+        var client=Minecraft.getInstance();return SPEED_DISPLAY.valueFor(client.level,auto,auto.getEffectiveSpeed()*TO_KMH);
+    }
+
     public static void render(GuiGraphicsExtractor graphics, float tickDelta) {
+        if(io.github.foundationgames.automobility.client.vehicle.VehicleUiState.unified()) return;
         Minecraft client = Minecraft.getInstance();
         if (client.player == null || client.level == null) return;
 
@@ -55,7 +80,7 @@ public class BarHud {
         if (client.gui.screen() != null) return;
 
         MomentumConfig cfg = MomentumConfig.get();
-        MomentumConfig.BarHud b = cfg.barHud;
+        MomentumConfig.BarHud b = MomentumHudContributor.layoutPreferences();
         boolean cruiseActive = MomentumCruiseControl.isActiveFor(auto);
         int cruiseColor = cfg.cruise.activeColor;
         int legacyBarColor = cruiseActive ? cruiseColor : b.barColor;
@@ -77,6 +102,7 @@ public class BarHud {
         int originY = origin.y();
 
         double speedKmh = auto.getEffectiveSpeed() * TO_KMH;
+        int displayedSpeed = SPEED_DISPLAY.valueFor(client.level, auto, speedKmh);
 
         // Separate engine vs boost contributions so boost bars can be coloured differently.
         // engineSpeed is the base; hSpeed = engineSpeed + boostSpeed.
@@ -87,7 +113,7 @@ public class BarHud {
 
         if (b.compactDashboard) {
             renderCompactDashboard(graphics, client, b, panel, originX, originY,
-                    speedKmh, engineKmh, cruiseActive, cruiseColor,
+                    speedKmh, engineKmh, displayedSpeed, cruiseActive, cruiseColor,
                     b.barColor, b.textColor);
             if (panel.width() >= DashboardHudLayout.COMPACT_WIDTH
                     && panel.height() >= DashboardHudLayout.COMPACT_HEIGHT) {
@@ -98,7 +124,7 @@ public class BarHud {
         }
 
         renderLegacyDashboard(graphics, client, b, panel, originX, originY,
-                speedKmh, engineKmh, cruiseActive, cruiseColor,
+                speedKmh, engineKmh, displayedSpeed, cruiseActive, cruiseColor,
                 legacyBarColor, legacyTextColor);
     }
 
@@ -106,7 +132,7 @@ public class BarHud {
                                                MomentumConfig.BarHud config,
                                                DashboardHudLayout.PanelSize panel,
                                                int originX, int originY,
-                                               double speedKmh, double engineKmh,
+                                               double speedKmh, double engineKmh, int displayedSpeed,
                                                boolean cruiseActive, int cruiseColor,
                                                int barColor, int textColor) {
         DashboardHudLayout.Layout layout = DashboardHudLayout.resolve(
@@ -117,8 +143,7 @@ public class BarHud {
         drawSpeedDial(graphics, originX + layout.iconX(), originY + layout.iconY(),
                 COL_DIAL_METAL, barColor);
 
-        long displayedSpeed = Math.clamp(Math.round(Math.max(0.0, speedKmh)), 0L, 999L);
-        String speedText = Long.toString(displayedSpeed);
+        String speedText = Integer.toString(displayedSpeed);
         int speedWidth = client.font.width(speedText);
         int speedX = originX + layout.numberX()
                 + Math.max(0, layout.numberWidth() - speedWidth);
@@ -185,7 +210,7 @@ public class BarHud {
                                               MomentumConfig.BarHud config,
                                               DashboardHudLayout.PanelSize panel,
                                               int originX, int originY,
-                                              double speedKmh, double engineKmh,
+                                              double speedKmh, double engineKmh, int displayedSpeed,
                                               boolean cruiseActive, int cruiseColor,
                                               int barColor, int textColor) {
         int numBars = Math.max(0,
@@ -200,7 +225,7 @@ public class BarHud {
                     originY + panel.height(), color);
         }
 
-        String speedText = String.format("%.0f km/h", speedKmh);
+        String speedText = displayedSpeed + " km/h";
         int textX = originX + config.textOffsetX;
         int textY = originY + config.textOffsetY;
         graphics.text(client.font, Component.literal(speedText), textX, textY, textColor);
@@ -295,7 +320,8 @@ public class BarHud {
         if (client.gui.screen() != null) return;
 
         MomentumConfig cfg = MomentumConfig.get();
-        if (!cfg.barHud.debug) return;
+        var hud=MomentumHudContributor.layoutPreferences();
+        if (!hud.debug) return;
         if (!(auto instanceof SteeringDebugAccessor dbg)) return;
 
         float   steering  = dbg.momentum$getSteering();
@@ -327,10 +353,10 @@ public class BarHud {
         int dbgH   = padY * 2 + texts.size() * lineH;
 
         int screenW = client.getWindow().getGuiScaledWidth();
-        int dbgX = cfg.barHud.debugX >= 0
-                ? cfg.barHud.debugX
-                : screenW - dbgW - (int)(screenW * cfg.barHud.debugXFraction);
-        int dbgY = cfg.barHud.debugY;
+        int dbgX = hud.debugX >= 0
+                ? hud.debugX
+                : screenW - dbgW - (int)(screenW * hud.debugXFraction);
+        int dbgY = hud.debugY;
 
         drawPanel(graphics, dbgX, dbgY, dbgW, dbgH);
         for (int i = 0; i < texts.size(); i++) {

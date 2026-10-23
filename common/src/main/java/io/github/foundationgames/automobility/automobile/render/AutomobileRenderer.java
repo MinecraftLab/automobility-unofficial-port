@@ -5,6 +5,9 @@ import com.mojang.math.Axis;
 import io.github.foundationgames.automobility.Automobility;
 import io.github.foundationgames.automobility.automobile.AutomobileEngine;
 import io.github.foundationgames.automobility.automobile.WheelBase;
+import io.github.foundationgames.automobility.automobile.light.Mx5VisualPose;
+import io.github.foundationgames.automobility.automobile.light.Mx5PopupGeometry;
+import io.github.foundationgames.automobility.automobile.light.Mx5HoodGeometry;
 import io.github.foundationgames.automobility.automobile.render.obj.ObjModel;
 import io.github.foundationgames.automobility.entity.AutomobileEntity;
 import io.github.foundationgames.automobility.util.AUtils;
@@ -15,6 +18,7 @@ import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
 
 public enum AutomobileRenderer {;
+    private static final boolean RETAINED_WHEELS = Boolean.parseBoolean(System.getProperty("automobility.experimental.retainedWheels", "true"));
     private static final Identifier MOTORCAR_FRAME_MODEL = Automobility.rl("frame/motorcar");
     private static final Identifier MOTORCAR_WINDOW_MODEL = Automobility.rl("frame/motorcar_window");
 
@@ -22,6 +26,10 @@ public enum AutomobileRenderer {;
             PoseStack pose, SubmitNodeCollector submitter, int light, int overlay,
             float tickDelta, RenderableAutomobile automobile
     ) {
+        // Keep the original entry and getEngine invocation sites for RIA's redirect.
+        // Hinge sampling is read-only at the same partial tick used by the lamp snapshot.
+        var visual = automobile instanceof AutomobileEntity entity
+                ? entity.getMx5VisualPose(tickDelta) : Mx5VisualPose.CLOSED;
         var frame = automobile.getFrame();
         var wheels = automobile.getWheels();
         var engine = automobile.getEngine();
@@ -52,7 +60,13 @@ public enum AutomobileRenderer {;
         var frameTexture = frame.model().texture();
         var engineTexture = engine.model().texture();
         if (!frame.isEmpty() && frameModel != null) {
-            submit(frameModel, state(tickDelta), pose, submitter, frameTexture, light, overlay, 0xFFFFFFFF);
+            if (automobile instanceof AutomobileEntity
+                    && io.github.foundationgames.automobility.automobile.render.obj.RetainedBodyScope.supports(frame.model().modelId())
+                    && frameModel instanceof ObjModel obj) {
+                obj.submit(pose, submitter, obj.renderType(frameTexture), light, overlay, 0xFFFFFFFF, true);
+            } else {
+                submit(frameModel, state(tickDelta), pose, submitter, frameTexture, light, overlay, 0xFFFFFFFF);
+            }
             if (MOTORCAR_FRAME_MODEL.equals(frame.model().modelId())) {
                 var windowModel = AutomobileModels.getModel(MOTORCAR_WINDOW_MODEL);
                 if (windowModel != null) {
@@ -61,12 +75,29 @@ public enum AutomobileRenderer {;
             }
         }
 
+        if (Mx5PopupGeometry.appliesTo(frame.model().modelId())) {
+            hingedPart(Mx5PopupGeometry.LEFT_MODEL, Mx5PopupGeometry.PIVOT,
+                    Mx5PopupGeometry.angleDegrees(visual.leftPopup()), pose, submitter, frameTexture, light, overlay, tickDelta);
+            hingedPart(Mx5PopupGeometry.RIGHT_MODEL, Mx5PopupGeometry.PIVOT,
+                    Mx5PopupGeometry.angleDegrees(visual.rightPopup()), pose, submitter, frameTexture, light, overlay, tickDelta);
+            hingedPart(Mx5HoodGeometry.MODEL, Mx5HoodGeometry.PIVOT,
+                    Mx5HoodGeometry.angleDegrees(visual.hood()), pose, submitter, frameTexture, light, overlay, tickDelta);
+        }
+
+        // An electric/addon engine with no exhaust must not inherit combustion effects.
+        var frameExhaust = NewVehicleExhausts.frameOutlet(frame.model().modelId(), !engine.model().exhausts().isEmpty());
+        if (frameExhaust != null) pose.pushPose();
         var ePos = frame.model().enginePos().scale(1.0 / 16);
         pose.translate(ePos.x(), -ePos.y(), -ePos.z());
         pose.mulPose(Axis.YP.rotationDegrees(180));
         if (!engine.isEmpty() && engineModel != null) {
+            pose.pushPose();
+            float scale = NewVehicleExhausts.engineScale(frame.model().modelId());
+            pose.scale(scale, scale, scale);
             submit(engineModel, state(tickDelta), pose, submitter, engineTexture, light, overlay, 0xFFFFFFFF);
+            pose.popPose();
         }
+        if (frameExhaust != null) pose.popPose();
 
         Identifier[] exhaustTexes;
         RenderType exhaustRenderType = null;
@@ -74,22 +105,16 @@ public enum AutomobileRenderer {;
             exhaustTexes = ExhaustFumesModel.FLAME_TEXTURES;
             int index = (int)(automobile.getTime() % exhaustTexes.length);
             exhaustRenderType = RenderTypes.eyes(exhaustTexes[index]);
-        } else if (automobile.engineRunning()) {
+        } else if (automobile.engineRunning() && io.github.foundationgames.automobility.client.lighting.VehicleLightingView
+                .graphics(net.minecraft.client.Minecraft.getInstance()).exhaustSmoke()) {
             exhaustTexes = ExhaustFumesModel.SMOKE_TEXTURES;
             int index = (int)Math.floor(((automobile.getTime() + tickDelta) / 1.5f) % exhaustTexes.length);
             exhaustRenderType = RenderTypes.entityTranslucent(exhaustTexes[index]);
         }
         if (exhaustRenderType != null) {
-            for (AutomobileEngine.ExhaustPos exhaust : engine.model().exhausts()) {
-                pose.pushPose();
-
-                pose.translate(exhaust.x() / 16, -exhaust.y() / 16, exhaust.z() / 16);
-                pose.mulPose(Axis.YP.rotationDegrees(exhaust.yaw()));
-                pose.mulPose(Axis.XP.rotationDegrees(exhaust.pitch()));
-                submit(exhaustFumesModel, state(tickDelta), pose, submitter, exhaustRenderType, light, overlay, 0xFFFFFFFF);
-
-                pose.popPose();
-            }
+            if (frameExhaust != null) exhaust(frameExhaust, exhaustFumesModel, pose, submitter, exhaustRenderType, light, overlay, tickDelta);
+            else for (AutomobileEngine.ExhaustPos exhaust : engine.model().exhausts())
+                exhaust(exhaust, exhaustFumesModel, pose, submitter, exhaustRenderType, light, overlay, tickDelta);
         }
         pose.popPose();
 
@@ -120,7 +145,13 @@ public enum AutomobileRenderer {;
 
                 pose.mulPose(Axis.YP.rotationDegrees(180 + pos.yaw()));
 
-                submit(wheelModel, state(tickDelta), pose, submitter, wheels.model().texture(), light, overlay, 0xFFFFFFFF);
+                if (RETAINED_WHEELS && automobile instanceof AutomobileEntity
+                        && io.github.foundationgames.automobility.automobile.render.obj.RetainedWheelScope.supports(wheels.model().modelId(), scale)
+                        && wheelModel instanceof ObjModel obj) {
+                    obj.submit(pose, submitter, obj.renderType(wheels.model().texture()), light, overlay, 0xFFFFFFFF, true);
+                } else {
+                    submit(wheelModel, state(tickDelta), pose, submitter, wheels.model().texture(), light, overlay, 0xFFFFFFFF);
+                }
 
                 pose.popPose();
 
@@ -213,6 +244,29 @@ public enum AutomobileRenderer {;
 
     private static BaseModel.RenderState state(float tickDelta) {
         return new BaseModel.RenderState(tickDelta);
+    }
+
+    private static void hingedPart(Identifier id, net.minecraft.world.phys.Vec3 pivot, float angle,
+                                   PoseStack pose, SubmitNodeCollector submitter, Identifier texture,
+                                   int light, int overlay, float tickDelta) {
+        var model = AutomobileModels.getModelOrNull(id);
+        if (model == null) return;
+        pose.pushPose();
+        pose.translate(pivot.x, pivot.y, pivot.z);
+        pose.mulPose(Axis.XP.rotationDegrees(angle));
+        pose.translate(-pivot.x, -pivot.y, -pivot.z);
+        submit(model, state(tickDelta), pose, submitter, texture, light, overlay, 0xFFFFFFFF);
+        pose.popPose();
+    }
+
+    private static void exhaust(AutomobileEngine.ExhaustPos outlet, Model<?> model, PoseStack pose,
+                                SubmitNodeCollector submitter, RenderType type, int light, int overlay, float delta) {
+        pose.pushPose();
+        pose.translate(outlet.x() / 16, -outlet.y() / 16, outlet.z() / 16);
+        pose.mulPose(Axis.YP.rotationDegrees(outlet.yaw()));
+        pose.mulPose(Axis.XP.rotationDegrees(outlet.pitch()));
+        submit(model, state(delta), pose, submitter, type, light, overlay, 0xFFFFFFFF);
+        pose.popPose();
     }
 
     private static void submit(Model<?> model, BaseModel.RenderState state, PoseStack pose, SubmitNodeCollector submitter,

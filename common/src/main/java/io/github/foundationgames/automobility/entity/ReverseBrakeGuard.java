@@ -9,6 +9,7 @@ final class ReverseBrakeGuard {
     private boolean forward;
     private boolean backward;
     private boolean additionalBrake;
+    private boolean additionalBrakeEnabled;
     private boolean waiting;
     private boolean valid;
 
@@ -25,11 +26,16 @@ final class ReverseBrakeGuard {
     }
 
     void acceptAdditionalBrake(boolean held, boolean valid, double signedSpeed) {
+        acceptAdditionalBrake(held, true, valid, signedSpeed);
+    }
+
+    void acceptAdditionalBrake(boolean held, boolean enabled, boolean valid, double signedSpeed) {
         if (!valid) {
             sample(false, signedSpeed);
             return;
         }
         this.additionalBrake = held;
+        this.additionalBrakeEnabled = enabled;
         sample(valid, signedSpeed);
     }
 
@@ -59,8 +65,18 @@ final class ReverseBrakeGuard {
         interrupt();
     }
 
+    /** A real drive request; a latched forward-travel brake cannot request reverse. */
+    boolean driveRequested() {
+        return valid && (forward || ((backward || (additionalBrake && additionalBrakeEnabled)) && !waiting));
+    }
+
+    /** Invalid samples and temporary masks never manufacture a physical pedal release. */
+    boolean drivePedalHeld() {
+        return forward || backward || additionalBrake;
+    }
+
     boolean brakeHeld() {
-        return valid && (backward || additionalBrake);
+        return valid && (backward || (additionalBrake && additionalBrakeEnabled));
     }
 
     boolean waitingForRelease() {

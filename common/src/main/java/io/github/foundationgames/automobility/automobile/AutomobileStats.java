@@ -47,6 +47,11 @@ public class AutomobileStats implements StatContainer<AutomobileStats> {
         return comfortableSpeed;
     }
 
+    /** Unscaled parts threshold for previews. Runtime getComfortableSpeed retains its hooks. */
+    public float getBaseComfortableSpeed() {
+        return comfortableSpeed;
+    }
+
     public float getHandling() {
         return handling;
     }

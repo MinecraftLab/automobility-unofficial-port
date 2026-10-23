@@ -33,7 +33,7 @@ public abstract class AutomobileHudMixin {
             AutomobileEntity auto,
             CallbackInfo ci) {
         MomentumConfig cfg = MomentumConfig.get();
-        if (!MomentumConfig.gameplay().enabled || !cfg.barHud.enabled) return;
+        if (!io.github.milkucha.momentum.hud.MomentumHudContributor.dashboardEnabled()) return;
         ci.cancel();
     }
 }

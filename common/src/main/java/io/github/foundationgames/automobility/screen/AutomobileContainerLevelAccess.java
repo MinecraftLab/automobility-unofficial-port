@@ -38,7 +38,9 @@ public class AutomobileContainerLevelAccess implements ContainerLevelAccess {
     }
 
     public boolean isValidFor(Player player) {
-        return this.attachment != null && AttachmentMenuValidity.isValid(
+        return this.attachment != null
+                && io.github.foundationgames.automobility.automobile.access.VehicleInventoryAccess.mayUse(this.automobile, player)
+                && AttachmentMenuValidity.isValid(
                 this.attachment.wasRemoved(),
                 this.automobile.isAlive(),
                 player.level() == this.world && this.automobile.level() == this.world,

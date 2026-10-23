@@ -9,6 +9,10 @@ public final class AutomobileTerrainRevisions {
     private long generation;
     private long missingChunkRevision;
 
+    /** Read-only whole-world guard for the opt-in parked headlight prototype. */
+    public long generation(){return generation;}
+    public long revision(){return revision;}
+
     public void changed(int chunkX, int chunkZ) {
         chunks.put(key(chunkX, chunkZ), nextRevision());
     }

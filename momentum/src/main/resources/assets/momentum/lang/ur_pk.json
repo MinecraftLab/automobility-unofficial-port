@@ -1,4 +1,12 @@
 {
+  "momentum.compatibility.driver_required": "یہاں گاڑی چلانے کے لیے موافق Automobility کلائنٹ درکار ہے۔ Automobility کو اپ ڈیٹ کریں۔",
+  "momentum.compatibility.local_only": "اس سرور پر صرف Momentum کا مقامی HUD اور کیمرا فعال ہے۔",
+  "config.momentum.option.movement.vehicle_pedal_balance.name": "گاڑی کے پیڈل کا توازن (تجرباتی)",
+  "config.momentum.option.movement.vehicle_pedal_balance.description": "Lorry کے آگے کے پیڈل کی قوت نصف کرتا ہے۔ کاریں، نامعلوم فریم، ہینڈ بریک، ریورس اور بیرونی انجن نہیں بدلتے۔ سرور کنٹرول کرتا ہے۔",
+  "config.momentum.option.movement.forward_pedal_scale.name": "آگے بریک کی طاقت (تجرباتی)",
+  "config.momentum.option.movement.forward_pedal_scale.description": "گاڑی کے پروفائل کے بعد صرف آگے کی بریک بدلتا ہے: 1 اصل طاقت، 0.5 نرم بریک۔ ریورس، ہینڈ بریک اور بیرونی انجن نہیں بدلتے۔",
+  "config.momentum.option.camera.comfort_brake_zoom.name": "نرم بریک زوم (تجرباتی)",
+  "config.momentum.option.camera.comfort_brake_zoom.description": "زوم کو ہموار کرکے 5 ڈگری یا آپ کی کم حد تک رکھتا ہے۔ بند کرنے سے پرانا اثر رہتا ہے۔ کیمرے کا فاصلہ اور دیوار کی ٹکر نہیں بدلتے۔",
   "hint.momentum.reverse_release.title": "محفوظ ریورس",
   "hint.momentum.reverse_release.action": "ریورس کرنے کے لیے بریک چھوڑیں، پھر اسے دوبارہ دبائیں۔",
   "option.hud.reverse_release_hint.name": "ریورس سے پہلے بریک چھوڑنے کی یاد دہانی",
@@ -67,12 +75,14 @@
   "config.momentum.profile.responsive": "ریسپانسیو ڈرفٹ",
   "config.momentum.key_binding.brake": "بریک: %s",
   "config.momentum.key_binding.handbrake": "ہینڈ بریک (ڈرفٹ): %s",
-  "config.momentum.key_binding.remap_hint": "(دوبارہ میپ کرنے کے لیے momentum.json میں brakeKey / driftKey تبدیل کریں)",
+  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
   "config.momentum.value.enabled": "فعال",
   "config.momentum.value.disabled": "غیر فعال",
   "config.momentum.option.with_default": "%1$s\n\nڈیفالٹ: %2$s",
   "config.momentum.option.general.drift_profile.name": "ڈرفٹ پروفائل",
   "config.momentum.option.general.drift_profile.description": "ہینڈ بریک (ڈرفٹ) کی سے شروع ہونے والا طرزِ عمل منتخب کریں۔ وینیلا میں Automobility کا صرف رفتار بدلنے والا ڈرفٹ ہے؛ آرکیڈ تیز اور درست سائیڈ سلپ دیتا ہے؛ ریسپانسیو اسٹیئرنگ سے کنٹرول ہونے والی گہری سلائیڈ دیتا ہے۔\n\nڈیفالٹ: %s",
+  "config.momentum.option.general.allow_vehicle_presets.name": "گاڑی کے ڈرائیونگ موڈ کی اجازت",
+  "config.momentum.option.general.allow_vehicle_presets.description": "مجاز ڈرائیور کو رکی ہوئی گاڑی کے لیے Touring، Balanced یا Sport منتخب کرنے دیں۔ بند ہونے پر سرور کی ترتیب لاگو ہوتی ہے؛ محفوظ انتخاب برقرار رہتے ہیں۔ ریموٹ سرور پر یہ پالیسی صرف پڑھی جا سکتی ہے۔\n\nڈیفالٹ: %s",
   "config.momentum.option.general.driving_preset.name": "ڈرائیونگ ٹیون",
   "config.momentum.option.general.driving_preset.description": "حرکت اور اسٹیئرنگ کی مکمل ٹیون منتخب کریں۔ آرام دہ ہموار اور مستحکم ہے، متوازن ہر طرح کی ڈرائیونگ کے لیے ہے، اور اسپورٹ زیادہ تیز اور براہِ راست ہے۔ حسبِ ضرورت آخری دستی طور پر بدلی گئی قدریں بحال کرتا ہے۔ ڈرفٹ، کیمرا اور HUD تبدیل نہیں ہوتے۔\n\nڈیفالٹ: %s",
   "config.momentum.driving_preset.touring": "آرام دہ",
@@ -210,5 +220,7 @@
   "config.momentum.option.drift.camera_lerp_in.name": "کیمرا لرپ اِن",
   "config.momentum.option.drift.camera_lerp_in.description": "کیمرا ڈرفٹ آفسیٹ کی طرف کتنی جلدی جاتا ہے۔ زیادہ قدر فوراً ساتھ چلتی ہے؛ کم قدر ہموار چلتی ہے۔",
   "config.momentum.option.drift.camera_lerp_out.name": "کیمرا لرپ آؤٹ",
-  "config.momentum.option.drift.camera_lerp_out.description": "ڈرفٹ کے بعد کیمرا کتنی جلدی مرکز میں لوٹتا ہے۔ زیادہ قدر فوراً واپس آتی ہے؛ کم قدر آہستہ مستحکم ہوتی ہے۔"
+  "config.momentum.option.drift.camera_lerp_out.description": "ڈرفٹ کے بعد کیمرا کتنی جلدی مرکز میں لوٹتا ہے۔ زیادہ قدر فوراً واپس آتی ہے؛ کم قدر آہستہ مستحکم ہوتی ہے۔",
+  "config.momentum.option.hud.reverse_release_hint.name": "ریورس سے پہلے بریک چھوڑنے کی یاد دہانی",
+  "config.momentum.option.hud.reverse_release_hint.desc": "صرف ڈرائیور کو ریورس سے پہلے بریک چھوڑنے کی یاد دہانی دکھائیں۔ اس سے گاڑی کے کنٹرول تبدیل نہیں ہوتے۔"
 }

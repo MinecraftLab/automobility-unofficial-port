@@ -1,6 +1,7 @@
 package io.github.foundationgames.automobility.mixin;
 
 import io.github.foundationgames.automobility.entity.AutomobileEntity;
+import io.github.foundationgames.automobility.automobile.access.VehicleInventoryAccess;
 import net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
@@ -18,6 +19,10 @@ public class ServerGamePacketListenerImplMixin {
     private void automobility$openAutomobileInventory(ServerboundPlayerCommandPacket packet, CallbackInfo ci) {
         var vehicle = this.player.getVehicle();
         if (packet.getAction() == ServerboundPlayerCommandPacket.Action.OPEN_INVENTORY && vehicle instanceof AutomobileEntity automobile) {
+            if (!VehicleInventoryAccess.mayUse(automobile, this.player)) {
+                ci.cancel();
+                return;
+            }
             if (automobile.hasInventory(this.player)) {
                 automobile.openInventory(this.player);
                 ci.cancel();

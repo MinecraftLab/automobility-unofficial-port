@@ -6,6 +6,7 @@ import io.github.foundationgames.automobility.util.DefaultRegistrar;
 import io.github.foundationgames.automobility.util.RegistryQueue;
 import io.github.foundationgames.automobility.util.network.AutomobilityPacketPayload;
 import io.github.foundationgames.automobility.util.network.CommonPackets;
+import io.github.foundationgames.automobility.fabric.network.FabricCoreContentServer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import io.github.foundationgames.automobility.entity.GarageService;
@@ -21,6 +22,7 @@ public class AutomobilityFabric implements ModInitializer {
     @Override
     public void onInitialize() {
         FabricPlatform.init();
+        GarageOwnerBootstrap.initialize();
         GarageService.setEngineIntegrationPresent(FabricLoader.getInstance().isModLoaded("pumps_and_pistons_automobility")
                 || FabricLoader.getInstance().isModLoaded("powerworks"));
         Automobility.initDynamicRegistries(new Automobility.DynamicRegistryRegistrar() {
@@ -33,6 +35,9 @@ public class AutomobilityFabric implements ModInitializer {
         });
 
         Automobility.init();
+        FabricCoreContentServer.initialize();
+        io.github.foundationgames.automobility.fabric.network.FabricGarageServer.initialize();
+        io.github.foundationgames.automobility.fabric.network.FabricMx5Server.initialize();
 
         PayloadTypeRegistry.serverboundPlay().register(AutomobilityPacketPayload.TYPE, AutomobilityPacketPayload.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AutomobilityPacketPayload.TYPE, AutomobilityPacketPayload.STREAM_CODEC);

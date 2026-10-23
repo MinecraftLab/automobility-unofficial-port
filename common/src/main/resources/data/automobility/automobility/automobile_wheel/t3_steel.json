@@ -1,0 +1,10 @@
+{
+  "size": 1.05,
+  "grip": 0.5,
+  "display": {
+    "radius": 6.2,
+    "width": 3.1,
+    "texture": "automobility:textures/entity/automobile/wheel/t3_steel.png",
+    "model": "automobility:wheel/t3_steel"
+  }
+}

@@ -19,6 +19,7 @@ public final class GameplayConfigSync {
             return false;
         }
         ServerPlayNetworking.send(player, GameplayConfigPacket.current());
+        ServerPhysicsSessions.sendStatus(player);
         return true;
     }
 
@@ -28,6 +29,7 @@ public final class GameplayConfigSync {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (ServerPlayNetworking.canSend(player, GameplayConfigPacket.TYPE)) {
                 ServerPlayNetworking.send(player, packet);
+                ServerPhysicsSessions.sendStatus(player);
                 recipients++;
             }
         }

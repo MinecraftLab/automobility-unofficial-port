@@ -3,6 +3,7 @@ package io.github.foundationgames.automobility.util.network;
 import io.github.foundationgames.automobility.Automobility;
 import io.github.foundationgames.automobility.automobile.attachment.rear.BannerPostRearAttachment;
 import io.github.foundationgames.automobility.automobile.attachment.rear.ExtendableRearAttachment;
+import io.github.foundationgames.automobility.automobile.light.VehicleLightMode;
 import io.github.foundationgames.automobility.entity.AutomobileEntity;
 import io.github.foundationgames.automobility.platform.Platform;
 import io.github.foundationgames.automobility.util.TriCons;
@@ -33,7 +34,20 @@ public enum CommonPackets {;
             COMPONENT_SYNC_WINDOW_TICKS,
             COMPONENT_SYNC_LIMITER_STALE_TICKS
     );
+    static final int VEHICLE_LIGHT_MODE_PAYLOAD_SIZE = Integer.BYTES + Byte.BYTES;
+    static final int VEHICLE_SIGNAL_PAYLOAD_SIZE = Integer.BYTES + Byte.BYTES;
+    static final int VEHICLE_SIGNAL_AUTO_CANCEL_PAYLOAD_SIZE = Integer.BYTES + Byte.BYTES;
+    static final int VEHICLE_SIGNAL_SETTINGS_PAYLOAD_SIZE = Integer.BYTES + 3 * Byte.BYTES;
+    private static final PlayerPacketRateLimiter VEHICLE_SIGNAL_PREFERENCES_RATE_LIMITER = new PlayerPacketRateLimiter(4, 16, 20, 1200);
+    private static final PlayerPacketRateLimiter VEHICLE_SIGNAL_SETTINGS_RATE_LIMITER = new PlayerPacketRateLimiter(4, 16, 20, 1200);
+    private static final PlayerPacketRateLimiter VEHICLE_SIGNAL_RATE_LIMITER = new PlayerPacketRateLimiter(4, 16, 20, 1200);
+    private static final PlayerPacketRateLimiter VEHICLE_LIGHT_MODE_RATE_LIMITER = new PlayerPacketRateLimiter(
+            4, 16, 20, 20 * 60
+    );
     public static final Map<Identifier, TriCons<MinecraftServer, ServerPlayer, FriendlyByteBuf>> SERVERBOUND_HANDLERS = new HashMap<>();
+    static final int VEHICLE_IGNITION_PAYLOAD_SIZE = 5;
+    static final int VEHICLE_ENGINE_SETTINGS_PAYLOAD_SIZE = 10;
+    private static final PlayerPacketRateLimiter VEHICLE_ENGINE_RATE_LIMITER = new PlayerPacketRateLimiter(4, 16, 20, 1200);
 
     public static void registerReceiver(Identifier rl, TriCons<MinecraftServer, ServerPlayer, FriendlyByteBuf> run) {
         SERVERBOUND_HANDLERS.put(rl, run);
@@ -81,6 +95,89 @@ public enum CommonPackets {;
     }
 
     public static void init() {
+        VehicleAccessPackets.init();
+        VehicleUnattendedLightPackets.initServer();
+        CommonPackets.registerReceiver(Automobility.rl("set_vehicle_signal_settings"), (server, player, buf) -> {
+            if (!isValidVehicleSignalSettingsPayload(buf)) return;
+            int entityId = buf.readInt();
+            boolean autoCancel = buf.readBoolean(), comfort = buf.readBoolean(), lockFlash = buf.readBoolean();
+            server.execute(() -> {
+                if (!VEHICLE_SIGNAL_PREFERENCES_RATE_LIMITER.tryAcquire(player.getUUID(), server.getTickCount())) return;
+                if (player.level().getEntity(entityId) instanceof AutomobileEntity car
+                        && canChangeVehicleSignalSettings(car.isRemoved(), car.level() == player.level(),
+                        player.isAlive() && car.isDriving(player), car.getVehicleAccess().mayConfigure(player.getUUID()))) {
+                    car.setVehicleSignalAutoCancelEnabled(autoCancel);
+                    car.setVehicleComfortSignalsEnabled(comfort);
+                    car.setVehicleLockSignalConfirmationEnabled(lockFlash);
+                }
+            });
+        });
+        CommonPackets.registerReceiver(Automobility.rl("set_vehicle_signal_auto_cancel"), (server, player, buf) -> {
+            if (!isValidVehicleSignalAutoCancelPayload(buf)) return;
+            int entityId = buf.readInt();
+            boolean enabled = buf.readBoolean();
+            server.execute(() -> {
+                if (!VEHICLE_SIGNAL_SETTINGS_RATE_LIMITER.tryAcquire(player.getUUID(), server.getTickCount())) return;
+                if (player.level().getEntity(entityId) instanceof AutomobileEntity car
+                        && canChangeVehicleSignalAutoCancel(car.isRemoved(), car.level() == player.level(),
+                        player.isAlive() && car.isDriving(player), car.getVehicleAccess().mayConfigure(player.getUUID())))
+                    car.setVehicleSignalAutoCancelEnabled(enabled);
+            });
+        });
+        CommonPackets.registerReceiver(Automobility.rl("vehicle_signal"), (server, player, buf) -> {
+            if (!isValidVehicleSignalPayload(buf)) return;
+            int entityId = buf.readInt(), request = buf.readUnsignedByte();
+            server.execute(() -> {
+                if (!VEHICLE_SIGNAL_RATE_LIMITER.tryAcquire(player.getUUID(), server.getTickCount())) return;
+                // Signals are driver operation, not permission to alter vehicle configuration.
+                // A revoked key does not eject an existing driver or disable their driving controls.
+                if (player.level().getEntity(entityId) instanceof AutomobileEntity car
+                        && canChangeVehicleSignal(car.isRemoved(), car.level() == player.level(),
+                        player.isAlive() && car.isDriving(player))) car.applyVehicleSignalRequest(request);
+            });
+        });
+        CommonPackets.registerReceiver(Automobility.rl("set_vehicle_ignition"), (server, player, buf) -> {
+            if (!isValidVehicleIgnitionPayload(buf)) return;
+            int entityId = buf.readInt();
+            boolean start = buf.readBoolean();
+            server.execute(() -> {
+                if (!VEHICLE_ENGINE_RATE_LIMITER.tryAcquire(player.getUUID(), server.getTickCount())) return;
+                if (player.level().getEntity(entityId) instanceof AutomobileEntity car
+                        && canChangeVehicleEngine(car.isRemoved(), car.level() == player.level(), player.isAlive() && car.isDriving(player)))
+                    car.requestIgnition(start);
+            });
+        });
+        CommonPackets.registerReceiver(Automobility.rl("set_vehicle_engine_settings"), (server, player, buf) -> {
+            if (!isValidVehicleEngineSettingsPayload(buf)) return;
+            int entityId = buf.readInt();
+            var settings = new io.github.foundationgames.automobility.automobile.engine.VehicleEngineSettings(
+                    buf.readBoolean(), buf.readInt(), buf.readBoolean());
+            server.execute(() -> {
+                if (!VEHICLE_ENGINE_RATE_LIMITER.tryAcquire(player.getUUID(), server.getTickCount())) return;
+                if (player.level().getEntity(entityId) instanceof AutomobileEntity car
+                        && canChangeVehicleEngine(car.isRemoved(), car.level() == player.level(), player.isAlive() && car.isDriving(player)))
+                    if (car.getVehicleAccess().mayConfigure(player.getUUID())) car.setVehicleEngineSettings(settings);
+            });
+        });
+        CommonPackets.registerReceiver(Automobility.rl("set_vehicle_light_mode"), (server, player, buf) -> {
+            if (!isValidVehicleLightModePayload(buf)) {
+                return;
+            }
+            int entityId = buf.readInt();
+            var mode = VehicleLightMode.fromId(buf.readUnsignedByte());
+            server.execute(() -> {
+                if (!VEHICLE_LIGHT_MODE_RATE_LIMITER.tryAcquire(player.getUUID(), server.getTickCount())) {
+                    return;
+                }
+                // Recheck the driver on the server thread: the sender may have dismounted or
+                // changed dimension while this request waited in the execution queue.
+                if (player.level().getEntity(entityId) instanceof AutomobileEntity automobile
+                        && canChangeVehicleLightMode(automobile.isRemoved(), automobile.level() == player.level(),
+                        player.isAlive() && automobile.isDriving(player))) {
+                    automobile.requestVehicleLightMode(mode);
+                }
+            });
+        });
         CommonPackets.registerReceiver(Automobility.rl("sync_automobile_data"), (server, player, buf) -> {
             if (buf.readableBytes() != Integer.BYTES + AUTOMOBILE_SYNC_STATE_SIZE) {
                 return;
@@ -136,6 +233,63 @@ public enum CommonPackets {;
 
     static boolean isExactEntityIdPayload(FriendlyByteBuf buf) {
         return buf.readableBytes() == Integer.BYTES;
+    }
+
+    static boolean canChangeVehicleEngine(boolean removed, boolean sameLevel, boolean currentDriver) {
+        return !removed && sameLevel && currentDriver;
+    }
+
+    static boolean isValidVehicleIgnitionPayload(FriendlyByteBuf buf) {
+        return buf.readableBytes() == VEHICLE_IGNITION_PAYLOAD_SIZE && buf.getUnsignedByte(buf.readerIndex() + 4) <= 1;
+    }
+
+    static boolean isValidVehicleEngineSettingsPayload(FriendlyByteBuf buf) {
+        int offset = buf.readerIndex();
+        return buf.readableBytes() == VEHICLE_ENGINE_SETTINGS_PAYLOAD_SIZE
+                && buf.getUnsignedByte(offset + 4) <= 1 && buf.getUnsignedByte(offset + 9) <= 1
+                && io.github.foundationgames.automobility.automobile.engine.VehicleEngineSettings.validDelay(buf.getInt(offset + 5));
+    }
+
+    static boolean isValidVehicleLightModePayload(FriendlyByteBuf buf) {
+        return buf.readableBytes() == VEHICLE_LIGHT_MODE_PAYLOAD_SIZE
+                && VehicleLightMode.isValidId(buf.getUnsignedByte(buf.readerIndex() + Integer.BYTES));
+    }
+
+    static boolean canChangeVehicleLightMode(boolean removed, boolean sameLevel, boolean currentDriver) {
+        return !removed && sameLevel && currentDriver;
+    }
+
+    static boolean isValidVehicleSignalPayload(FriendlyByteBuf buf) {
+        return buf.readableBytes() == VEHICLE_SIGNAL_PAYLOAD_SIZE
+                && io.github.foundationgames.automobility.automobile.light.VehicleSignalController.isValidRequest(
+                buf.getUnsignedByte(buf.readerIndex() + Integer.BYTES));
+    }
+
+    static boolean canChangeVehicleSignal(boolean removed, boolean sameLevel, boolean currentDriver) {
+        return !removed && sameLevel && currentDriver;
+    }
+
+    static boolean isValidVehicleSignalAutoCancelPayload(FriendlyByteBuf buf) {
+        return buf.readableBytes() == VEHICLE_SIGNAL_AUTO_CANCEL_PAYLOAD_SIZE
+                && buf.getUnsignedByte(buf.readerIndex() + Integer.BYTES) <= 1;
+    }
+
+    static boolean canChangeVehicleSignalAutoCancel(boolean removed, boolean sameLevel,
+                                                    boolean currentDriver, boolean mayConfigure) {
+        return !removed && sameLevel && currentDriver && mayConfigure;
+    }
+
+    static boolean isValidVehicleSignalSettingsPayload(FriendlyByteBuf buf) {
+        int offset = buf.readerIndex();
+        return buf.readableBytes() == VEHICLE_SIGNAL_SETTINGS_PAYLOAD_SIZE
+                && buf.getUnsignedByte(offset + 4) <= 1
+                && buf.getUnsignedByte(offset + 5) <= 1
+                && buf.getUnsignedByte(offset + 6) <= 1;
+    }
+
+    static boolean canChangeVehicleSignalSettings(boolean removed, boolean sameLevel,
+                                                  boolean currentDriver, boolean mayConfigure) {
+        return !removed && sameLevel && currentDriver && mayConfigure;
     }
 
     private static boolean canRequestAutomobileComponents(ServerPlayer player, AutomobileEntity automobile) {

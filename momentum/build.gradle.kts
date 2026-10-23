@@ -26,6 +26,7 @@ dependencies {
     compileOnly(commonMainOutput)
     compileOnly(fabricMainOutput)
     runtimeOnly(fabricMainOutput)
+    testImplementation(commonMainOutput)
 
     compileOnly("maven.modrinth:yacl:${rootProject.providers.gradleProperty("yacl_version").get()}")
     compileOnly("com.terraformersmc:modmenu:${rootProject.providers.gradleProperty("modmenu_version").get()}")
@@ -84,7 +85,8 @@ loom {
 
 tasks {
     named<Jar>("jar") {
-        from(legacyControlify.output)
+        // Internal source/test module. Production classes/resources are compiled by :fabric.
+        enabled = false
     }
     withType<JavaCompile> {
         options.encoding = "UTF-8"
@@ -92,6 +94,9 @@ tasks {
     }
 
     processResources {
+        // Internal tests share :fabric's loader identity. Advertising a second Momentum
+        // mod here would conflict with Core's deliberate standalone-addon rejection.
+        exclude("fabric.mod.json")
         val loaderVersion = rootProject.providers.gradleProperty("fabric_version").get()
         val fabricApiVersion = rootProject.providers.gradleProperty("fabric_api_version").get()
         val automobilityVersion = rootProject.extra["momentum_automobility_min_version"].toString()
@@ -110,6 +115,7 @@ tasks {
     }
 
     withType<Jar> {
+        if (name != "controlifyIntegrationQaJar") enabled = false
         destinationDirectory = layout.buildDirectory.dir(
             if (name == "controlifyIntegrationQaJar") "qa" else "libs"
         )

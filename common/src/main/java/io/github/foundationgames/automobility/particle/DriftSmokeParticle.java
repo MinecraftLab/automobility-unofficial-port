@@ -33,6 +33,7 @@ public class DriftSmokeParticle extends SingleQuadParticle {
 
     public static class Factory implements ParticleProvider<SimpleParticleType> {
         private final SpriteSet sprites;
+        private long cosmeticSample;
 
         public Factory(SpriteSet sprites) {
             this.sprites = sprites;
@@ -40,6 +41,10 @@ public class DriftSmokeParticle extends SingleQuadParticle {
 
         @Override
         public Particle createParticle(SimpleParticleType type, ClientLevel world, double x, double y, double z, double vx, double vy, double vz, RandomSource random) {
+            int percent = io.github.foundationgames.automobility.client.lighting.VehicleLightingView.graphics(
+                    net.minecraft.client.Minecraft.getInstance()).driftParticlesPercent();
+            if (percent != 100 && !io.github.foundationgames.automobility.client.vehicle.VehicleCosmeticPolicy
+                    .driftSmoke(percent, cosmeticSample++, world.getGameTime())) return null;
             return new DriftSmokeParticle(world, x, y, z, this.sprites);
         }
     }
