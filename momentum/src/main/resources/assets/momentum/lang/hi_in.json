@@ -75,7 +75,7 @@
   "config.momentum.profile.responsive": "रेस्पॉन्सिव ड्रिफ्ट",
   "config.momentum.key_binding.brake": "ब्रेक: %s",
   "config.momentum.key_binding.handbrake": "हैंडब्रेक (ड्रिफ्ट): %s",
-  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
+  "config.momentum.key_binding.remap_hint": "विकल्प > नियंत्रण > कुंजी बाइंड में ब्रेक और हैंडब्रेक बदलें। यदि दोनों एक कुंजी साझा करते हैं, तो कीबोर्ड ब्रेक को प्राथमिकता दी जाती है।",
   "config.momentum.value.enabled": "चालू",
   "config.momentum.value.disabled": "बंद",
   "config.momentum.option.with_default": "%1$s\n\nडिफ़ॉल्ट: %2$s",

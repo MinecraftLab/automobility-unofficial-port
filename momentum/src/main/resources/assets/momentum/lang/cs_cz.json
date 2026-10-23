@@ -48,7 +48,7 @@
   "debug.momentum.no": "ne",
   "config.momentum.title": "Momentum",
   "config.momentum.category.general": "Obecné",
-  "config.momentum.category.drift": "Drift",
+  "config.momentum.category.drift": "Driftovat",
   "config.momentum.category.movement": "Pohyb",
   "config.momentum.category.steering": "Řízení",
   "config.momentum.category.camera": "Kamera",

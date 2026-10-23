@@ -75,7 +75,7 @@
   "config.momentum.profile.responsive": "レスポンシブドリフト",
   "config.momentum.key_binding.brake": "ブレーキ：%s",
   "config.momentum.key_binding.handbrake": "ハンドブレーキ（ドリフト）：%s",
-  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
+  "config.momentum.key_binding.remap_hint": "[オプション] > [コントロール] > [キー バインド] でブレーキとハンドブレーキを変更します。両方がキーを共有している場合は、キーボード ブレーキが優先されます。",
   "config.momentum.value.enabled": "有効",
   "config.momentum.value.disabled": "無効",
   "config.momentum.option.with_default": "%1$s\n\n既定値：%2$s",
