@@ -1,91 +1,71 @@
-![Automobility](./md/banner.png)
+# Automobility: Unofficial Port
 
-# Automobility - Unofficial 26.x Port
+Fabric vehicles for Minecraft26.x, based on [FoundationGames' Automobility](https://github.com/FoundationGames/Automobility).
+The current published1.3.0 release includes Momentum driving, cruise control,
+the vehicle HUD, garage/tuning, headlights and the MC-5, Offroader 90 and W4.
 
-<!-- offchunk-player-links:start -->
-## For players
+## Install
 
-| Project | Website & guides | Downloads | Report a bug |
-| --- | --- | --- | --- |
-| Automobility: Unofficial Port | [Offchunk](https://offchunk.com/mods/automobility) | [Modrinth releases](https://modrinth.com/mod/automobility-unofficial-port/versions) | [Issues](https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues) |
-| Momentum: Unofficial Port | [Offchunk](https://offchunk.com/mods/momentum) | [Modrinth releases](https://modrinth.com/mod/momentum-for-automobility-unofficial-port/versions) | [Issues](https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues) |
+Use Java25 and matching Minecraft, Fabric Loader and Fabric API versions.
+Download the matching file from [Modrinth](https://modrinth.com/mod/automobility-unofficial-port/versions)
+and install on the client and server. Exact loader/API minima are in each
+release's loader metadata. Momentum is integrated in1.3.0: do not add a separate
+Momentum JAR to that installation. Controlify, Mod Menu, YACL and shaders are
+optional. Report the Minecraft version and mod version with issues.
 
-Choose the release for your Minecraft version and follow its listed requirements. Source archives are not installable mod JARs.
-This issue tracker is shared: include the mod name in your report.
+## Stable source and development
 
-Include your mod, Minecraft and loader versions, what happened and how to reproduce it. For setup questions or private logs, use [Offchunk Help](https://offchunk.com/help); do not post passwords or access tokens in public issues.
-<!-- offchunk-player-links:end -->
+| Minecraft | Published release source | Development branch |
+|---|---|---|
+| 26.1.2 | [1.3.0](https://git.offchunk.com/Offchunk/automobility-unofficial-port/src/tag/automobility-1.3.0+26.1.2-fabric) | `dev/26.1.2` |
+| 26.2 | [1.3.0](https://git.offchunk.com/Offchunk/automobility-unofficial-port/src/tag/automobility-1.3.0+26.2-fabric) | `dev/26.2` |
+| 26.3 | [1.3.0](https://git.offchunk.com/Offchunk/automobility-unofficial-port/src/tag/automobility-1.3.0+26.3-fabric) | `dev/26.3` |
 
-Maintained source and issue tracking have moved to [Offchunk Forgejo](https://git.offchunk.com/Offchunk/automobility-unofficial-port).
+`main` provides source navigation and the release index. Build a release from
+its immutable version/MC tag. Development checkpoints belong on the explicit
+`dev/*` branches; tags never move. The prepared dev branches start at1.3.0
+with source-workflow additions, without importing other unfinished lanes.
 
-This repository is an unofficial Fabric port/fork of [Automobility](https://modrinth.com/mod/automobility) by [FoundationGames](https://github.com/FoundationGames/Automobility) for current Minecraft Java 26.x releases. The `main` branch targets 26.1.x and is built and smoke-tested on 26.1.2; the `port/26.2` branch targets 26.2. It is not affiliated with or endorsed by FoundationGames unless stated otherwise by the upstream maintainers.
+[`releases/source-index.json`](releases/source-index.json) maps all49 public
+version records:45 have a source commit/tag mapping and4 historical source
+gaps are identified explicitly. This includes20 historical releases of
+[standalone Momentum](https://modrinth.com/mod/momentum-for-automobility-unofficial-port/versions)
+in this same repository. Existing public source tags remain unchanged.
 
-Automobility adds customizable and functional vehicles, automobile parts, attachments, road-building blocks, driving controls, sounds, and resource/data-pack vehicle support.
+## Build
 
-**Automobility is currently in BETA.** This port should also be treated as beta until it has wider public testing.
+Check out a version/MC tag and follow its `release/BUILD.md`. For1.3.0 use
+Java25 and the included Gradle wrapper:
 
-## Available for Fabric
-- Supports Minecraft Java **26.1.x** and **26.2** through separate matching builds
-- 26.1.x release builds are smoke-tested on **26.1.2**
-- Requires **[Fabric API](https://modrinth.com/mod/fabric-api)**
-- Requires Fabric Loader **0.19.2 or newer**
-- Requires Java **25 or newer**
-- Optional Fabric controller support through **[Controlify](https://modrinth.com/mod/controlify)**
+```sh
+git switch --detach automobility-1.3.0+26.2-fabric
+./gradlew :fabric:jar --no-daemon --max-workers=1 -x test
+```
 
-This port currently publishes a Fabric build only. The upstream project is maintained separately; use this fork's issue tracker for bugs specific to this port.
+Use `gradlew.bat` on Windows. Build repositories/versions and optional SDK
+properties are checked into the release tree. The source export preserves
+the original narrow release overlays and artifact hash inventory; it was not
+rebuilt during source publication and does not promise byte-identical compiler
+debug/constant-pool output. Runtime caches, worlds, private configuration,
+audio masters and QA outputs are absent from the new release snapshots.
 
-## Momentum Addon
-This repository also contains an unofficial 26.x Fabric port of [Momentum for Automobility](https://modrinth.com/mod/momentum-for-automobility) in the `momentum` subproject.
+## Keeping sources current
 
-Momentum is an optional Automobility addon that changes vehicle movement feel and adds a compact speed HUD with cruise control. It requires this Automobility port on both client and server. YACL and Mod Menu are optional; install both to open Momentum's configuration from Mod Menu.
+See [the shared source workflow](docs/SOURCE-WORKFLOW.md). In the curated
+checkout, an explicit completed source commit on `dev/*` triggers the installed
+hook to push that branch without force and verify the remote hash. It never
+stages files, builds, starts Minecraft, publishes Modrinth, or moves tags.
+Release publication records source commit/tag and exact artifact hashes first.
+The old build workflow now runs only manually or for pull requests; the
+trusted ecosystem runner is manual-only. Source pushes do not run those suites.
 
-## Port Status
-- Vehicle driving, drifting, horn, sounds, speed HUD, boost FOV, and drift smoke are ported.
-- Automobile Assembler, Auto Mechanic Table, recipes, parts, attachments, and road blocks are ported.
-- OBJ-based vehicle/resource-pack rendering and addon data are ported.
-- Multiplayer vehicle visual displacement is synced so remote cars keep correct height and tilt when changing elevation.
-- Vehicle state packets are validated, rate-limited, and sent only to clients that are actually tracking the automobile.
-- Momentum synchronizes server-authoritative gameplay settings and remote brake/drift state while keeping HUD, camera, and key settings client-side.
+## Licence and support
 
-### Supports Data Packs and Resource Packs
-- Add your own custom vehicle types with data packs and resource packs! 
-- Here is an [example](https://github.com/FoundationGames/City-Vehicles-Example-Addon) that you can use as a template.
+Automobility code retains MIT and upstream notices; integrated Momentum keeps
+milkucha's MIT notices. Owned new assets use CC BY4.0 under the release's asset
+notices; inherited/third-party content retains its original terms. See each
+release tree's `LICENSE`, `NOTICE.md`, asset licences and `THIRD_PARTY_LICENSES`.
 
-## Getting Started
-- **Recipes:** Crafting table recipes can be viewed using [**EMI**](https://www.curseforge.com/minecraft/mc-mods/emi) or [**JEI**](https://www.curseforge.com/minecraft/mc-mods/jei). Automobile part recipes are viewed in the Auto Mechanic Table's GUI.
-- **Automobile Parts:** Craft an Auto Mechanic Table. Use the GUI to craft the frame, engine, and wheels for your automobile. You can optionally craft an attachment.
-- **Building your Automobile:** Craft an Automobile Assembler, as well as a Crowbar. Place parts on the assembler until the vehicle is complete. Use a crowbar to destroy the vehicle.
-- **Enhancing your Automobile:** Use your Auto Mechanic Table to craft attachments, which can be placed on your Automobile to add exciting functionality or utility.
-- **Building:** You can use Slopes, Dash Panels, Off-Road tiles and more to build roads, racetracks, or obstacle courses.
-
-![Automobile Construction](./md/construction.png)
-![Automobile Types](./md/parking.png)
-
-## Driving
-- W - Accelerate
-- S - Brake/Reverse/Burnout
-- A/D - Steer left/right
-- Space - Drift/Deploy
-- Control - Honk horn
-
-**Controller Support (*Fabric Exclusive*):** when using [Controlify](https://modrinth.com/mod/controlify), you will be able to control automobiles with the following default controls:
-- A - Accelerate
-- B - Brake/Reverse
-- LStick - Steer left/right
-- RTrigger - Drift/Deploy
-
-![Driving](./md/driving.png)
-
-### Credit: Audio
-All sound effects used (originals licensed under CC0) from [freesound.org](https://freesound.org/): <br/>
-- [ENGINE~1.WAV](https://freesound.org/people/MarlonHJ/sounds/242739/) *by MarlonHJ* <br/>
-- [Marine diesel engine](https://freesound.org/people/AugustSandberg/sounds/264864/) *by AugustSandberg* <br/>
-- [metal_ring_01.wav](https://freesound.org/people/Department64/sounds/95272/) *by Department64* <br/>
-- [metalbang0.wav](https://freesound.org/people/SamsterBirdies/sounds/435699/) *by SamsterBirdies* <br/>
-- [Hollow Bang](https://freesound.org/people/qubodup/sounds/157609/) *by qubodup* <br/>
-- [car park skiding corner.wav](https://freesound.org/people/martian/sounds/178889/) *by martian* <br/>
-- [Mini Klaxon Horn "Ahooga" sound](https://freesound.org/people/Mastersoundboy2005/sounds/719876/) *by Mastersoundboy2005* <br/>
-- [Honk Alarm Repeat loop.mp3](https://freesound.org/people/bowlingballout/sounds/400894/) *by bowlingballout* <br/>
-- [Vuvuzela](https://freesound.org/people/nomerodin1/sounds/557277/) *by nomerodin1* <br/>
-- [small horn.wav](https://freesound.org/people/tm1000/sounds/94868/) *by tm1000* <br/>
-- [Car horn (Ford Fiesta)](https://freesound.org/people/Jokerman83/sounds/732545/) *by Jokerman83* <br/>
+[Issues](https://git.offchunk.com/Offchunk/automobility-unofficial-port/issues)
+· [Modrinth](https://modrinth.com/mod/automobility-unofficial-port)
+· [Original Automobility](https://github.com/FoundationGames/Automobility)
