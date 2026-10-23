@@ -75,7 +75,7 @@
   "config.momentum.profile.responsive": "ریسپانسیو ڈرفٹ",
   "config.momentum.key_binding.brake": "بریک: %s",
   "config.momentum.key_binding.handbrake": "ہینڈ بریک (ڈرفٹ): %s",
-  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
+  "config.momentum.key_binding.remap_hint": "بریک اور ہینڈ بریک کو اختیارات > کنٹرولز > کلیدی بندھن میں تبدیل کریں۔ اگر دونوں ایک کلید کا اشتراک کرتے ہیں تو، کی بورڈ بریک کو ترجیح دی جاتی ہے۔",
   "config.momentum.value.enabled": "فعال",
   "config.momentum.value.disabled": "غیر فعال",
   "config.momentum.option.with_default": "%1$s\n\nڈیفالٹ: %2$s",

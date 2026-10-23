@@ -1,0 +1,449 @@
+{
+  "schema": "offchunk-localization717-package/1",
+  "product": "automobility",
+  "target": "26.1.2",
+  "version": "1.3.1+26.1.2-fabric",
+  "channel": "release",
+  "baseTag": "automobility-1.3.0+26.1.2-fabric",
+  "baseCommit": "aa503eaf21a6022d1b16be72a894bbe45dedf47d",
+  "baseline": {
+    "bytes": 4433415,
+    "sha256": "2E5A8288E53BB92BD2F1434826E196152E44A963111E8EF34706E339F99004C4"
+  },
+  "artifact": {
+    "bytes": 4547568,
+    "sha256": "7022C3C8F29B0D09913A3627851012D6FAE4AE47A6E5C0B2E0371B5BD6B95743",
+    "sha512": "11699BE8E1992F7F7F17622644EB0AECBC4C03EB7E271AF646076B7355F760564E168B8CE1423C51E1312B28C8173E6825C1F14EEBE023486525AB3509025F92"
+  },
+  "filename": "automobility-1.3.1+26.1.2-fabric.jar",
+  "resources": {
+    "parent": [
+      {
+        "member": "assets/automobility/lang/cs_cz.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/cs_cz.json",
+          "bytes": 64516,
+          "sha256": "DCF5087FB5AD13B36DE2444284C315E76D8C3E82E7F59FB182D690E971D44F87"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/de_de.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/de_de.json",
+          "bytes": 68674,
+          "sha256": "901326EAC87DAC78C8316343CDAD07A09C8BCF8F0EA715E32B1DBCA85FFA1752"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/es_es.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/es_es.json",
+          "bytes": 68965,
+          "sha256": "711118CD9C68D618758B505EEC0AC2BDD85CC4676AB47EFC02A184B851C77BC8"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/fr_fr.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/fr_fr.json",
+          "bytes": 70184,
+          "sha256": "30ECC0C963C300D616856BF895D0FFEBB8257557489C1F82649F334E3AE2C7B2"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/hi_in.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/hi_in.json",
+          "bytes": 103892,
+          "sha256": "3ED1290DE81901FA660B03541F1F240E3D0152FDCB310801636D3CF3B9D44E14"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/it_it.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/it_it.json",
+          "bytes": 68347,
+          "sha256": "C6A687416DA20B8E3199ABF81F964190F1D71F869AA5CD9D68420486B0AB9F60"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/ja_jp.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/ja_jp.json",
+          "bytes": 76659,
+          "sha256": "CB3FD97D5BDC600FF9F3164E5BE7147D801FCB59E62FD4FDFECDC8E343F348F2"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/ko_kr.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/ko_kr.json",
+          "bytes": 69610,
+          "sha256": "D12DFCC9F90274665718D48B7FEEAADAB5AFD2889FCB25B17B6009B122D2ABB2"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/no_no.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/no_no.json",
+          "bytes": 63864,
+          "sha256": "31418ECF8B83331DE07F6F8701556CFE1A053D289E10F8E8311CE464739BD039"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/pl_pl.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/pl_pl.json",
+          "bytes": 67791,
+          "sha256": "AFE9663E72E955BB258861C0D3B1729F0DA82A59B8FC14866A8BEDBB70D07D8B"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/pt_br.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/pt_br.json",
+          "bytes": 67229,
+          "sha256": "BD7A965A2DCF931757AE3FB40DDECA9FFE814F05D2E6442CCCA67EF6AD61D081"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/ru_ru.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/ru_ru.json",
+          "bytes": 93245,
+          "sha256": "F6CD7285B53ECBEBD18AB7A931C58C88C2E0643B3674F803BFC2A55B6D2389A3"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/uk_ua.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/uk_ua.json",
+          "bytes": 91019,
+          "sha256": "DA74C0540F63DDABA2849938147C158F7DA56ADE64A43126AFFC2DC7B7363D3D"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/ur_pk.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/ur_pk.json",
+          "bytes": 82772,
+          "sha256": "071CBF12683FE984B74B902E85F14EBC9F6D9A22D190CECAADFC7DED599FD111"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/vi_vn.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/vi_vn.json",
+          "bytes": 72437,
+          "sha256": "F290B7C1EC9D4FAB3028C052F683F6BC4B5CEF0ED9139CA91187E914F47CF8F9"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/zh_cn.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/zh_cn.json",
+          "bytes": 60635,
+          "sha256": "93C9F6C2EC3361B86FBEB8F3005F7B343AC234D3240E58365963C23E2BACCE74"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/zh_tw.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/zh_tw.json",
+          "bytes": 60602,
+          "sha256": "43B0889372644F00D0E56B9DEF3C04522CFDF89B2C7D6E0CC9BC273AB7FCB027"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/sk_sk.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/sk_sk.json",
+          "bytes": 66316,
+          "sha256": "BD20C652E8585F4BE37BC00C9C0BFD28F50CA6438EA4C15A9D9A86CE03F64546"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/nl_nl.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/nl_nl.json",
+          "bytes": 66950,
+          "sha256": "B474E61DAB7BFD0123169F7E3E310AF3C93AFFDF374CB0902B69AFD486700B61"
+        }
+      },
+      {
+        "member": "assets/automobility/lang/tr_tr.json",
+        "source": {
+          "path": "common/src/main/resources/assets/automobility/lang/tr_tr.json",
+          "bytes": 66640,
+          "sha256": "B294B3512DC0A14F907F70764033A62150A03DB2A42CF5BB55383A5B039B18D5"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/cs_cz.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/cs_cz.json",
+          "bytes": 23562,
+          "sha256": "B02696FA1F609B8BA64125A3A79CC4D703C41F8EA400D28841C51BCB7EF90F75"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/de_de.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/de_de.json",
+          "bytes": 23570,
+          "sha256": "2E24CB1127EC35E8114175051C312ED75FC18696D7F67FD529CA288D2F7CA533"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/es_es.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/es_es.json",
+          "bytes": 23966,
+          "sha256": "4D580537584E79260E659C48D1722D2F05079BE113822CDA5802113086EACAFB"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/fr_fr.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/fr_fr.json",
+          "bytes": 24407,
+          "sha256": "BD420C56491E6E8CD05498F3561EC87707A56239B2CFE29231D4FFB0C995E511"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/hi_in.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/hi_in.json",
+          "bytes": 37706,
+          "sha256": "3D1AB95B6AE0E9F4D355F1195F32B88BEEAFA3412AE86274ADF5A53ECFB38ACC"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/it_it.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/it_it.json",
+          "bytes": 23642,
+          "sha256": "F7CC3C94B5AB0959CD04CC39C419B3BFB0BDD0E349BC0D4149889B7288F381C6"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/ja_jp.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/ja_jp.json",
+          "bytes": 26209,
+          "sha256": "B379A97F492AA9CDE7C122B26F2AF5AA13D9C9F5C0617658C842D339D7F1E4ED"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/ko_kr.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/ko_kr.json",
+          "bytes": 25668,
+          "sha256": "C0D726C70C2D744F8F8E1027034CCF009C926CB5399E1EFD0E7E686C75A64E6C"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/no_no.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/no_no.json",
+          "bytes": 23155,
+          "sha256": "FD540003F9E54341AE3C58F0C3B615C2B9F783BAC45DD5F8106A4869F8F43CA4"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/pl_pl.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/pl_pl.json",
+          "bytes": 23641,
+          "sha256": "09776643614B03EB8B00C5C224804CA98F154F265C493435A11A27FB707928B1"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/pt_br.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/pt_br.json",
+          "bytes": 23426,
+          "sha256": "E3D0649F8703CA9B035F9BAD598068EDD4B35F0B89712BED4F24456DF3709B74"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/ru_ru.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/ru_ru.json",
+          "bytes": 32251,
+          "sha256": "064D49D4A53E2468CC975A3D493D9E5AE6F07D9EEC0E2CECEAF1732A93491E9E"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/uk_ua.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/uk_ua.json",
+          "bytes": 33381,
+          "sha256": "326EFCB0D0381EE8DC1EB10348DC5663A13311F947A2D0E789A76232F72DFC0F"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/ur_pk.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/ur_pk.json",
+          "bytes": 29713,
+          "sha256": "24BDD26A770D9BC558BDB21F5E01479A46C6002CF49525D2308C8ED4AF2D64AF"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/vi_vn.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/vi_vn.json",
+          "bytes": 25877,
+          "sha256": "032C87D8152892637B43516CD0FA291AE41988F67D970D799EB032AC1B5ACB89"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/zh_cn.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/zh_cn.json",
+          "bytes": 21826,
+          "sha256": "EF303AE4F6578F8F5D8F027D50712537E181A0385BD838D0E2E57D86AB1512F7"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/zh_tw.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/zh_tw.json",
+          "bytes": 22069,
+          "sha256": "B51E3AEF9D71E0269B9A6C67EA4ACC7AC554ADE9A78D08982EAAE0F64CA76092"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/sk_sk.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/sk_sk.json",
+          "bytes": 24205,
+          "sha256": "309F2B9C6D3D2B152A6A545EC5478C6D38C45180AA74130209801899ADD9E028"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/nl_nl.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/nl_nl.json",
+          "bytes": 24164,
+          "sha256": "2EE093C65D4B0FB1EB414F944A216625550CBAEBB587BE982B4E7E85C9564341"
+        }
+      },
+      {
+        "member": "assets/momentum/lang/tr_tr.json",
+        "source": {
+          "path": "momentum/src/main/resources/assets/momentum/lang/tr_tr.json",
+          "bytes": 25467,
+          "sha256": "DBF3DDDB7DEEC8D882C6B55AB02574687CBA8C65FFE5EF380ED6E82AD2F9CFE2"
+        }
+      }
+    ],
+    "nested": []
+  },
+  "metadata": {
+    "path": "releases/localization717/fabric.mod.json",
+    "bytes": 2176,
+    "sha256": "4B0C1B7DC75E4B7462C4B680B4C1182CFF4874E8766C8716426C10D10673ED5A"
+  },
+  "nestedMetadata": null,
+  "nested": null,
+  "expectedNestedSha256": null,
+  "classPatches": [
+    {
+      "member": "io/github/foundationgames/automobility/fabric/GarageOwnerBootstrap.class",
+      "baselineSha256": "015EDA33693AC85B7E3457FD1A2AE2769727A3C0EAE6BBD629EA66A31E668D9C",
+      "replacements": [
+        {
+          "old": "D645322D88DFFBC6FFF002AB6A7C432115AC5354D76724DD766039561F88B8C0",
+          "resolved": "D476D0293B13451864656D94F94F282CD3C05D9EEF832D976BF8CAB4C34AA65C"
+        },
+        {
+          "old": "0C465676172680EF40CCA22B14213156DAFC1C3F2DBA606DCCECB739D73FF0F3",
+          "resolved": "A559725D194D27BB124DB4F7E23B982A0AEF29B222FEC3BDD54F73F22773ED28"
+        },
+        {
+          "old": "4F50DCE4A40E07BDE944AD588B783D4553301FFE7EE0AC99631EFB817A5026BD",
+          "resolved": "4479D0F250E28A525C4092B532D2F04177AE1CD248852207B0970DFCA07029A8"
+        },
+        {
+          "old": "META-INF/jars/pumps-and-pistons-automobility-1.11.0-beta.1+26.1.2.jar",
+          "resolved": "META-INF/jars/pumps-and-pistons-automobility-1.11.1+26.1.2.jar"
+        }
+      ]
+    }
+  ],
+  "uiClass": null,
+  "allowedChangedMembers": [
+    "assets/automobility/lang/cs_cz.json",
+    "assets/automobility/lang/de_de.json",
+    "assets/automobility/lang/es_es.json",
+    "assets/automobility/lang/fr_fr.json",
+    "assets/automobility/lang/hi_in.json",
+    "assets/automobility/lang/it_it.json",
+    "assets/automobility/lang/ja_jp.json",
+    "assets/automobility/lang/ko_kr.json",
+    "assets/automobility/lang/nl_nl.json",
+    "assets/automobility/lang/no_no.json",
+    "assets/automobility/lang/pl_pl.json",
+    "assets/automobility/lang/pt_br.json",
+    "assets/automobility/lang/ru_ru.json",
+    "assets/automobility/lang/sk_sk.json",
+    "assets/automobility/lang/tr_tr.json",
+    "assets/automobility/lang/uk_ua.json",
+    "assets/automobility/lang/ur_pk.json",
+    "assets/automobility/lang/vi_vn.json",
+    "assets/automobility/lang/zh_cn.json",
+    "assets/automobility/lang/zh_tw.json",
+    "assets/momentum/lang/cs_cz.json",
+    "assets/momentum/lang/de_de.json",
+    "assets/momentum/lang/es_es.json",
+    "assets/momentum/lang/fr_fr.json",
+    "assets/momentum/lang/hi_in.json",
+    "assets/momentum/lang/it_it.json",
+    "assets/momentum/lang/ja_jp.json",
+    "assets/momentum/lang/ko_kr.json",
+    "assets/momentum/lang/nl_nl.json",
+    "assets/momentum/lang/no_no.json",
+    "assets/momentum/lang/pl_pl.json",
+    "assets/momentum/lang/pt_br.json",
+    "assets/momentum/lang/ru_ru.json",
+    "assets/momentum/lang/sk_sk.json",
+    "assets/momentum/lang/tr_tr.json",
+    "assets/momentum/lang/uk_ua.json",
+    "assets/momentum/lang/ur_pk.json",
+    "assets/momentum/lang/vi_vn.json",
+    "assets/momentum/lang/zh_cn.json",
+    "assets/momentum/lang/zh_tw.json",
+    "fabric.mod.json",
+    "io/github/foundationgames/automobility/fabric/GarageOwnerBootstrap.class"
+  ],
+  "allowedNestedChangedMembers": [],
+  "sourceTransforms": [
+    {
+      "path": "fabric/src/main/java/io/github/foundationgames/automobility/fabric/GarageOwnerBootstrap.java",
+      "old": "D645322D88DFFBC6FFF002AB6A7C432115AC5354D76724DD766039561F88B8C0",
+      "new": "D476D0293B13451864656D94F94F282CD3C05D9EEF832D976BF8CAB4C34AA65C",
+      "count": 1
+    },
+    {
+      "path": "fabric/src/main/java/io/github/foundationgames/automobility/fabric/GarageOwnerBootstrap.java",
+      "old": "0C465676172680EF40CCA22B14213156DAFC1C3F2DBA606DCCECB739D73FF0F3",
+      "new": "A559725D194D27BB124DB4F7E23B982A0AEF29B222FEC3BDD54F73F22773ED28",
+      "count": 1
+    },
+    {
+      "path": "fabric/src/main/java/io/github/foundationgames/automobility/fabric/GarageOwnerBootstrap.java",
+      "old": "4F50DCE4A40E07BDE944AD588B783D4553301FFE7EE0AC99631EFB817A5026BD",
+      "new": "4479D0F250E28A525C4092B532D2F04177AE1CD248852207B0970DFCA07029A8",
+      "count": 1
+    },
+    {
+      "path": "fabric/src/main/java/io/github/foundationgames/automobility/fabric/GarageOwnerBootstrap.java",
+      "old": "META-INF/jars/pumps-and-pistons-automobility-1.11.0-beta.1+26.1.2.jar",
+      "new": "META-INF/jars/pumps-and-pistons-automobility-1.11.1+26.1.2.jar",
+      "count": 1
+    }
+  ],
+  "proofBoundary": "ORIGINAL_STABLE_SOURCE_PLUS_EXACT717_LOCALIZATION_AND_SOURCE_EQUIVALENT_DATA_PATCHES; NOT_FRESH_GRADLE_REBUILT; ARCHIVE_CHECKS_NOT_JVM_ADMISSION"
+}

@@ -75,7 +75,7 @@
   "config.momentum.profile.responsive": "Dérapage réactif",
   "config.momentum.key_binding.brake": "Frein : %s",
   "config.momentum.key_binding.handbrake": "Frein à main (dérapage) : %s",
-  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
+  "config.momentum.key_binding.remap_hint": "Modifiez le frein et le frein à main dans Options > Contrôles > Liaisons de touches. Si les deux partagent une touche, le frein du clavier est prioritaire.",
   "config.momentum.value.enabled": "activé",
   "config.momentum.value.disabled": "désactivé",
   "config.momentum.option.with_default": "%1$s\n\nPar défaut : %2$s",

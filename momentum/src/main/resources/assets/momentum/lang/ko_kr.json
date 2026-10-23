@@ -75,7 +75,7 @@
   "config.momentum.profile.responsive": "반응형 드리프트",
   "config.momentum.key_binding.brake": "제동: %s",
   "config.momentum.key_binding.handbrake": "핸드브레이크(드리프트): %s",
-  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
+  "config.momentum.key_binding.remap_hint": "옵션 > 컨트롤 > 키 바인딩에서 브레이크와 핸드브레이크를 변경하세요. 둘 다 키를 공유하는 경우 키보드 브레이크가 우선순위를 갖습니다.",
   "config.momentum.value.enabled": "활성화",
   "config.momentum.value.disabled": "비활성화",
   "config.momentum.option.with_default": "%1$s\n\n기본값: %2$s",

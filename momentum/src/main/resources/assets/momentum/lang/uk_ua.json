@@ -75,7 +75,7 @@
   "config.momentum.profile.responsive": "Чутливий дрифт",
   "config.momentum.key_binding.brake": "Гальмо: %s",
   "config.momentum.key_binding.handbrake": "Ручне гальмо (дрифт): %s",
-  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
+  "config.momentum.key_binding.remap_hint": "Змініть гальмо та ручне гальмо в «Параметри» > «Керування» > «Прив’язки клавіш». Якщо обидва мають спільну клавішу, пріоритет має гальмо клавіатури.",
   "config.momentum.value.enabled": "увімкнено",
   "config.momentum.value.disabled": "вимкнено",
   "config.momentum.option.with_default": "%1$s\n\nТипово: %2$s",

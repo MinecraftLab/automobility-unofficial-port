@@ -75,7 +75,7 @@
   "config.momentum.profile.responsive": "Отзывчивый дрифт",
   "config.momentum.key_binding.brake": "Тормоз: %s",
   "config.momentum.key_binding.handbrake": "Ручной тормоз (дрифт): %s",
-  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
+  "config.momentum.key_binding.remap_hint": "Измените тормоз и ручной тормоз в меню «Параметры» > «Управление» > «Привязки клавиш». Если оба имеют одну и ту же клавишу, приоритет имеет тормоз клавиатуры.",
   "config.momentum.value.enabled": "включено",
   "config.momentum.value.disabled": "выключено",
   "config.momentum.option.with_default": "%1$s\n\nПо умолчанию: %2$s",

@@ -75,7 +75,7 @@
   "config.momentum.profile.responsive": "响应式漂移",
   "config.momentum.key_binding.brake": "刹车：%s",
   "config.momentum.key_binding.handbrake": "手刹（漂移）：%s",
-  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
+  "config.momentum.key_binding.remap_hint": "在选项 > 控制 > 键绑定中更改刹车和手刹。如果两者共享一个键，则键盘制动优先。",
   "config.momentum.value.enabled": "已启用",
   "config.momentum.value.disabled": "已禁用",
   "config.momentum.option.with_default": "%1$s\n\n默认值：%2$s",

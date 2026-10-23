@@ -75,7 +75,7 @@
   "config.momentum.profile.responsive": "Lướt nhạy theo tay lái",
   "config.momentum.key_binding.brake": "Phanh: %s",
   "config.momentum.key_binding.handbrake": "Phanh tay (Lướt): %s",
-  "config.momentum.key_binding.remap_hint": "Change Brake and Handbrake in Options > Controls > Key Binds. If both share a key, the keyboard brake takes priority.",
+  "config.momentum.key_binding.remap_hint": "Thay đổi phanh và phanh tay trong Tùy chọn > Điều khiển > Ràng buộc phím. Nếu cả hai dùng chung một phím thì phanh bàn phím sẽ được ưu tiên.",
   "config.momentum.value.enabled": "đã bật",
   "config.momentum.value.disabled": "đã tắt",
   "config.momentum.option.with_default": "%1$s\n\nMặc định: %2$s",
