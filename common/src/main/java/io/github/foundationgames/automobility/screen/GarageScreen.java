@@ -502,6 +502,12 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
     @Override public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        // Minecraft extracts this pass separately from extractRenderState.
+        graphics.pose().pushMatrix(); graphics.pose().scale(viewportScale);
+        try { extractShowroomBackground(graphics, (int)(mouseX/viewportScale), (int)(mouseY/viewportScale), delta); }
+        finally { graphics.pose().popMatrix(); }
+    }
+    private void extractShowroomBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         if (layout == null || layout.small()) return;
         hoveredClippedText = null; labelMouseX = mouseX - leftPos; labelMouseY = mouseY - topPos;
         GarageUiDraw.backdrop(graphics, layout);
@@ -728,18 +734,22 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
     @Override protected boolean checkHotbarKeyPressed(KeyEvent event) { return inventoryVisible() && super.checkHotbarKeyPressed(event); }
     @Override protected void extractTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         if (layout == null || layout.small()) return;
-        if (inventoryVisible()) super.extractTooltip(graphics, mouseX, mouseY);
+        if (inventoryVisible()) super.extractTooltip(graphics, Math.round(mouseX*viewportScale), Math.round(mouseY*viewportScale));
         if(mode==TUNING && layout.installedParts().contains(mouseX,mouseY))
-            graphics.setTooltipForNextFrame(font,installedPartsTooltip(),mouseX,mouseY);
+            queueTooltip(graphics, installedPartsTooltip(), mouseX, mouseY);
         else if (layout.statsTooltip().contains(mouseX,mouseY)) {
             var explanation = Component.empty().append(text("workshop.delta_help"))
                     .append("\n").append(text("estimate_help"));
-            int tooltipWidth = Math.max(1, Math.min(240, width - 24));
-            graphics.setTooltipForNextFrame(font, font.split(explanation, tooltipWidth), mouseX, mouseY);
+            queueTooltip(graphics, explanation, mouseX, mouseY);
         }
         else if (mode == TUNING && exchangePane && layout.at(426, 210, 162, 100).contains(mouseX, mouseY))
-            graphics.setTooltipForNextFrame(font, exchangeTooltip(), mouseX, mouseY);
-        else if (hoveredClippedText != null) graphics.setTooltipForNextFrame(font, hoveredClippedText, mouseX, mouseY);
+            queueTooltip(graphics, exchangeTooltip(), mouseX, mouseY);
+        else if (hoveredClippedText != null) queueTooltip(graphics, hoveredClippedText, mouseX, mouseY);
+    }
+    private void queueTooltip(GuiGraphicsExtractor graphics, Component value, int mouseX, int mouseY) {
+        // Deferred tooltips use the real GUI viewport and mouse, not the panel pose.
+        int tooltipWidth = Math.max(1, Math.min(240, minecraft.getWindow().getGuiScaledWidth() - 24));
+        graphics.setTooltipForNextFrame(font, font.split(value, tooltipWidth), Math.round(mouseX*viewportScale), Math.round(mouseY*viewportScale));
     }
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         event=logicalMouse(event);

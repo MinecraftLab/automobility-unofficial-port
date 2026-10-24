@@ -15,7 +15,7 @@ import net.minecraft.network.Connection;
 public final class FabricDrivetrainSettingsClient implements VehicleDrivetrainSettingsClient.Adapter {
     private static final class Entry {
         final AutomobileEntity car; final Object world;
-        UUID request; long requestTick = -100, replyTick = -100; boolean pending;
+        UUID request; long requestTick = -100, replyTick = -100; boolean pending, saving;
         DrivetrainSettingsMessages.Message value;
         Entry(AutomobileEntity car) { this.car = car; world = car.level(); }
     }
@@ -39,7 +39,7 @@ public final class FabricDrivetrainSettingsClient implements VehicleDrivetrainSe
                     var entry = adapter.entries.get(response.vehicle());
                     if (entry == null || entry.world != client.level || entry.car.isRemoved() || client.level.getEntity(response.entityId()) != entry.car
                             || !response.request().equals(entry.request)) return;
-                    entry.value = response; entry.replyTick = client.level.getGameTime(); entry.pending = false;
+                    entry.value = response; entry.replyTick = client.level.getGameTime(); entry.pending = false; entry.saving = false;
                 } catch (IllegalArgumentException malformed) { /* No local preference fallback from unrecognized data. */ }
             });
         });
@@ -73,7 +73,7 @@ public final class FabricDrivetrainSettingsClient implements VehicleDrivetrainSe
         if (connection != actual) { entries.clear(); connection = actual; }
         var entry = entry(car); long tick = car.level().getGameTime();
         if (entry.pending && tick >= entry.requestTick && tick - entry.requestTick <= 100 || tick >= entry.requestTick && tick - entry.requestTick < 5) return;
-        entry.request = UUID.randomUUID(); entry.requestTick = tick; entry.pending = true;
+        entry.request = UUID.randomUUID(); entry.requestTick = tick; entry.pending = true; entry.saving = false;
         ClientPlayNetworking.send(new DrivetrainSettingsPayload(DrivetrainSettingsMessages.encode(
                 DrivetrainSettingsMessages.query(entry.request, car.getUUID(), car.getId()))));
     }
@@ -85,7 +85,7 @@ public final class FabricDrivetrainSettingsClient implements VehicleDrivetrainSe
     }
     @Override public boolean save(AutomobileEntity car, DrivetrainSettingsEnvelope.Settings requested, boolean reset) {
         var view = view(car); if (view.isEmpty() || !view.get().mayConfigure() || pending(car)) return false;
-        var entry = entry(car); entry.request = UUID.randomUUID(); entry.requestTick = car.level().getGameTime(); entry.pending = true;
+        var entry = entry(car); entry.request = UUID.randomUUID(); entry.requestTick = car.level().getGameTime(); entry.pending = true; entry.saving = true;
         var update = new DrivetrainSettingsMessages.Message(DrivetrainSettingsMessages.Kind.UPDATE, entry.request, car.getUUID(), car.getId(), view.get().token(),
                 DrivetrainSettingsMessages.Status.CURRENT, reset, false, Optional.of(requested));
         ClientPlayNetworking.send(new DrivetrainSettingsPayload(DrivetrainSettingsMessages.encode(update))); return true;
@@ -93,6 +93,9 @@ public final class FabricDrivetrainSettingsClient implements VehicleDrivetrainSe
     @Override public boolean pending(AutomobileEntity car) {
         var entry = entries.get(car.getUUID()); if (entry == null || entry.car != car || entry.world != car.level()) return false;
         long tick = car.level().getGameTime(); return entry.pending && tick >= entry.requestTick && tick - entry.requestTick <= 100;
+    }
+    @Override public boolean saving(AutomobileEntity car) {
+        var entry = entries.get(car.getUUID()); return entry != null && entry.saving && pending(car);
     }
     private void tick(Minecraft client) {
         if (client.getConnection() == null || connection != null && (!connection.isConnected() || connection.getPacketListener() != client.getConnection())) {

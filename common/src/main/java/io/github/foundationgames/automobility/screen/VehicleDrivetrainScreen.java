@@ -83,10 +83,10 @@ public final class VehicleDrivetrainScreen extends Screen {
         }
         if (mode == null) return;
         boolean editable = view.isPresent() && view.get().mayConfigure()
-                && (view.get().settings().isPresent() || resetUnrecognized) && !VehicleDrivetrainSettingsClient.pending(car);
+                && (view.get().settings().isPresent() || resetUnrecognized) && !VehicleDrivetrainSettingsClient.saving(car);
         mode.active = assistance.active = release.active = slew.active = stall.active = protection.active = editable;
-        reset.active = view.isPresent() && view.get().mayConfigure() && !VehicleDrivetrainSettingsClient.pending(car);
-        apply.active = editable && dirty;
+        reset.active = view.isPresent() && view.get().mayConfigure() && !VehicleDrivetrainSettingsClient.saving(car);
+        apply.active = editable && dirty && !VehicleDrivetrainSettingsClient.pending(car);
         mode.setMessage(text(draft.transmissionMode() == DrivetrainSettingsEnvelope.TransmissionMode.AUTOMATIC ? "automatic" : "manual", draft.transmissionMode() == DrivetrainSettingsEnvelope.TransmissionMode.AUTOMATIC ? "Automatic" : "Manual"));
         assistance.setMessage(label("assistance", "Assistance", String.format(Locale.ROOT, "%.0f%%", draft.assistanceStrength() * 100)));
         release.setMessage(label("release", "Clutch release", String.format(Locale.ROOT, "%.2f s", draft.clutchReleaseSeconds())));
