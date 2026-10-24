@@ -159,7 +159,6 @@ public class AutomobilityClient {
         libs.entityRenderer(AutomobilityEntities.AUTOMOBILE.require(), AutomobileEntityRenderer::new);
         libs.entityRenderer(AutomobilityEntities.HITBOX.require(), NoopRenderer::new);
 
-        AutomobileEntity.engineSoundAudible=auto->io.github.foundationgames.automobility.client.vehicle.VehiclePowertrainPresentation.reading(auto).map(r->r.tone().audible()).orElseGet(auto::engineRunning);
         AutomobileEntity.engineSound = auto -> {
             if (auto.getEngine().isEmpty()) {
                 return;
