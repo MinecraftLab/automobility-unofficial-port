@@ -41,7 +41,7 @@ public abstract class CoreDrivetrainAuthorityMixin implements CoreDrivetrainAuth
         drivetrain$targetCacheRefresh();
         player.level().getChunkSource().move(player);
         long now = player.level().getGameTime();
-        if (transition || !active || drivetrain$lastCorrection == Long.MIN_VALUE || now < drivetrain$lastCorrection || now - drivetrain$lastCorrection >= 5) {
+        if (transition || !active || drivetrain$lastCorrection == Long.MIN_VALUE || now < drivetrain$lastCorrection || now - drivetrain$lastCorrection >= 1) {
             player.connection.send(ClientboundMoveVehiclePacket.fromEntity(car));
             drivetrain$lastCorrection = now;
         }

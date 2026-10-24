@@ -14,6 +14,7 @@ public final class VehicleDrivetrainSettingsClient {
         Optional<Message> view(AutomobileEntity car);
         boolean save(AutomobileEntity car, Settings requested, boolean resetUnrecognized);
         boolean pending(AutomobileEntity car);
+        default boolean saving(AutomobileEntity car) { return pending(car); }
     }
     private static Adapter adapter;
     private VehicleDrivetrainSettingsClient() { }
@@ -23,4 +24,5 @@ public final class VehicleDrivetrainSettingsClient {
     public static Optional<Message> view(AutomobileEntity car) { return available(car) ? adapter.view(car) : Optional.empty(); }
     public static boolean save(AutomobileEntity car, Settings requested, boolean reset) { return available(car) && adapter.save(car, requested, reset); }
     public static boolean pending(AutomobileEntity car) { return adapter != null && adapter.pending(car); }
+    public static boolean saving(AutomobileEntity car) { return adapter != null && adapter.saving(car); }
 }

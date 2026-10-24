@@ -144,7 +144,37 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
     public Vec3 drivetrainInitialBodyVelocity() { return measuredPositionInitialized ? getMeasuredMovement() : getDeltaMovement(); }
     public void drivetrainCommittedGarage(io.github.foundationgames.automobility.automobile.drivetrain.DrivetrainSettingsEnvelope.GarageReceipt receipt) { drivetrain.committedGarage(receipt); }
-    private boolean drivetrainMovesBody() { return drivetrain.active() && !level().isClientSide(); }
+    private boolean bodyMotionAuthoritative() {
+        return drivetrain.active() ? !level().isClientSide() : isLocalInstanceAuthoritative();
+    }
+    private VehicleBodyInterpolation.Pose drivetrainBodyTarget;
+    private int drivetrainBodyTicks;
+    /** A driver renders server poses; C2S inputs still never supply authoritative body motion. */
+    public boolean clientReceiveDrivetrainPose(Vec3 target, float yaw, float pitch) {
+        if (!level().isClientSide() || !drivetrain.active() || !isLocalInstanceAuthoritative()
+                || !Double.isFinite(target.x) || !Double.isFinite(target.y) || !Double.isFinite(target.z)
+                || !Float.isFinite(yaw) || !Float.isFinite(pitch)) return false;
+        var current=new VehicleBodyInterpolation.Pose(getX(),getY(),getZ(),getYRot());
+        var next=new VehicleBodyInterpolation.Pose(target.x,target.y,target.z,yaw);
+        if (!VehicleBodyInterpolation.mayInterpolate(current,next)) return false;
+        if (isInterpolating()) getInterpolation().cancel();
+        drivetrainBodyTarget=next;drivetrainBodyTicks=VehicleBodyInterpolation.TICKS;setXRot(pitch);
+        syncPacketPositionCodec(target.x,target.y,target.z);
+        return true;
+    }
+    private boolean tickDrivetrainBodyInterpolation() {
+        if (!level().isClientSide() || !drivetrain.active() || !isLocalInstanceAuthoritative()) {
+            drivetrainBodyTarget=null;drivetrainBodyTicks=0;return false;
+        }
+        if (drivetrainBodyTarget!=null && drivetrainBodyTicks>0) {
+            float previousYaw=getYRot();
+            var next=VehicleBodyInterpolation.advance(new VehicleBodyInterpolation.Pose(getX(),getY(),getZ(),previousYaw),
+                    drivetrainBodyTarget,drivetrainBodyTicks--);
+            setPos(next.x(),next.y(),next.z());setYRot(next.yaw());
+            rotateDriverWithBody(Mth.wrapDegrees(next.yaw()-previousYaw));
+        }
+        return true;
+    }
     private Vec3 drivetrainContactNormal() {
         if (mechanicalContactTick != level().getGameTime()) {
             mechanicalContactTick = level().getGameTime();
@@ -1206,12 +1236,12 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
         receiveVehicleCollisions();
         movementTick();
-        if (this.isLocalInstanceAuthoritative() || drivetrainMovesBody()) {
+        if (this.bodyMotionAuthoritative()) {
             this.move(MoverType.SELF, this.getDeltaMovement());
         }
-        if (drivetrain.active() && (isLocalInstanceAuthoritative() || !level().isClientSide())) drivetrain.reconcileBody(getMeasuredMovement(), speedDirection);
+        if (drivetrain.active() && !level().isClientSide()) drivetrain.reconcileBody(getMeasuredMovement(), speedDirection);
         postMovementTick();
-        if (drivetrain.active() && (isLocalInstanceAuthoritative() || !level().isClientSide())) {
+        if (drivetrain.active() && !level().isClientSide()) {
             drivetrain.finishTick(getMeasuredMovement(), speedDirection);
             if (!level().isClientSide()) {
                 int previousIgnition = this.entityData.get(IGNITION_STATE);
@@ -1350,7 +1380,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void positionTrackingTick() {
-        if (this.isLocalInstanceAuthoritative()) {
+        if (tickDrivetrainBodyInterpolation()) return;
+        if (this.bodyMotionAuthoritative()) {
             this.getInterpolation().cancel();
             syncPacketPositionCodec(getX(), getY(), getZ());
         } else if (this.getInterpolation() instanceof AutomobileInterpolationHandler interpolation) {
@@ -1371,6 +1402,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
 
     /** Reconciles render-only state after vanilla applies an absolute clientbound position. */
     public void clientOnAuthoritativePositionApplied(Vec3 previousPosition) {
+        drivetrainBodyTarget=null;drivetrainBodyTicks=0;
         if (!this.level().isClientSide()) return;
         this.getInterpolation().cancel();
         if (!AutomobilePositionUpdatePolicy.positionChanged(previousPosition, this.position())
@@ -1994,7 +2026,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         else wheelAngle += 300 * (hSpeed / wheelCircumference) + (hSpeed > 0 ? ((1 - grip) * 15) : 0); // made it a bit slower intentionally, also make it spin more when on slippery surface
 
         // Set the automobile's velocity
-        if (this.isLocalInstanceAuthoritative() || drivetrainMovesBody()) {
+        if (this.bodyMotionAuthoritative()) {
             this.setDeltaMovement(cumulative);
         }
         lastVelocity = cumulative;
@@ -2192,21 +2224,10 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
 
         // Turns the automobile; the existing 26.3 passenger interpolation bracket stays intact.
-        if (this.isLocalInstanceAuthoritative() || drivetrainMovesBody()) {
+        if (this.bodyMotionAuthoritative()) {
             this.setYRot(getYRot() + yawInc);
 
-            var first = this.getFirstPassenger();
-            if (first != null && this.isDriving(first)) {
-                if (this.level().isClientSide() && first instanceof Player player && player.isLocalPlayer()) {
-                    // 26.3 snapshots passenger yRotO after the vehicle tick. Rotating the driver here
-                    // would erase the camera's interpolation delta and visibly step turns at 20 Hz.
-                    this.deferredDriverRotation.queue(first, this.tickCount, yawInc, inLockedViewMode());
-                } else if (inLockedViewMode()) {
-                    whenRotatedSmooth(first);
-                } else {
-                    whenRotated(yawInc, first);
-                }
-            }
+            rotateDriverWithBody(yawInc);
         }
 
         this.measuredAngVel = yawInc;
@@ -2231,6 +2252,17 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
     }
 
+    private void rotateDriverWithBody(float yawInc) {
+        var first=getFirstPassenger();
+        if (first!=null && isDriving(first)) {
+            if (level().isClientSide() && first instanceof Player player && player.isLocalPlayer()) {
+                // Keep the 26.3 passenger old/current rotation bracket.
+                deferredDriverRotation.queue(first,tickCount,yawInc,inLockedViewMode());return;
+            }
+            if (inLockedViewMode()) whenRotatedSmooth(first);
+            else whenRotated(yawInc,first);
+        }
+    }
     public void whenRotated(float dYaw, Entity e) {
         e.setYRot(DriverViewRotation.turn(e.getYRot(),dYaw));
         e.setYBodyRot(e.getYRot());

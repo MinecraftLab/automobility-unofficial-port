@@ -2,6 +2,8 @@ package io.github.foundationgames.automobility.mixin;
 
 import io.github.foundationgames.automobility.entity.AutomobileEntity;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.protocol.game.ClientboundMoveVehiclePacket;
 import net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket;
 import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
@@ -143,5 +145,24 @@ public abstract class ClientPacketListenerMixin {
     ) {
         var self = (ClientPacketListener) (Object) this;
         this.automobility$finishPosition(packet.getEntity(self.getLevel()));
+    }
+
+    @Inject(method="handleMoveVehicle", at=@At(value="INVOKE",
+            target="Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V",
+            shift=At.Shift.AFTER), cancellable=true)
+    private void automobility$receiveDrivetrainPose(ClientboundMoveVehiclePacket packet, CallbackInfo ci) {
+        automobility$capturePosition(null,false);
+        var player=Minecraft.getInstance().player;
+        if (player==null || !(player.getRootVehicle() instanceof AutomobileEntity car)
+                || !car.drivetrainOwnsLongitudinalMotion()) return;
+        var pose=packet.movingTo();
+        boolean accepted=car.clientReceiveDrivetrainPose(pose.position(),pose.yRot(),pose.xRot());
+        if (accepted) ci.cancel();
+        else automobility$capturePosition(car,true); // Vanilla hard correction for teleports.
+    }
+    @Inject(method="handleMoveVehicle", at=@At("RETURN"))
+    private void automobility$finishDrivetrainPose(ClientboundMoveVehiclePacket packet, CallbackInfo ci) {
+        var player=Minecraft.getInstance().player;
+        automobility$finishPosition(player==null?null:player.getRootVehicle());
     }
 }
