@@ -34,25 +34,18 @@ public final class VehicleDashboardHud {
         var hints = UnifiedVehicleHud.hintBox(sw, sh, settings);
         var reservation = VehicleHudPlacement.reservation(sw, sh, settings.reservation());
         var hotbar = new VehicleHudPlacement.Box(Math.max(0, (sw - 186) / 2), Math.max(0, sh - 52), Math.min(sw, 186), Math.min(sh, 52));
-        // Autoradio's short now-playing toast lives at top centre; keep its existing space free too.
-        var toast = new VehicleHudPlacement.Box(Math.max(0, (sw - 300) / 2), 0, Math.min(sw, 300), Math.min(sh, 56));
-        var obstacles = new VehicleHudPlacement.Box[] { instruments, hints, reservation, hotbar, toast };
-        for (boolean compact : new boolean[] { false, true }) {
-            int width = Math.min(compact ? 180 : 260, Math.max(1, sw - 8));
-            int height = compact ? 29 : 56;
-            if (width < 84 || sh < height + 8) continue;
-            var desired = new VehicleHudPlacement.Box(4, Math.max(4, sh - height - 58), width, height);
-            var box = VehicleHudPlacement.avoidMany(sw, sh, desired, obstacles);
-            boolean overlaps = false;
-            for (var obstacle : obstacles) if (box.overlaps(obstacle)) overlaps = true;
-            if (!overlaps) { draw(graphics, frame.get(), box); return; }
-        }
+        var obstacles = new VehicleHudPlacement.Box[] { instruments, hints, reservation, hotbar };
+        int width=36,height=18;
+        var desired=new VehicleHudPlacement.Box(instruments.x()+instruments.width()+3,instruments.y(),width,height);
+        var box=VehicleHudPlacement.avoidMany(sw,sh,desired,obstacles);
+        boolean overlaps=false;for(var obstacle:obstacles)if(box.overlaps(obstacle))overlaps=true;
+        if(!overlaps) draw(graphics,frame.get(),box);
         // A tiny/crowded GUI gets no overlapping radio panel; controls and instruments keep their established boxes.
     }
 
     public static boolean renderAt(GuiGraphicsExtractor graphics, AutomobileEntity car, VehicleHudPlacement.Box box) {
         var client = Minecraft.getInstance();
-        if (hidden(client) || box == null || box.width() < 84 || box.height() < 29) return false;
+        if (hidden(client) || box == null || box.width() < 32 || box.height() < 18) return false;
         if (box.x() < 0 || box.y() < 0 || box.x() + box.width() > graphics.guiWidth()
                 || box.y() + box.height() > graphics.guiHeight()) return false;
         var snapshot = VehicleDashboardClient.snapshotFor(car);
@@ -69,6 +62,25 @@ public final class VehicleDashboardHud {
         int x = box.x(), y = box.y(), width = box.width(), height = box.height();
         graphics.fill(x, y, x + width, y + height, 0xE9191D20);
         graphics.fill(x, y, x + 2, y + height, media.accentArgb());
+        // The driving HUD intentionally contains no station, song, artist or status
+        // sentence. All metadata remains on the physical infotainment and in menus.
+        if(height<29){
+            int color=rows.idle()?0xFF6F7B80:media.accentArgb();
+            graphics.outline(x+5,y+5,11,8,color);
+            graphics.fill(x+7,y+3,x+15,y+4,color);
+            graphics.fill(x+7,y+8,x+9,y+10,color);
+            graphics.fill(x+11,y+8,x+14,y+11,color);
+            boolean playing=media.status()==DashboardMediaSnapshot.Status.PLAYING||media.status()==DashboardMediaSnapshot.Status.LIVE;
+            if(playing&&frame.analysis().available()){
+                int lit=(int)Math.ceil(Math.clamp(frame.analysis().level(),0,1)*4);
+                for(int i=0;i<4;i++)graphics.fill(x+21+i*3,y+13-(i+1)*2,x+23+i*3,y+13,i<lit?color:0xFF35413E);
+            }else if(media.status()==DashboardMediaSnapshot.Status.PAUSED){
+                graphics.fill(x+23,y+6,x+25,y+12,color);graphics.fill(x+28,y+6,x+30,y+12,color);
+            }else if(media.status()==DashboardMediaSnapshot.Status.MUTED){
+                graphics.text(client.font,Component.literal("×"),x+23,y+5,color,false);
+            }
+            return;
+        }
         boolean compact = height < 56;
         if (rows.idle()) {
             graphics.text(client.font, fit(status(media).getString(), Math.max(1, width - 16)),

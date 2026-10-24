@@ -651,6 +651,7 @@ public final class GarageTransferRuntime implements GarageTransferAccess.Authori
                     ||!(car.garageCarrierMarker().equals(marker(entry.before()))||entry.decision()==Decision.COMMIT&&car.garageCarrierMarker().equals(marker(entry.after()))))throw new IOException("Engine recovery carrier changed");
             var lease=new EngineLease(state,level,car,frozen,recovery&&level.getEntity(request.vehicle())==null);prepared=prepareEngineOwners(lease,owners,recovery,entry.decision());var work=new EngineWork(state,level,entry,lease);
             var outcome=recovery?GarageTransferCoordinator.recover(state.journal.repository(),entry,work,prepared,state::observe):GarageTransferCoordinator.execute(state.journal.repository(),previous,entry,work,prepared,state::observe);
+            if(outcome.status()!=GarageTransferCoordinator.Status.APPLIED)LoggerFactory.getLogger("AutomobilityGarage").warn("Engine exchange {} refused: {}",request.vehicle(),outcome.detail());
             if(outcome.retained()!=null&&outcome.retained().finalized()){
                 state.admission.release(request.vehicle(),request.transaction());
                 if(level.getEntity(request.vehicle()) instanceof AutomobileEntity live)state.admission.admit(live,live.getUUID(),dimension(level),live.garageCarrierMarker());
@@ -662,6 +663,7 @@ public final class GarageTransferRuntime implements GarageTransferAccess.Authori
     }
     private static final class EngineWork implements GarageTransferCoordinator.CoreWork{
         final State state;final ServerLevel level;final Entry entry;final EngineLease lease;
+        boolean reportedMismatch;
         EngineWork(State state,ServerLevel level,Entry entry,EngineLease lease){this.state=state;this.level=level;this.entry=entry;this.lease=lease;}
         private ServerPlayer actor(){var actor=state.server.getPlayerList().getPlayer(entry.request().actor());return actor!=null&&actor.level()==level?actor:null;}
         private boolean inventory(boolean paid){try{return actor()!=null&&GaragePlayerExchange.state(actor(),entry)==(paid?GarageInventoryExchange.State.PAID:GarageInventoryExchange.State.UNPAID);}catch(IOException error){return false;}}
@@ -671,8 +673,12 @@ public final class GarageTransferRuntime implements GarageTransferAccess.Authori
             return !entry.before().getBooleanOr("active",false)||level.getEntity(entry.request().vehicle())==lease.car||lease.recoveredDetached&&level.getEntity(entry.request().vehicle())==null;
         }
         private boolean rawIs(CompoundTag image,boolean owners){try{var actual=GarageStorage.snapshot(lease.car,entry.request().actor()).entity();var expected=entity(image);
-            return bound()&&GarageEnginePlan.pose(actual).equals(GarageEnginePlan.pose(expected))&&persistentRaw(actual).equals(persistentRaw(expected))&&(!owners||ownerRaw(actual).equals(ownerRaw(expected)))&&GarageOpaqueState.presentExactly(actual,lease.car.garageOpaqueSnapshot());
+            boolean bound=bound(),pose=GarageEnginePlan.pose(actual).equals(GarageEnginePlan.pose(expected)),persistent=persistentRaw(actual).equals(persistentRaw(expected)),owned=!owners||ownerRaw(actual).equals(ownerRaw(expected)),opaque=GarageOpaqueState.presentExactly(actual,lease.car.garageOpaqueSnapshot());
+            boolean exact=bound&&pose&&persistent&&owned&&opaque;
+            if(!exact&&!reportedMismatch){reportedMismatch=true;LoggerFactory.getLogger("AutomobilityGarage").warn("Engine image {} changed: bound={}, poseKeys={}, persistentKeys={}, ownerKeys={}, opaque={}",entry.request().transaction(),bound,changedKeys(GarageEnginePlan.pose(actual),GarageEnginePlan.pose(expected)),changedKeys(persistentRaw(actual),persistentRaw(expected)),owners?changedKeys(ownerRaw(actual),ownerRaw(expected)):Set.of(),opaque);}
+            return exact;
         }catch(IOException|RuntimeException error){return false;}}
+        private static Set<String> changedKeys(CompoundTag a,CompoundTag b){var keys=new TreeSet<String>();keys.addAll(a.keySet());keys.addAll(b.keySet());keys.removeIf(key->Objects.equals(a.get(key),b.get(key)));return keys;}
         private boolean component(boolean after,boolean publish){
             try{var raw=entity(after?entry.after():entry.before());var id=net.minecraft.resources.Identifier.tryParse(raw.getStringOr("engine",""));if(id==null)return false;
                 var target=level.registryAccess().lookupOrThrow(io.github.foundationgames.automobility.automobile.AutomobileEngine.REGISTRY).get(net.minecraft.resources.ResourceKey.create(io.github.foundationgames.automobility.automobile.AutomobileEngine.REGISTRY,id)).orElse(null);if(target==null)return false;

@@ -106,11 +106,10 @@ public final class VehicleDrivetrainScreen extends Screen {
         graphics.fill(0, 0, width, height, 0x9910171d);
         if (small) graphics.textWithWordWrap(font, Component.translatable("vehicle.automobility.too_small"), 12, 12, Math.max(1, width - 24), 0xffe4edf1);
         else {
-            graphics.fill(left, top, left + panelWidth, top + panelHeight, 0xff162128); graphics.outline(left, top, panelWidth, panelHeight, 0xff586d7a);
-            graphics.fill(left + 1, top + 1, left + panelWidth - 1, top + 35, 0xff23343f);
-            graphics.text(font, title, left + 16, top + 10, 0xffe4edf1, false);
-            Component state = VehicleDrivetrainSettingsClient.pending(car) ? text("waiting", "Waiting for the server…")
-                    : status == null ? text("waiting", "Waiting for the server…") : switch (status) {
+            AutomobilityUiTheme.panel(graphics, left, top, panelWidth, panelHeight);
+            AutomobilityUiTheme.divider(graphics, left + 16, top + 33, panelWidth - 32);
+            graphics.text(font, title, left + 16, top + 10, AutomobilityUiTheme.TEXT, false);
+            Component state = status == null ? text("waiting", "Waiting for the server…") : switch (status) {
                         case CURRENT -> text("current", "Change settings while stopped, then apply.");
                         case SAVED -> text("saved", "Drivetrain settings saved.");
                         case MOVING -> text("moving", "Stop the vehicle and its driven wheels first.");
@@ -130,8 +129,8 @@ public final class VehicleDrivetrainScreen extends Screen {
                 }
             }
             var lines = font.split(state, panelWidth - 32);
-            for (int index = 0; index < Math.min(2, lines.size()); index++) graphics.text(font, lines.get(index), left + 16, top + 41 + index * 10, 0xffa7bac5, false);
-            graphics.text(font, text("policy_note", "Server rules apply to saved settings."), left + 16, top + 198, 0xffa7bac5, false);
+            for (int index = 0; index < Math.min(2, lines.size()); index++) graphics.text(font, lines.get(index), left + 16, top + 41 + index * 10, AutomobilityUiTheme.MUTED, false);
+            graphics.text(font, text("policy_note", "Server rules apply to saved settings."), left + 16, top + 198, AutomobilityUiTheme.MUTED, false);
         }
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }

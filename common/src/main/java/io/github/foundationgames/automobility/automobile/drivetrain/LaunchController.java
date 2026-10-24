@@ -81,6 +81,9 @@ public final class LaunchController {
         double coupledOmega = in.drivenWheelRadiansPerSecond() * in.totalRatio();
         double additional = Math.min(config.additionalLaunchRpm(), 0.8 * (engine.redlineRpm() - engine.idleRpm()));
         double targetOmega = Units.rpmToRadiansPerSecond(engine.idleRpm() + additional * in.throttle());
+        // Decouple before the idle governor can propel a coasting car indefinitely.
+        // Above idle the closed clutch still supplies ordinary engine braking.
+        if (in.throttle() <= 0.01 && coupledOmega <= Units.rpmToRadiansPerSecond(engine.idleRpm() * 1.10)) return 0.0;
         if (coupledOmega >= 0.95 * targetOmega) return 1.0;
         // Preserve the existing no-throttle/no-creep default near rest.
         if (in.throttle() <= 0.01) return 0.0;

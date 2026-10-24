@@ -12,20 +12,20 @@ public final class CabinPayloads022 {
     public enum Result{READY,CHANGED,STALE,DENIED,UNAVAILABLE}
     public record Target(String dimension,UUID car,int entityId){public Target{Objects.requireNonNull(dimension);Objects.requireNonNull(car);if(dimension.length()>128||!dimension.matches("[a-z0-9_.-]+:[a-z0-9_./-]+")||car.equals(new UUID(0,0))||entityId<0)throw new IllegalArgumentException("cabin target");}}
     public record Capabilities(UUID session)implements CustomPacketPayload{
-        public static final Type<Capabilities>TYPE=new Type<>(id("cabin_caps_v1"));
+        public static final Type<Capabilities>TYPE=new Type<>(id("cabin_caps_v2"));
         public static final StreamCodec<FriendlyByteBuf,Capabilities>CODEC=StreamCodec.of((b,v)->b.writeUUID(v.session),b->new Capabilities(b.readUUID()));
         public Capabilities{Objects.requireNonNull(session);}
         @Override public Type<? extends CustomPacketPayload>type(){return TYPE;}
     }
     public record Control(UUID session,long sequence,Target target,UUID incarnation,long revision,Action action,byte[]proposal)implements CustomPacketPayload{
-        public static final Type<Control>TYPE=new Type<>(id("cabin_control_v1"));
+        public static final Type<Control>TYPE=new Type<>(id("cabin_control_v2"));
         public static final StreamCodec<FriendlyByteBuf,Control>CODEC=StreamCodec.of((b,v)->{b.writeUUID(v.session);b.writeVarLong(v.sequence);writeTarget(b,v.target);b.writeUUID(v.incarnation);b.writeVarLong(v.revision);b.writeVarInt(v.action.ordinal());b.writeByteArray(v.proposal);},b->new Control(b.readUUID(),b.readVarLong(),readTarget(b),b.readUUID(),b.readVarLong(),code(b,Action.values()),b.readByteArray(CabinPreferences022.MAX_BYTES)));
         public Control{Objects.requireNonNull(session);Objects.requireNonNull(target);Objects.requireNonNull(incarnation);Objects.requireNonNull(action);proposal=proposal.clone();if(sequence<1||revision<0||proposal.length>CabinPreferences022.MAX_BYTES||action==Action.QUERY&&proposal.length!=0)throw new IllegalArgumentException("cabin control");}
         @Override public byte[]proposal(){return proposal.clone();}
         @Override public Type<? extends CustomPacketPayload>type(){return TYPE;}
     }
     public record State(UUID session,long sequence,Target target,UUID incarnation,CabinPreferences022.Status status,byte[]settings,boolean mayConfigure,Result result)implements CustomPacketPayload{
-        public static final Type<State>TYPE=new Type<>(id("cabin_state_v1"));
+        public static final Type<State>TYPE=new Type<>(id("cabin_state_v2"));
         public static final StreamCodec<FriendlyByteBuf,State>CODEC=StreamCodec.of((b,v)->{b.writeUUID(v.session);b.writeVarLong(v.sequence);writeTarget(b,v.target);b.writeUUID(v.incarnation);b.writeVarInt(v.status.ordinal());b.writeByteArray(v.settings);b.writeBoolean(v.mayConfigure);b.writeVarInt(v.result.ordinal());},b->new State(b.readUUID(),b.readVarLong(),readTarget(b),b.readUUID(),code(b,CabinPreferences022.Status.values()),b.readByteArray(CabinPreferences022.MAX_BYTES),b.readBoolean(),code(b,Result.values())));
         public State{Objects.requireNonNull(session);Objects.requireNonNull(target);Objects.requireNonNull(incarnation);Objects.requireNonNull(status);Objects.requireNonNull(result);settings=settings.clone();if(sequence<1||settings.length>CabinPreferences022.MAX_BYTES||status==CabinPreferences022.Status.OPAQUE&&settings.length!=0||status!=CabinPreferences022.Status.OPAQUE&&CabinPreferences022.read(settings).status()!=CabinPreferences022.Status.KNOWN)throw new IllegalArgumentException("cabin state");}
         @Override public byte[]settings(){return settings.clone();}

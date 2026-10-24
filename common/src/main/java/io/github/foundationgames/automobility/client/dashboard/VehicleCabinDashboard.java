@@ -11,6 +11,7 @@ import java.util.Locale;
 import io.github.foundationgames.automobility.entity.AutomobileEntity;
 import io.github.foundationgames.automobility.entity.render.AutomobileEntityRenderer;
 import java.util.Map;
+import java.util.WeakHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -34,7 +35,14 @@ public final class VehicleCabinDashboard {
                            float bodyOffset, float x, float y, float z, float width, float height,
                            int ambientLight, int accent, String rowA, String rowB, String rowC, String rowD, float vu, long revision,
                            int decorationRgb, float decorationIntensity, float brightness,CabinTuning027.Face face,CabinTuning027.Speakers speakers,
-                           boolean tapeInserted,int tapeRgb,float leftCoil,float rightCoil, boolean progressAvailable, float progress, Identifier logoTexture) {
+                           boolean tapeInserted,int tapeRgb,float leftCoil,float rightCoil, boolean progressAvailable, float progress, Identifier logoTexture,InfotainmentTheme.Palette palette) {
+        public Captured(float raise,float qx,float qy,float qz,float qw,float yaw,float bodyOffset,float x,float y,float z,float width,float height,
+                int ambientLight,int accent,String rowA,String rowB,String rowC,String rowD,float vu,long revision,int decorationRgb,float decorationIntensity,
+                float brightness,CabinTuning027.Face face,CabinTuning027.Speakers speakers,boolean tapeInserted,int tapeRgb,float leftCoil,float rightCoil,
+                boolean progressAvailable,float progress,Identifier logoTexture){
+            this(raise,qx,qy,qz,qw,yaw,bodyOffset,x,y,z,width,height,ambientLight,accent,rowA,rowB,rowC,rowD,vu,revision,decorationRgb,decorationIntensity,
+                    brightness,face,speakers,tapeInserted,tapeRgb,leftCoil,rightCoil,progressAvailable,progress,logoTexture,InfotainmentTheme.palette(accent&0xffffff,1));
+        }
         /** Compatibility with the previous physical render snapshot constructor. */
         public Captured(float raise, float qx, float qy, float qz, float qw, float yaw,
                            float bodyOffset, float x, float y, float z, float width, float height,
@@ -49,6 +57,17 @@ public final class VehicleCabinDashboard {
         }
     }
     private VehicleCabinDashboard() {}
+    private record Lighting(double sampledTick,float night) { }
+    private static final Map<AutomobileEntity,Lighting> LIGHTING=new WeakHashMap<>();
+    private static float night(AutomobileEntity car,CabinPreferences022.Settings settings,float delta){
+        float sky=Math.clamp(car.level().getSkyDarken()/11f,0,1);
+        boolean manualHeadlights=car.getVehicleLightMode()!=io.github.foundationgames.automobility.automobile.light.VehicleLightMode.AUTO
+                &&car.getEffectiveVehicleLightMode().emitsHeadlightBeam();
+        float target=switch(settings.lighting()){case DAY->0;case NIGHT->1;case AUTO->Math.max(sky,manualHeadlights?1:0);};
+        double now=car.level().getGameTime()+delta;var previous=LIGHTING.get(car);
+        float value=previous==null||now<previous.sampledTick()?target:(float)(previous.night()+(target-previous.night())*(1-Math.exp(-Math.min(5,now-previous.sampledTick())*.15)));
+        LIGHTING.put(car,new Lighting(now,value));return value;
+    }
 
     /** Extraction thread only. An absent provider or unsupported frame has no added radio geometry. */
     public static Captured capture(AutomobileEntity car, AutomobileEntityRenderer.State state) {
@@ -58,7 +77,7 @@ public final class VehicleCabinDashboard {
         CabinSettingsClient022.observe(car);
         var preferences=CabinSettingsClient022.preferences(car).orElse(null);
         if(preferences==null||!preferences.enabled())return null;
-        float night=Math.clamp(car.level().getSkyDarken()/11f,0,1);
+        float night=night(car,preferences,state.tickDelta);
         float brightness=preferences.dayBrightness()+(preferences.nightBrightness()-preferences.dayBrightness())*night;
         if(brightness<=0)return null;
         CabinTuningClient027.observe(car);
@@ -75,7 +94,7 @@ public final class VehicleCabinDashboard {
         if(station.isBlank())station="RADIO "+status;
         String track=presentation==null?"":presentation.title();
         String artist=presentation==null?"":presentation.artist();
-        Identifier logo=preferences.page()==CabinPreferences022.Page.POWER||presentation==null?null:Identifier.tryParse(presentation.logoTexture());
+        Identifier logo=preferences.page()==CabinPreferences022.Page.POWER||presentation==null||presentation.logoTexture().isEmpty()?null:Identifier.tryParse(presentation.logoTexture());
         if(logo!=null&&Minecraft.getInstance().getResourceManager().getResource(logo).isEmpty())logo=null;
         boolean progressAvailable=preferences.page()!=CabinPreferences022.Page.POWER&&presentation!=null&&presentation.progressAvailable();
         float progress=progressAvailable?(float)presentation.progress():0;
@@ -85,22 +104,26 @@ public final class VehicleCabinDashboard {
         }).orElse("");
         String range=mechanical==null?"--":mechanical.parkingEngaged()?"P":mechanical.gear()<0?"R":mechanical.gear()==0?"N":paired&&measured.kind()==RuntimeMetadata018.Kind.ELECTRIC?"D":Integer.toString(mechanical.gear());
         String rpm=paired?label("rpm_range","%s rpm %s",String.format(Locale.ROOT,"%.0f",Units.radiansPerSecondToRpm(mechanical.engineOmega())),range):"RPM -- "+range;
+        String speed=label("speed_range","%s km/h · %s",String.format(Locale.ROOT,"%.0f",Math.abs(mechanical==null?car.getEffectiveSpeed()*72:mechanical.speedMetresPerSecond()*3.6)),range);
+        var energy=io.github.foundationgames.automobility.client.vehicle.VehicleEnergyHud.reading(car);
+        String energyLine=energy.known()?label(energy.kind()==io.github.foundationgames.automobility.client.vehicle.VehicleEnergyReading.Kind.BATTERY?"battery_percent":"fuel_percent",energy.kind()==io.github.foundationgames.automobility.client.vehicle.VehicleEnergyReading.Kind.BATTERY?"Battery %s%%":"Fuel %s%%",energy.percent()):text("energy_unknown","Energy --");
         String availability=measured==null?text("power_unavailable","Power unavailable"):measured.available()?"":text("availability."+measured.availability().name().toLowerCase(Locale.ROOT),switch(measured.availability()){
             case OWNER_UNAVAILABLE->"Energy system unavailable";case DENIED->"Energy unavailable";case UNKNOWN_PROFILE->"Profile unavailable";default->"Power unavailable";
         });
-        String power=availability,torque="";
+        String power=availability,torque="",powerTorque=availability;
         if(measured!=null&&measured.available()){
             double watts=measured.kind()==RuntimeMetadata018.Kind.COMBUSTION?measured.combustionPowerWatts():measured.electricShaftPowerWatts();
             power=label("shaft_power","%s kW shaft",String.format(Locale.ROOT,"%.1f",watts/1000));
             torque=measured.kind()==RuntimeMetadata018.Kind.COMBUSTION?label("torque","%s Nm",String.format(Locale.ROOT,"%.0f",measured.combustionTorqueNm()))
                     :label("ev_torque","T %s regen %s Nm",String.format(Locale.ROOT,"%.0f",measured.driveTorqueNm()),String.format(Locale.ROOT,"%.0f",measured.regenerationTorqueNm()));
+            powerTorque=label("power_torque","%s kW · %s Nm",String.format(Locale.ROOT,"%.1f",watts/1000),String.format(Locale.ROOT,"%.0f",measured.kind()==RuntimeMetadata018.Kind.COMBUSTION?measured.combustionTorqueNm():measured.driveTorqueNm()-measured.regenerationTorqueNm()));
         }
         boolean recordedTape=radio!=null&&radio.cassette().map(value->value.state()==DashboardCassetteSnapshot.State.OCCUPIED).orElse(false);
         String a,b,c,d;
         switch(preferences.page()){
-            case POWER->{a=rpm;b=power;c=torque;d=paired&&measured!=null&&measured.available()?measured.kind()==RuntimeMetadata018.Kind.COMBUSTION?text("engine","Combustion engine"):text("motor","Electric motor"):availability;}
+            case POWER->{a=speed;b=rpm;c=powerTorque;d=energyLine;}
             case RADIO->{a=station;b=track.isBlank()?artist:track;c=track.isBlank()||artist.isBlank()?tape:artist;d=track.isBlank()||artist.isBlank()||tape.isBlank()?status:status+" · "+tape;}
-            default->{a=rpm;b=power;c=station;d=trackLine(Minecraft.getInstance().font,track,artist,logo==null?104:84);}
+            default->{a=speed;b=rpm;c=station;d=trackLine(Minecraft.getInstance().font,track,artist,logo==null?104:84);}
         }
         var font=Minecraft.getInstance().font;
         int textWidth=logo==null?104:84;
@@ -108,13 +131,16 @@ public final class VehicleCabinDashboard {
         float vu=radio!=null&&radio.analysis().available()&&activeMedia&&preferences.page()!=CabinPreferences022.Page.POWER?radio.analysis().level():0;
         float offset=-car.getWheels().model().radius()/16+car.getSuspensionBounce(state.tickDelta)*.048f
                 +(car.engineRunning()?(float)(Math.cos((car.getTime()+state.tickDelta)*2.7)/156):0);
+        float width=mount.width(),height=mount.height();
+        if(tuning.face()==CabinTuning027.Face.DIGITAL){width=mount.width()+.07f;height=mount.height()+.05f;}
+        var palette=InfotainmentTheme.palette(tuning.accentRgb()<0?preferences.accentRgb():tuning.accentRgb(),night);
         return new Captured(state.verticalOffset,state.angularRotation.x(),state.angularRotation.y(),state.angularRotation.z(),state.angularRotation.w(),
-                state.yaw,offset,mount.x(),mount.y(),mount.z(),mount.width(),mount.height(),state.lightCoords,
-                tint(tuning.accentRgb()<0?preferences.accentRgb():tuning.accentRgb(),brightness),a,b,c,d,vu,radio==null?0:radio.media().revision(),
+                state.yaw,offset,mount.x()+(mount.width()-width)*.5f,mount.y()+(mount.height()-height)*.5f,mount.z(),width,height,state.lightCoords,
+                tint(palette.accent(),brightness),a,b,c,d,vu,radio==null?0:radio.media().revision(),
                 radio==null?0:radio.decoration().rgb(),radio==null?0:radio.decoration().intensity()*brightness,brightness,tuning.face(),tuning.speakers(),
                 recordedTape,radio==null?0:radio.cassette().map(DashboardCassetteSnapshot::labelRgb).orElse(0),
                 radio==null?0:radio.cassetteMotion().map(DashboardCassetteMotion027::leftAngle).orElse(0f),
-                radio==null?0:radio.cassetteMotion().map(DashboardCassetteMotion027::rightAngle).orElse(0f),progressAvailable,progress,logo);
+                radio==null?0:radio.cassetteMotion().map(DashboardCassetteMotion027::rightAngle).orElse(0f),progressAvailable,progress,logo,palette);
     }
     /** Both names receive a share of the fixed row budget; a long title cannot erase the artist. */
     private static String trackLine(Font font,String title,String artist,int width){
@@ -136,7 +162,7 @@ public final class VehicleCabinDashboard {
         float width = captured.width(), height = captured.height();
         collector.submitCustomGeometry(pose, RenderTypes.entitySolid(WHITE), (transform, buffer) -> {
             quad(transform, buffer, -.008f, -.008f, width + .008f, height + .008f, 0, captured.face()==CabinTuning027.Face.RETRO?0xff757878:captured.face()==CabinTuning027.Face.DIGITAL?0xff11171e:0xff23282a, captured.ambientLight());
-            quad(transform, buffer, .008f, .008f, width - .008f, height - .027f, .001f, 0xff07120e, captured.ambientLight());
+            quad(transform, buffer, .008f, .008f, width - .008f, height - .027f, .001f, 0xff000000|captured.palette().surface(), captured.ambientLight());
             // Authored panel parts use the same depth-tested car transform and a fixed geometry budget.
             float grille=switch(captured.speakers()){case COMPACT->.016f;case TOURING->.024f;case STUDIO->.032f;};
             for(int side=0;side<2;side++){
@@ -152,6 +178,9 @@ public final class VehicleCabinDashboard {
             if(captured.face()==CabinTuning027.Face.CASSETTE){
                 float x0=width*.73f,x1=width-.01f,cy=height*.45f;
                 quad(transform,buffer,x0,.012f,x1,height-.032f,.003f,0xff1b1b18,captured.ambientLight());
+                // The metal cassette slot and lip remain recognisable with no tape inserted.
+                quad(transform,buffer,x0+.002f,height-.041f,x1-.002f,height-.035f,.004f,0xff9ba2a0,captured.ambientLight());
+                quad(transform,buffer,x0+.004f,cy-.004f,x1-.004f,cy+.004f,.0041f,0xff070909,captured.ambientLight());
                 if(captured.tapeInserted()){
                     quad(transform,buffer,x0+.003f,.015f,x1-.003f,height-.035f,.004f,0xff000000|captured.tapeRgb(),captured.ambientLight());
                     disc(transform,buffer,x0+(x1-x0)*.28f,cy,.010f,.005f,0xffced4cd,captured.ambientLight(),captured.leftCoil());
@@ -197,9 +226,9 @@ public final class VehicleCabinDashboard {
         pose.translate(.014f,.008f,.0025f);float fontScale=Math.min((width-.028f)*(captured.face()==CabinTuning027.Face.CASSETTE?.67f:1)/104,(height-(captured.progressAvailable()?.047f:.04f))/40);
         pose.scale(fontScale,fontScale,1);
         collector.submitText(pose,0,0,Component.literal(captured.rowA()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,captured.accent(),0,FULL_BRIGHT,0);
-        collector.submitText(pose,0,10,Component.literal(captured.rowB()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,tint(0xd1ddcb,captured.brightness()),0,FULL_BRIGHT,0);
+        collector.submitText(pose,0,10,Component.literal(captured.rowB()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,tint(captured.palette().text(),captured.brightness()),0,FULL_BRIGHT,0);
         collector.submitText(pose,0,20,Component.literal(captured.rowC()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,captured.accent(),0,FULL_BRIGHT,0);
-        collector.submitText(pose,0,30,Component.literal(captured.rowD()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,tint(0xd1ddcb,captured.brightness()),0,FULL_BRIGHT,0);
+        collector.submitText(pose,0,30,Component.literal(captured.rowD()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,tint(captured.palette().text(),captured.brightness()),0,FULL_BRIGHT,0);
         pose.popPose();
     }
     private static void disc(PoseStack.Pose pose,VertexConsumer buffer,float x,float y,float radius,float z,int color,int light,float angle){

@@ -54,7 +54,7 @@ public final class UnifiedVehicleHud {
         if(value.equals(cachedSettings) && cachedFont==client.font && language.equals(cachedLanguage) && cachedW==w && cachedH==h && cachedEnergy==energy && cachedMechanics==mechanics && Double.compare(cachedGuiScale,guiScale)==0) return;
         cachedSettings=value;cachedFont=client.font;cachedLanguage=language;cachedW=w;cachedH=h;cachedEnergy=energy;cachedMechanics=mechanics;cachedGuiScale=guiScale;
         decorationScale=VehicleEnergyPresentation.guiScaleCompensation(guiScale);
-        cachedStatusWidth=statusWidth(client);
+        cachedStatusWidth=VehicleEnergyPresentation.PANEL_WIDTH-44;
         int logicalWidth=cachedStatusWidth+44;
         int logicalHeight=VehicleEnergyPresentation.panelHeight(energy)+(mechanics?VehicleDrivetrainHud.HEIGHT:0);
         scale=VehicleEnergyPresentation.panelScale(w,h,logicalWidth,logicalHeight,value.basic().scalePercent(),guiScale);
@@ -121,23 +121,23 @@ public final class UnifiedVehicleHud {
     private static void drawPanel(GuiGraphicsExtractor graphics,AutomobileEntity auto,VehicleHudPlacement.Box box,float scale,int statusWidth,int speed,boolean cruise,int target,boolean status,VehicleEnergyReading energy,boolean reverse) {
         var font=Minecraft.getInstance().font;
         graphics.pose().pushMatrix();graphics.pose().translate(box.x(),box.y());graphics.pose().scale(scale);
-        graphics.fill(0,0,43,34,0xFF373737);graphics.fill(1,1,42,33,0xFFC6C6C6);
+        graphics.fill(0,0,43,32,0xEA171A18);
         String digits=Integer.toString(speed);float digitScale=Math.min(1.65f,36f/Math.max(1,font.width(digits)));
         graphics.pose().pushMatrix();graphics.pose().translate(4,4);graphics.pose().scale(digitScale);
-        graphics.text(font,Component.literal(digits),0,0,0xFF202020,false);graphics.pose().popMatrix();
-        graphics.text(font,Component.literal("km/h"),7,23,0xFF202020,false);
-        if(reverse) graphics.text(font,Component.literal("R"),34,23,0xFF8B290E,false);
-        graphics.fill(44,0,44+statusWidth,34,0xEA171A18);
+        graphics.text(font,Component.literal(digits),0,0,0xFFE4EDF1,false);graphics.pose().popMatrix();
+        graphics.text(font,Component.literal("km/h"),7,22,0xFFA7BAC5,false);
+        if(reverse) graphics.text(font,Component.literal("R"),34,22,0xFFFFD095,false);
+        graphics.fill(44,0,44+statusWidth,32,0xEA171A18);
         if(status) {
             graphics.pose().pushMatrix();graphics.pose().translate(44,0);
-            if(auto!=null) VehicleStatusHud.drawPanel(graphics,auto,statusWidth);
+            if(auto!=null) VehicleStatusHud.drawCompactPanel(graphics,auto,statusWidth);
             else {
-                graphics.text(font,Component.translatable("vehicle.automobility.hud.motor",Component.translatable("vehicle.automobility.engine.state.2")),5,3,0xFF8ADEAE,false);
+                graphics.text(font,Component.translatable("vehicle.automobility.engine.state.2"),5,3,0xFF8ADEAE,false);
                 graphics.text(font,Component.translatable("vehicle.automobility.light.mode.low"),5,13,0xFF8ADEAE,false);
             }
             graphics.pose().popMatrix();
         }
-        if(cruise) graphics.text(font,Component.translatable("vehicle.automobility.cruise.active",target),49,25,0xFF8ADEAE,false);
+        if(cruise) graphics.text(font,Component.literal("↗ " + target + " km/h"),49,22,0xFF8ADEAE,false);
         VehicleEnergyGauge.draw(graphics,energy,44+statusWidth);
         if(cachedMechanics) VehicleDrivetrainHud.draw(graphics,auto,VehicleEnergyPresentation.panelHeight(energy.present()),44+statusWidth);
         graphics.pose().popMatrix();
