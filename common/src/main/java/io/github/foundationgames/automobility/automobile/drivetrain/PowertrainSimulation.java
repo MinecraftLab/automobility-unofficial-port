@@ -215,7 +215,7 @@ public final class PowertrainSimulation {
             double boundary = EngineController.secondsToBoundary(setup.engineControl(), setup.engine(), engine, engineInput);
             boundary = Math.min(boundary, useManual ? ManualShiftController.secondsToBoundary(manualConfig, manual)
                     : AutomaticShiftController.secondsToBoundary(automatic));
-            if (launch.hillHoldRemainingSeconds() > 0.0 && (!driver.controlsPresent() || driver.physicalBrake() <= 0.1)) {
+            if (launch.hillHoldRemainingSeconds() > 0.0 && appliedFootBrake(driver) <= 0.1) {
                 boundary = Math.min(boundary, launch.hillHoldRemainingSeconds());
             }
             double duration = Math.min(remaining, setup.maximumControllerStepSeconds());
@@ -336,9 +336,14 @@ public final class PowertrainSimulation {
                                                       EngineController.State engine, EngineController.Controls controls, double throttle, double transmitted) {
         return new LaunchController.Input(engine.phase() == EngineController.Phase.RUNNING, env.grounded(),
                 state.engineRadiansPerSecond(), state.wheelRadiansPerSecond(), state.speedMetresPerSecond(), throttle,
-                driver.controlsPresent() ? driver.physicalBrake() : 0.0, setup.mechanics().transmission().totalRatio(state.gear()),
+                appliedFootBrake(driver), setup.mechanics().transmission().totalRatio(state.gear()),
                 controls.appliedActiveCrankTorqueNewtonMetres(), controls.passiveDragCapacityNewtonMetres(), transmitted,
                 env.gradeSine(), env.grounded() ? env.normalLoadNewtons() * env.tyreFrictionCoefficient() : 0.0, env.serviceBrakeCapacityNewtonMetres());
+    }
+    // S can command reverse propulsion while still satisfying a selector's physical-pedal interlock.
+    // Arm hill hold only when that pedal is actually being applied as a service brake.
+    private static double appliedFootBrake(DriverInput driver) {
+        return driver.controlsPresent() ? Math.min(driver.physicalBrake(), driver.appliedServiceBrakeFraction()) : 0.0;
     }
     private static int chooseForwardRange(Setup setup, DrivetrainState state) {
         double desired = setup.engine().idleRpm() + 0.3 * (setup.engine().redlineRpm() - setup.engine().idleRpm());

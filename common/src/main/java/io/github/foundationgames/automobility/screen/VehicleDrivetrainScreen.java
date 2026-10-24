@@ -30,27 +30,29 @@ public final class VehicleDrivetrainScreen extends Screen {
     @Override protected void init() {
         mode = assistance = release = slew = stall = protection = apply = reset = null;
         panelWidth = Math.max(1, Math.min(360, width - 16)); panelHeight = Math.max(1, Math.min(252, height - 16));
-        left = (width - panelWidth) / 2; top = (height - panelHeight) / 2; small = panelWidth < 260 || panelHeight < 244;
+        left = (width - panelWidth) / 2; top = (height - panelHeight) / 2; small = panelWidth < 260 || panelHeight < 222;
         if (!small) {
             int half = (panelWidth - 36) / 2;
+            boolean compact = panelHeight < 244;
+            int firstRow = compact ? 62 : 70, rowStep = compact ? 22 : 25;
             mode = addRenderableWidget(Button.builder(Component.empty(), button -> change(new DrivetrainSettingsEnvelope.Settings(
                     draft.transmissionMode() == DrivetrainSettingsEnvelope.TransmissionMode.AUTOMATIC ? DrivetrainSettingsEnvelope.TransmissionMode.MANUAL : DrivetrainSettingsEnvelope.TransmissionMode.AUTOMATIC,
                     draft.clutchReleaseSeconds(), draft.analogSlewSeconds(), draft.assistanceStrength(), draft.stallEnabled(), draft.downshiftProtection())))
-                    .bounds(left + 16, top + 70, half, 20).build());
+                    .bounds(left + 16, top + firstRow, half, 20).build());
             mode.setTooltip(Tooltip.create(text("mode.help", "Stop, select neutral and release the accelerator before changing the transmission mode. Use Keys to bind the range controls.")));
             assistance = addRenderableWidget(Button.builder(Component.empty(), button -> change(new DrivetrainSettingsEnvelope.Settings(draft.transmissionMode(),
                     draft.clutchReleaseSeconds(), draft.analogSlewSeconds(), next(draft.assistanceStrength(), new double[]{0, .25, .5, .75, 1}).floatValue(), draft.stallEnabled(), draft.downshiftProtection())))
-                    .bounds(left + 20 + half, top + 70, half, 20).build());
+                    .bounds(left + 20 + half, top + firstRow, half, 20).build());
             assistance.setTooltip(Tooltip.create(text("assistance.help", "Manual clutch, launch, anti-stall and rev matching assistance. Holding the clutch always disengages it.")));
-            release = button(95, () -> change(new DrivetrainSettingsEnvelope.Settings(draft.transmissionMode(),
+            release = button(firstRow + 1 * rowStep, () -> change(new DrivetrainSettingsEnvelope.Settings(draft.transmissionMode(),
                     next(draft.clutchReleaseSeconds(), new double[]{.15, .35, .6, .8, 1.2, 2}), draft.analogSlewSeconds(), draft.assistanceStrength(), draft.stallEnabled(), draft.downshiftProtection())));
             release.setTooltip(Tooltip.create(text("release.help", "After releasing the digital clutch key, the clutch engages over this time. Hold it to disengage immediately.")));
-            slew = button(120, () -> change(new DrivetrainSettingsEnvelope.Settings(draft.transmissionMode(), draft.clutchReleaseSeconds(),
+            slew = button(firstRow + 2 * rowStep, () -> change(new DrivetrainSettingsEnvelope.Settings(draft.transmissionMode(), draft.clutchReleaseSeconds(),
                     next(draft.analogSlewSeconds(), new double[]{0, .1, .25, .5, 1}), draft.assistanceStrength(), draft.stallEnabled(), draft.downshiftProtection())));
             slew.setTooltip(Tooltip.create(text("slew.help", "Optional smoothing for an analog pedal. Zero follows the actual pedal directly.")));
-            stall = button(145, () -> change(new DrivetrainSettingsEnvelope.Settings(draft.transmissionMode(), draft.clutchReleaseSeconds(), draft.analogSlewSeconds(),
+            stall = button(firstRow + 3 * rowStep, () -> change(new DrivetrainSettingsEnvelope.Settings(draft.transmissionMode(), draft.clutchReleaseSeconds(), draft.analogSlewSeconds(),
                     draft.assistanceStrength(), !draft.stallEnabled(), draft.downshiftProtection())));
-            protection = button(170, () -> change(new DrivetrainSettingsEnvelope.Settings(draft.transmissionMode(), draft.clutchReleaseSeconds(), draft.analogSlewSeconds(),
+            protection = button(firstRow + 4 * rowStep, () -> change(new DrivetrainSettingsEnvelope.Settings(draft.transmissionMode(), draft.clutchReleaseSeconds(), draft.analogSlewSeconds(),
                     draft.assistanceStrength(), draft.stallEnabled(), !draft.downshiftProtection())));
             protection.setTooltip(Tooltip.create(text("protection.help", "Reject a gear that would over-rev the engine. Direction and parking interlocks always remain active.")));
             int third = (panelWidth - 40) / 3;
@@ -130,7 +132,9 @@ public final class VehicleDrivetrainScreen extends Screen {
             }
             var lines = font.split(state, panelWidth - 32);
             for (int index = 0; index < Math.min(2, lines.size()); index++) graphics.text(font, lines.get(index), left + 16, top + 41 + index * 10, AutomobilityUiTheme.MUTED, false);
-            graphics.text(font, text("policy_note", "Server rules apply to saved settings."), left + 16, top + 198, AutomobilityUiTheme.MUTED, false);
+            var policyLines = font.split(text("policy_note", "Server rules apply to saved settings."), panelWidth - 32);
+            int policyY = panelHeight < 244 ? 174 : 198;
+            for (int index = 0; index < Math.min(2, policyLines.size()); index++) graphics.text(font, policyLines.get(index), left + 16, top + policyY + index * 9, AutomobilityUiTheme.MUTED, false);
         }
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
