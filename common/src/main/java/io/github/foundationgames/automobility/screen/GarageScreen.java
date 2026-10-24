@@ -62,6 +62,7 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
     private GarageUiLayout.Box previewBox;
     private String lastStatus = "";
     private int feedbackTicks;
+    private float viewportScale=1;
 
     private record Camera(float yaw,float zoom,boolean rotating,boolean radioTuning) {}
 
@@ -70,6 +71,8 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
     }
 
     @Override protected void init() {
+        viewportScale=GarageUiLayout.viewportScale(width,height);
+        width=(int)Math.ceil(width/viewportScale);height=(int)Math.ceil(height/viewportScale);
         super.init();
         if (cameraLevel != minecraft.level) {
             cameraLevel = minecraft.level; CAMERAS.clear(); rememberedMode = OVERVIEW; rememberedEngine = true;
@@ -194,7 +197,7 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
         buildCars();
         if (mode == OVERVIEW) buildOverview();
         else if (mode == TUNING) buildTuning();
-        else view("engines", layout.at(144, 288, 268, 20), text("polish.back_to_tuning"), SECONDARY, () -> tune(engineTab));
+        else view("engines", layout.at(144, 318, 104, 22), text("polish.back_to_tuning"), SECONDARY, () -> tune(engineTab));
         buildZoom(); buildVariants(); buildPendingBar();
         if (focusedView != null && focusedView.startsWith("vehicleGroup:") && viewButtons.containsKey(focusedView)) setFocused(viewButtons.get(focusedView));
         else if (focusedAction != null && actionButtons.containsKey(focusedAction)) setFocused(actionButtons.get(focusedAction));
@@ -384,9 +387,9 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
             var current=CabinTuningClient027.view(menu.selectedVehicle()).flatMap(CabinTuningPayloads027.State::preferences).orElse(null);
             if(current!=null)CabinTuningClient027.save(menu.selectedVehicle(),current.next(current.face(),CabinTuning027.Speakers.values()[(current.speakers().ordinal()+1)%3]));
         });
-        var accent=view("cabinAccent027",layout.at(144,264,268,22),cabinText027("accent","Backlight").copy().append(settings==null?": …":settings.accentRgb()<0?": Auto":String.format(java.util.Locale.ROOT,": #%06X",settings.accentRgb())),SECONDARY,()->{
+        var accent=view("cabinAccent027",layout.at(144,264,268,22),cabinText027("theme","Infotainment theme").copy().append(settings==null?": …":settings.accentRgb()<0?": Auto":": "+io.github.foundationgames.automobility.client.dashboard.InfotainmentTheme.name(settings.accentRgb())),SECONDARY,()->{
             var current=CabinTuningClient027.view(menu.selectedVehicle()).flatMap(CabinTuningPayloads027.State::preferences).orElse(null);
-            if(current!=null){int[]colors={-1,0xffb449,0x95d48b,0x91b8ed,0xf0d4df,0xd1ddcb};int index=0;for(int i=0;i<colors.length;i++)if(colors[i]==current.accentRgb())index=(i+1)%colors.length;CabinTuningClient027.save(menu.selectedVehicle(),current.nextAccent(colors[index]));}
+            if(current!=null)CabinTuningClient027.save(menu.selectedVehicle(),current.nextAccent(io.github.foundationgames.automobility.client.dashboard.InfotainmentTheme.next(current.accentRgb())));
         });
         accent.active=writable;
         Component info=menu.isStored()?cabinText027("retrieve","Retrieve this car to customize its cockpit."):menu.isCatalog()?cabinText027("assemble","Assemble this car before cockpit tuning.")
@@ -484,6 +487,11 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
     }
 
     @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        graphics.pose().pushMatrix();graphics.pose().scale(viewportScale);
+        try { extractShowroom(graphics,(int)(mouseX/viewportScale),(int)(mouseY/viewportScale),delta); }
+        finally { graphics.pose().popMatrix(); }
+    }
+    private void extractShowroom(GuiGraphicsExtractor graphics,int mouseX,int mouseY,float delta) {
         if (layout == null) return;
         if (layout.small()) {
             graphics.fill(0, 0, width, height, BACKGROUND);
@@ -498,7 +506,7 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
         hoveredClippedText = null; labelMouseX = mouseX - leftPos; labelMouseY = mouseY - topPos;
         GarageUiDraw.backdrop(graphics, layout);
         label(graphics, text("polish.brand"), leftPos + 18, topPos + 12, 230, TEXT);
-        label(graphics, text("polish.brand_subtitle"), leftPos + 18, topPos + 25, 230, MUTED);
+        label(graphics, statusText(), leftPos + 18, topPos + 25, 230, MUTED);
         var hero = layout.hero();
         label(graphics, menu.vehicleName(), hero.x() + 14, hero.y() + 10, mode == OVERVIEW ? 330 : 268, TEXT);
         label(graphics, kindText(menu.isCatalog() ? GarageScreenHandler.CATALOG : menu.isStored() ? GarageScreenHandler.STORED : GarageScreenHandler.LIVE),
@@ -551,6 +559,14 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
                     menu.currentComponents(), parts, labelMouseX, labelMouseY).ifPresent(value -> hoveredClippedText = value);
             return;
         }
+        if(mode==TUNING&&engineTab&&!radioTuning027){
+            var parts=menu.previewComponents()==null?menu.currentComponents():menu.previewComponents();
+            label(graphics,Component.translatableWithFallback("gui.automobility.garage.physical.installed","Installed"),leftPos+438,topPos+63,146,MUTED);
+            label(graphics,GaragePowertrainPresentation.compact(menu.currentComponents()),leftPos+438,topPos+77,146,TEXT);
+            label(graphics,Component.translatableWithFallback("gui.automobility.garage.physical.preview","Preview"),leftPos+438,topPos+95,146,MUTED);
+            label(graphics,GaragePowertrainPresentation.compact(parts),leftPos+438,topPos+109,146,ACCENT);
+            return;
+        }
         if (current == null || preview == null) return;
         float[] before = {current.acceleration(), current.speedBlocksPerSecond(), current.handling(), current.grip()};
         float[] after = {preview.acceleration(), preview.speedBlocksPerSecond(), preview.handling(), preview.grip()};
@@ -584,27 +600,29 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
     }
     private void drawDetails(GuiGraphicsExtractor graphics, GarageDrivingStats.Snapshot current, GarageDrivingStats.Snapshot preview) {
         GarageUiDraw.surface(graphics, layout.drawer(), GarageUiDraw.Surface.DRAWER);
-        label(graphics, text("polish.parameters"), leftPos + 148, topPos + 197, 246, TEXT);
-        label(graphics, text("current"), leftPos + 416, topPos + 197, 70, MUTED);
-        label(graphics, text("preview"), leftPos + 510, topPos + 197, 70, ACCENT);
+        label(graphics, text("polish.parameters"), leftPos + 148, topPos + 197, 176, TEXT);
+        label(graphics, text("current"), leftPos + 330, topPos + 197, 126, MUTED);
+        label(graphics, text("preview"), leftPos + 460, topPos + 197, 126, ACCENT);
         if (current != null && preview != null) {
             float[] before = {current.acceleration(), current.speedBlocksPerSecond(), current.handling(), current.grip()};
             float[] after = {preview.acceleration(), preview.speedBlocksPerSecond(), preview.handling(), preview.grip()};
             String[] names = {"acceleration", "speed", "handling", "grip"};
             for (int i = 0; i < names.length; i++) {
                 int y = topPos + 218 + i * 14;
-                label(graphics, text("stat." + names[i]), leftPos + 148, y, 240, MUTED);
-                label(graphics, Component.literal(number(before[i])), leftPos + 416, y, 70, TEXT);
-                label(graphics, Component.literal(number(after[i])), leftPos + 510, y, 70, after[i] >= before[i] ? POSITIVE : NEGATIVE);
+                label(graphics, text("stat." + names[i]), leftPos + 148, y, 176, MUTED);
+                label(graphics, Component.literal(number(before[i])), leftPos + 330, y, 126, TEXT);
+                label(graphics, Component.literal(number(after[i])), leftPos + 460, y, 126, after[i] >= before[i] ? POSITIVE : NEGATIVE);
             }
         }
         var physicalPreview = menu.previewComponents() == null ? menu.currentComponents() : menu.previewComponents();
         label(graphics, Component.translatableWithFallback("gui.automobility.garage.physical.torque", "Torque"), leftPos + 148, topPos + 274, 240, MUTED);
-        label(graphics, GaragePowertrainPresentation.torque(menu.currentComponents()), leftPos + 416, topPos + 274, 70, TEXT);
-        label(graphics, GaragePowertrainPresentation.torque(physicalPreview), leftPos + 510, topPos + 274, 70, ACCENT);
+        label(graphics, GaragePowertrainPresentation.torque(menu.currentComponents()), leftPos + 330, topPos + 274, 126, TEXT);
+        label(graphics, GaragePowertrainPresentation.torque(physicalPreview), leftPos + 460, topPos + 274, 126, ACCENT);
         label(graphics, Component.translatableWithFallback("gui.automobility.garage.physical.power", "Power"), leftPos + 148, topPos + 288, 240, MUTED);
-        label(graphics, GaragePowertrainPresentation.power(menu.currentComponents()), leftPos + 416, topPos + 288, 70, TEXT);
-        label(graphics, GaragePowertrainPresentation.power(physicalPreview), leftPos + 510, topPos + 288, 70, ACCENT);
+        label(graphics, GaragePowertrainPresentation.compactPower(menu.currentComponents()), leftPos + 330, topPos + 288, 126, TEXT);
+        label(graphics, GaragePowertrainPresentation.compactPower(physicalPreview), leftPos + 460, topPos + 288, 126, ACCENT);
+        label(graphics,GaragePowertrainPresentation.powerRpm(menu.currentComponents()),leftPos+330,topPos+300,126,MUTED);
+        label(graphics,GaragePowertrainPresentation.powerRpm(physicalPreview),leftPos+460,topPos+300,126,MUTED);
     }
     private static String delta(float before, float after) {
         if (!Float.isFinite(before) || !Float.isFinite(after)) return "—";
@@ -647,11 +665,7 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
     }
     private Component statusText() {
         var status = menu.getStatus();
-        if (switch (status) {
-            case MISSING_PARTS, STALE, PROTECTED, ASSEMBLER_REQUIRED, BLOCKED, UNLOADED, OCCUPIED, MOVING, ENGINE_RUNNING, OUT_OF_RANGE,
-                    DUPLICATE, STORAGE_ERROR, GARAGE_FULL, RECOVERY_REQUIRED, INVENTORY_FULL -> true;
-            default -> false;
-        }) return actionReason(status);
+        if(status!=GarageService.Status.READY&&status!=GarageService.Status.NO_CHANGES)return actionReason(status);
         if (menu.hasPendingChanges()) return text("polish.pending_help");
         return reason(status);
     }
@@ -728,6 +742,7 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
         else if (hoveredClippedText != null) graphics.setTooltipForNextFrame(font, hoveredClippedText, mouseX, mouseY);
     }
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        event=logicalMouse(event);
         for (var button : widgets) {
             if (!button.visible || event.x() < button.getX() || event.x() >= button.getX() + button.getWidth()
                     || event.y() < button.getY() || event.y() >= button.getY() + button.getHeight()) continue;
@@ -749,16 +764,19 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
         return layout.panel().contains(event.x(), event.y());
     }
     @Override public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        event=logicalMouse(event);dragX/=viewportScale;dragY/=viewportScale;
         if (draggingPreview && event.button() == 0) {
             if (Double.isFinite(dragX)) yaw = (float)((yaw + dragX * .65 + 360) % 360); rememberCamera(); return true;
         }
         return inventoryVisible() && super.mouseDragged(event, dragX, dragY);
     }
     @Override public boolean mouseReleased(MouseButtonEvent event) {
+        event=logicalMouse(event);
         if (draggingPreview) { draggingPreview = false; rememberCamera(); return true; }
         return inventoryVisible() && super.mouseReleased(event);
     }
     @Override public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        mouseX/=viewportScale;mouseY/=viewportScale;
         if (layout == null || layout.small()) return false;
         if (previewBox != null && previewBox.contains(mouseX, mouseY) && Double.isFinite(scrollY) && scrollY != 0) {
             setZoom(GaragePreviewCamera.zoomBySteps(zoom, scrollY)); return true;
@@ -776,6 +794,8 @@ public final class GarageScreen extends AbstractContainerScreen<GarageScreenHand
         if (event.key() == 256) { onClose(); return true; }
         return super.keyPressed(event);
     }
+    private MouseButtonEvent logicalMouse(MouseButtonEvent event){return new MouseButtonEvent(event.x()/viewportScale,event.y()/viewportScale,event.buttonInfo());}
+    @Override public void mouseMoved(double x,double y){super.mouseMoved(x/viewportScale,y/viewportScale);}
     @Override public void onClose() { rememberCamera(); super.onClose(); }
     @Override public void removed() { rememberCamera(); super.removed(); }
     private static Component text(String key) { return Component.translatable("garage.automobility." + key); }

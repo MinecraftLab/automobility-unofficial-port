@@ -244,7 +244,10 @@ public final class PowertrainSimulation {
             var launchInput = launchInput(setup, mechanical, environment, driver, engine, engineControls, middleThrottle.demand(), transmitted);
             var middleLaunch = LaunchController.advance(setup.launch(), setup.engine(), parameters, launch, launchInput, duration * 0.5);
             var launchCommands = LaunchController.controls(parameters, middleLaunch, launchInput);
-            double antiStallCeiling = 1.0 - clutchAssistance * (1.0 - engineControls.clutchEngagementCeiling());
+            // Disabling stalls is an explicit safety choice even in unassisted manual.
+            // Open the coupling; never manufacture RPM or unpaid combustion torque.
+            double stallProtection = setup.engineControl().stallEnabled() ? clutchAssistance : 1.0;
+            double antiStallCeiling = 1.0 - stallProtection * (1.0 - engineControls.clutchEngagementCeiling());
             double launchCeiling = 1.0 - clutchAssistance * (1.0 - launchCommands.clutchEngagementCeiling());
             appliedClutch = Math.min(mode == ControlMode.AUTOMATIC ? 1.0 : middlePedal.engagement(), Math.min(shiftCeiling, antiStallCeiling));
             if (mode != ControlMode.MANUAL_CLUTCH) appliedClutch = Math.min(appliedClutch, launchCeiling);

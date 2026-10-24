@@ -12,6 +12,12 @@ import net.minecraft.network.chat.Component;
 
 /** Same engine curve as the mechanical catalog; only reads confirmed/current and pending preview parts. */
 public final class GaragePowertrainPresentation {
+    public static Component compact(GarageService.Components parts) {
+        return profile(parts).<Component>map(p->Component.literal(String.format(Locale.ROOT,"%.0f Nm · %.1f kW",p.garageStatistics().torqueNewtonMetres().value(),p.garageStatistics().powerKilowatts().value())))
+                .orElseGet(GaragePowertrainPresentation::unknown);
+    }
+    public static Component compactPower(GarageService.Components parts){return profile(parts).<Component>map(p->Component.literal(String.format(Locale.ROOT,"%.1f kW / %.0f PS",p.garageStatistics().powerKilowatts().value(),p.garageStatistics().powerKilowatts().value()/.73549875))).orElseGet(GaragePowertrainPresentation::unknown);}
+    public static Component powerRpm(GarageService.Components parts){return profile(parts).<Component>map(p->Component.literal(String.format(Locale.ROOT,"@ %.0f rpm",p.garageStatistics().powerKilowatts().rpm()))).orElseGet(Component::empty);}
     private static final int TORQUE = GarageUiDraw.ACCENT, POWER = 0xff91b8ed;
     private GaragePowertrainPresentation() { }
 
@@ -79,8 +85,8 @@ public final class GaragePowertrainPresentation {
         drawCurve(graphics, plot, selected.torqueCurve(), maxRpm, maxTorque, maxPower, TORQUE, POWER, false);
         GarageUiDraw.text(graphics, font, Component.literal(String.format(Locale.ROOT, "0 — %.0f rpm", maxRpm)),
                 box.x(), plot.bottom() + 4, box.width(), GarageUiDraw.MUTED);
-        GarageUiDraw.text(graphics, font, Component.translatableWithFallback("gui.automobility.garage.physical.curve_legend", "Solid: preview · dotted: installed"),
-                box.x(), plot.bottom() + 15, box.width(), GarageUiDraw.MUTED);
+        GarageUiDraw.text(graphics,font,Component.translatableWithFallback("gui.automobility.garage.physical.preview","Preview").copy().append(" —"),box.x(),plot.bottom()+15,box.width()/2,GarageUiDraw.ACCENT);
+        GarageUiDraw.text(graphics,font,Component.translatableWithFallback("gui.automobility.garage.physical.installed","Installed").copy().append(" ···"),box.x()+box.width()/2,plot.bottom()+15,box.width()/2,GarageUiDraw.MUTED);
         if (!plot.contains(mouseX, mouseY)) return Optional.empty();
         double rpm = maxRpm * Math.clamp((mouseX - plot.x()) / (double)Math.max(1, plot.width() - 1), 0.0, 1.0);
         String point = String.format(Locale.ROOT, "%.0f rpm\n%.1f Nm · %.1f kW", rpm,

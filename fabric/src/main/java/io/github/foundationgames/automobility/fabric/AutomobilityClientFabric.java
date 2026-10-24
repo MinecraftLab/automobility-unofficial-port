@@ -200,6 +200,7 @@ public class AutomobilityClientFabric implements ClientModInitializer {
     }
 
     private static void initAutomobileSounds() {
+        AutomobileEntity.engineSoundAudible=auto->io.github.foundationgames.automobility.client.vehicle.VehiclePowertrainPresentation.reading(auto).map(r->r.tone().audible()).orElseGet(auto::engineRunning);
         AutomobileEntity.engineSound = auto -> {
             if (auto.getEngine().isEmpty()) {
                 return;

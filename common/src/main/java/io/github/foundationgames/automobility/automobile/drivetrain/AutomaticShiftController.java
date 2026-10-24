@@ -190,6 +190,11 @@ public final class AutomaticShiftController {
 
     private static int chooseGear(Config config, EngineProfile engine, TransmissionProfile transmission, int gear, Input input) {
         if (gear <= 0 || input.drivenWheelRadiansPerSecond() < 0.0) return gear;
+        // At a stop every forward ratio predicts zero shaft RPM. That is a clutch/launch
+        // condition, not an unsafe downshift. Select the launch ratio in one timed shift
+        // instead of making the next departure wait through several gear dwell periods.
+        if (gear > 1 && predictedRpm(transmission, input, 1) <= engine.idleRpm()
+                && input.engineRpm() <= engine.idleRpm() + config.hysteresisRpm()) return 1;
         ModeMap map = config.map(input.mode());
         double demand = Math.max(input.throttle(), input.load());
         double up = threshold(engine, interpolate(map.upshiftLowDemand(), map.upshiftHighDemand(), demand));
@@ -221,7 +226,7 @@ public final class AutomaticShiftController {
 
     private static boolean safeTarget(EngineProfile engine, TransmissionProfile transmission, Input input, int gear) {
         double rpm = predictedRpm(transmission, input, gear);
-        return rpm >= engine.idleRpm() && rpm < engine.redlineRpm();
+        return rpm < engine.redlineRpm();
     }
 
     private static double threshold(EngineProfile engine, double fraction) {

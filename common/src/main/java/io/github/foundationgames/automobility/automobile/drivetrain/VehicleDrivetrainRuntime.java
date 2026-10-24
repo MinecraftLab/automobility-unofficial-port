@@ -52,6 +52,7 @@ public final class VehicleDrivetrainRuntime {
     private UUID lastDriver;
     private boolean legacyHandoff;
     private boolean profileCompatible = true;
+    private EngineController.Reason reportedEngineReason=EngineController.Reason.NONE;
     private UUID clientMechanicalIncarnation;
     private boolean predictionPowerPermitted, regenerationSupported, coastRegenerationSupported;
     private double acceptedCoastRegenerationTorqueNm;
@@ -304,6 +305,12 @@ public final class VehicleDrivetrainRuntime {
                 : new RuntimeMetadata018.Measured(availability, RuntimeMetadata018.Kind.COMBUSTION,
                     result.activity().meanCombustionTorqueNewtonMetres(), 0, 0, result.energy().combustionWorkJoules() / DT, 0);
         state = result.state(); appliedClutch = (float) result.appliedClutchEngagement();
+        if(!car.level().isClientSide()&&state.engine().reason()!=reportedEngineReason){
+            reportedEngineReason=state.engine().reason();
+            if(reportedEngineReason!=EngineController.Reason.NONE&&reportedEngineReason!=EngineController.Reason.IGNITION_OFF)
+                org.slf4j.LoggerFactory.getLogger("AutomobilityDrivetrain").info("Engine {}: phase={}, reason={}, rpm={}, energy={}, controls={}, permitted={}",
+                        car.getUUID(),state.engine().phase(),reportedEngineReason,Units.radiansPerSecondToRpm(state.mechanics().engineRadiansPerSecond()),availability,controls,permitted);
+        }
         if (range == DrivetrainProtocol.RangeRequest.NEUTRAL && result.refusal() == PowertrainSimulation.Refusal.NONE
                 && state.manual().targetGear() == 0)
             cancelCruise(io.github.foundationgames.automobility.automobile.driving.VehicleCruiseMotorLimit.MechanicalReason.NEUTRAL);
@@ -500,6 +507,15 @@ public final class VehicleDrivetrainRuntime {
     public int ignitionState() {
         if (electric != null) return ignitionOn ? 2 : 0;
         return state == null ? 0 : switch (state.engine().phase()) { case OFF, STALLED -> 0; case STARTING -> 1; case RUNNING -> 2; };
+    }
+    /** HUD, controls and compatibility callers observe one lifecycle owner. No lazy selection here. */
+    public java.util.OptionalInt synchronizedIgnitionState() {
+        if(!selected)return java.util.OptionalInt.empty();
+        if(!car.level().isClientSide())return java.util.OptionalInt.of(ignitionState());
+        var accepted=CoreDrivetrainBridge.clientSnapshot(car);
+        return accepted.isEmpty()?java.util.OptionalInt.empty():java.util.OptionalInt.of(switch(accepted.get().enginePhase()){
+            case RUNNING->2;case STARTING->1;default->0;
+        });
     }
     public double speed() { return electric != null ? electricState.speedMetresPerSecond() : state == null ? 0 : state.mechanics().speedMetresPerSecond(); }
     public double wheelOmega() { return electric != null ? electricState.wheelRadiansPerSecond() : state == null ? 0 : state.mechanics().wheelRadiansPerSecond(); }

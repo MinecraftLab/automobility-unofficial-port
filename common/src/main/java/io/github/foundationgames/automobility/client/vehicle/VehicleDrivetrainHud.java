@@ -10,7 +10,7 @@ import net.minecraft.network.chat.Component;
 
 /** A bounded row inside the existing instrument reservation, never an independent overlapping panel. */
 public final class VehicleDrivetrainHud {
-    public static final int HEIGHT = 20;
+    public static final int HEIGHT = 16;
     private VehicleDrivetrainHud() { }
     public static boolean present(AutomobileEntity car) { return VehiclePowertrainPresentation.reading(car).isPresent(); }
     public static void draw(GuiGraphicsExtractor graphics, AutomobileEntity car, int y, int width) {
@@ -28,8 +28,9 @@ public final class VehicleDrivetrainHud {
         String text = mode + "  " + range + "    " + String.format(Locale.ROOT, "%.0f rpm", rpm);
         int color = stalled || rpm > maximum ? 0xffff8a79 : 0xffd7e3df;
         graphics.text(font, Component.literal(font.plainSubstrByWidth(text, Math.max(1, width - 10))), 5, y + 3, color, false);
-        int fill = (int)Math.round(Math.clamp(rpm / maximum, 0.0, 1.0) * Math.max(0, width - 10));
-        graphics.fill(5, y + 15, width - 5, y + 17, 0xff39443f);
-        graphics.fill(5, y + 15, 5 + fill, y + 17, rpm > maximum * 0.9 ? 0xffffa06a : 0xff8adeae);
+        int rail = Math.min(76, Math.max(0, width - 10));
+        int fill = (int)Math.round(Math.clamp(rpm / maximum, 0.0, 1.0) * rail);
+        graphics.fill(width-5-rail, y + 12, width - 5, y + 14, 0xff39443f);
+        graphics.fill(width-5-rail, y + 12, width-5-rail + fill, y + 14, rpm > maximum * 0.9 ? 0xffffa06a : 0xff8adeae);
     }
 }
