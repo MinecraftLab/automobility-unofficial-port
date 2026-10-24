@@ -199,21 +199,14 @@ public final class VehicleDrivetrainRuntime {
                 || legacyHandoff && car.hasFreshAcceptedClientInput();
         double physical = controls && car.rawBrakePedalHeld() ? 1 : 0;
         boolean automaticRange = !legacyHandoff && (electric != null || preferences.transmissionMode() == DrivetrainSettingsEnvelope.TransmissionMode.AUTOMATIC);
-        boolean reverse = !blocked && automaticRange && physical > 0 && raw.throttle <= .01 && !car.waitingForReverseRelease() && speed() <= .15;
-        double throttle = controls && !blocked ? raw.throttle : 0;
-        double physicalService = physical > 0 && !reverse ? 1 : 0;
-        double service = Math.max(physicalService, policy.handbrakeHeld() ? 1 : 0);
-        var range = controls && !blocked ? raw.range : DrivetrainProtocol.RangeRequest.KEEP;
-        if (!blocked && reverse && range == DrivetrainProtocol.RangeRequest.KEEP) {
-            range = DrivetrainProtocol.RangeRequest.REVERSE; throttle = 1;
-        } else if (throttle > 0 && gear() <= 0 && range == DrivetrainProtocol.RangeRequest.KEEP
-                && automaticRange) {
-            range = DrivetrainProtocol.RangeRequest.DRIVE;
-        }
-        if (automaticRange && throttle > 0 && gear() < 0 && (speed() < -.15 || wheelOmega() < -.75)) {
-            throttle = 0; service = 1; // W stops reverse travel; it does not fabricate a physical brake/regen intent.
-            range = DrivetrainProtocol.RangeRequest.KEEP;
-        }
+        var pedals = AutomaticPedalControls.resolve(controls, blocked, automaticRange, physical,
+                raw.throttle, car.waitingForReverseRelease(), gear(), speed(), wheelOmega(),
+                PowertrainSimulation.RangeRequest.valueOf(raw.range.name()), policy.handbrakeHeld());
+        boolean reverse = pedals.reversePropulsion();
+        double throttle = pedals.throttle();
+        double physicalService = pedals.footBrake();
+        double service = pedals.serviceBrake();
+        var range = DrivetrainProtocol.RangeRequest.valueOf(pedals.range().name());
         if (controls && (raw.edges & DrivetrainProtocol.IGNITION_TOGGLE_EDGE) != 0) requestIgnition(!ignitionOn);
         if (controls && !blocked && raw.start) ignitionOn = true;
         boolean driveDemand = controls && (throttle > .01 || reverse);

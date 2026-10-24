@@ -26,11 +26,11 @@ public final class VehicleCabinDashboard {
     private static final Identifier WHITE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
     private static final int FULL_BRIGHT = 0x00f000f0;
     private record Mount(float x, float y, float z, float width, float height, int accent) {}
-    // Authored OBJ rear dashboard faces, in actual model metres; final camera/occlusion calibration is still required.
+    // Per-body mounts in model metres. T3 is raised onto the dashboard; keep each panel bottom anchored.
     private static final Map<String, Mount> MOUNTS = Map.of(
-        "automobility:frame/mx5_na", new Mount(-.14f, -.505f, -.2585f, .28f, .125f, 0xffffb449),
-        "automobility:frame/defender_90", new Mount(-.14f, -.770f, -.495f, .28f, .110f, 0xff95d48b),
-        "automobility:frame/vw_t3", new Mount(-.14f, -.868f, -1.748f, .28f, .110f, 0xffffb449));
+        "automobility:frame/mx5_na", new Mount(-.15f, -.515f, -.255f, .30f, .140f, 0xffffb449),
+        "automobility:frame/defender_90", new Mount(-.16f, -.800f, -.492f, .32f, .140f, 0xff95d48b),
+        "automobility:frame/vw_t3", new Mount(-.165f, -1.100f, -1.800f, .33f, .145f, 0xffffb449));
     public record Captured(float raise, float qx, float qy, float qz, float qw, float yaw,
                            float bodyOffset, float x, float y, float z, float width, float height,
                            int ambientLight, int accent, String rowA, String rowB, String rowC, String rowD, float vu, long revision,
@@ -136,7 +136,7 @@ public final class VehicleCabinDashboard {
         if(tuning.face()==CabinTuning027.Face.DIGITAL){width=mount.width()+.07f;height=mount.height()+.05f;}
         var palette=InfotainmentTheme.palette(tuning.accentRgb()<0?preferences.accentRgb():tuning.accentRgb(),night);
         return new Captured(state.verticalOffset,state.angularRotation.x(),state.angularRotation.y(),state.angularRotation.z(),state.angularRotation.w(),
-                state.yaw,offset,mount.x()+(mount.width()-width)*.5f,mount.y()+(mount.height()-height)*.5f,mount.z(),width,height,state.lightCoords,
+                state.yaw,offset,mount.x()+(mount.width()-width)*.5f,mount.y()+(mount.height()-height),mount.z(),width,height,state.lightCoords,
                 tint(palette.accent(),brightness),a,b,c,d,vu,radio==null?0:radio.media().revision(),
                 radio==null?0:radio.decoration().rgb(),radio==null?0:radio.decoration().intensity()*brightness,brightness,tuning.face(),tuning.speakers(),
                 recordedTape,radio==null?0:radio.cassette().map(DashboardCassetteSnapshot::labelRgb).orElse(0),
@@ -160,10 +160,13 @@ public final class VehicleCabinDashboard {
         pose.translate(0, captured.raise(), 0); pose.rotate(new Quaternionf(captured.qx(), captured.qy(), captured.qz(), captured.qw()));
         pose.rotate(Axis.ZP.rotationDegrees(180)); pose.rotate(Axis.YP.rotationDegrees(captured.yaw() + 180));
         pose.translate(0, captured.bodyOffset(), 0); pose.translate(captured.x(), captured.y(), captured.z());
+        pose.rotate(Axis.XP.rotationDegrees(12));
         float width = captured.width(), height = captured.height();
         var layout=CabinDisplayLayout.forPanel(width,height,captured.face()==CabinTuning027.Face.CASSETTE,captured.progressAvailable());
         collector.submitCustomGeometry(pose, RenderTypes.entitySolid(WHITE), (transform, buffer) -> {
             quad(transform, buffer, -.008f, -.008f, width + .008f, height + .008f, 0, captured.face()==CabinTuning027.Face.RETRO?0xff757878:captured.face()==CabinTuning027.Face.DIGITAL?0xff11171e:0xff23282a, captured.ambientLight());
+            // The raised screen has a solid back and sides, so it is a physical unit from every seat.
+            casing(transform, buffer, -.008f, -.008f, width + .008f, height + .008f, -.018f, 0, 0xff23282a, captured.ambientLight());
             // Authored panel parts use the same depth-tested car transform and a fixed geometry budget.
             float grille=switch(captured.speakers()){case COMPACT->.016f;case TOURING->.024f;case STUDIO->.032f;};
             for(int side=0;side<2;side++){
@@ -242,6 +245,26 @@ public final class VehicleCabinDashboard {
         float dx=(float)Math.cos(angle)*radius*.65f,dy=(float)Math.sin(angle)*radius*.65f;
         vertex(pose,buffer,x-dy*.13f,y+dx*.13f,z+.0003f,0xff242b2c,light);vertex(pose,buffer,x+dx-dy*.13f,y+dy+dx*.13f,z+.0003f,0xff242b2c,light);
         vertex(pose,buffer,x+dx+dy*.13f,y+dy-dx*.13f,z+.0003f,0xff242b2c,light);vertex(pose,buffer,x+dy*.13f,y-dx*.13f,z+.0003f,0xff242b2c,light);
+    }
+    private static void casing(PoseStack.Pose pose, VertexConsumer buffer, float x0,float y0,float x1,float y1,float z0,float z1,int color,int light) {
+        float dx=x1-x0,dy=y1-y0,dz=z1-z0;
+        casingFace(pose,buffer,x0,y0,z0,0,dy,0,dx,0,0,0,0,-1,color,light);
+        casingFace(pose,buffer,x0,y0,z0,dx,0,0,0,0,dz,0,-1,0,color,light);
+        casingFace(pose,buffer,x1,y1,z0,-dx,0,0,0,0,dz,0,1,0,color,light);
+        casingFace(pose,buffer,x0,y1,z0,0,-dy,0,0,0,dz,-1,0,0,color,light);
+        casingFace(pose,buffer,x1,y0,z0,0,dy,0,0,0,dz,1,0,0,color,light);
+    }
+    private static void casingFace(PoseStack.Pose pose,VertexConsumer buffer,float x,float y,float z,
+            float ux,float uy,float uz,float vx,float vy,float vz,float nx,float ny,float nz,int color,int light) {
+        casingVertex(pose,buffer,x,y,z,nx,ny,nz,color,light);
+        casingVertex(pose,buffer,x+ux,y+uy,z+uz,nx,ny,nz,color,light);
+        casingVertex(pose,buffer,x+ux+vx,y+uy+vy,z+uz+vz,nx,ny,nz,color,light);
+        casingVertex(pose,buffer,x+vx,y+vy,z+vz,nx,ny,nz,color,light);
+    }
+    private static void casingVertex(PoseStack.Pose pose,VertexConsumer buffer,float x,float y,float z,float nx,float ny,float nz,int color,int light) {
+        buffer.addVertex(pose,x,y,z)
+                .setColor((color>>16)&255,(color>>8)&255,color&255,255).setUv(.5f,.5f).setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(light).setNormal(pose,nx,ny,nz);
     }
     private static void logoVertex(PoseStack.Pose pose,VertexConsumer buffer,float x,float y,float z,int color,float u,float v){
         buffer.addVertex(pose,x,y,z).setColor((color>>16)&255,(color>>8)&255,color&255,255)
