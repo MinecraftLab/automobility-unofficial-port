@@ -30,6 +30,12 @@ public final class VehicleDashboardHud {
         if (frame.isEmpty() || !DashboardHudPresentation060.resolve(frame.get().media()).visible()) return;
         int sw = graphics.guiWidth(), sh = graphics.guiHeight();
         var settings = VehicleUiState.current();
+        if(UnifiedVehicleHud.unified()){
+            var box=UnifiedVehicleHud.radioBox(sw,sh,settings);float scale=UnifiedVehicleHud.clusterScale();
+            graphics.pose().pushMatrix();graphics.pose().translate(box.x(),box.y());graphics.pose().scale(scale);
+            try{draw(graphics,frame.get(),new VehicleHudPlacement.Box(0,0,36,18));}finally{graphics.pose().popMatrix();}
+            return;
+        }
         var instruments = UnifiedVehicleHud.panelBox(sw, sh, settings);
         var hints = UnifiedVehicleHud.hintBox(sw, sh, settings);
         var reservation = VehicleHudPlacement.reservation(sw, sh, settings.reservation());
@@ -52,6 +58,12 @@ public final class VehicleDashboardHud {
         if (snapshot.isEmpty() || !DashboardHudPresentation060.resolve(snapshot.get().media()).visible()) return false;
         draw(graphics, snapshot.get(), box);
         return true;
+    }
+    /** In the layout editor this is a static inactive symbol, never a simulated audio meter. */
+    public static void drawPreviewIcon(GuiGraphicsExtractor graphics,VehicleHudPlacement.Box box,float scale){
+        graphics.pose().pushMatrix();graphics.pose().translate(box.x(),box.y());graphics.pose().scale(scale);
+        try{graphics.fill(0,0,36,18,0xE9191D20);graphics.outline(5,5,11,8,0xFF6F7B80);graphics.fill(7,3,15,4,0xFF6F7B80);}
+        finally{graphics.pose().popMatrix();}
     }
 
     private static void draw(GuiGraphicsExtractor graphics, DashboardSnapshot frame, VehicleHudPlacement.Box box) {
