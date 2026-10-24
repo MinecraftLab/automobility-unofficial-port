@@ -161,6 +161,7 @@ public final class VehicleCabinDashboard {
         pose.mulPose(Axis.ZP.rotationDegrees(180)); pose.mulPose(Axis.YP.rotationDegrees(captured.yaw() + 180));
         pose.translate(0, captured.bodyOffset(), 0); pose.translate(captured.x(), captured.y(), captured.z());
         float width = captured.width(), height = captured.height();
+        var layout=CabinDisplayLayout.forPanel(width,height,captured.face()==CabinTuning027.Face.CASSETTE,captured.progressAvailable());
         collector.submitCustomGeometry(pose, RenderTypes.entitySolid(WHITE), (transform, buffer) -> {
             quad(transform, buffer, -.008f, -.008f, width + .008f, height + .008f, 0, captured.face()==CabinTuning027.Face.RETRO?0xff757878:captured.face()==CabinTuning027.Face.DIGITAL?0xff11171e:0xff23282a, captured.ambientLight());
             // Authored panel parts use the same depth-tested car transform and a fixed geometry budget.
@@ -204,7 +205,7 @@ public final class VehicleCabinDashboard {
                 quad(transform, buffer, -.006f, height + .002f, width + .006f, height + .006f, .002f, color, FULL_BRIGHT);
             }
             for (int index = 0; index < 8; index++) if (vu * 8 > index) {
-                float x = .014f + index * .009f;
+                float x = width - (.014f + index * .009f + .006f);
                 quad(transform, buffer, x, height - .019f, x + .006f, height - .009f, .002f,
                         index < 6 ? captured.accent() : tint(0xe87b55,captured.brightness()), FULL_BRIGHT);
             }
@@ -213,19 +214,19 @@ public final class VehicleCabinDashboard {
         if(captured.progressAvailable())collector.submitCustomGeometry(pose,RenderTypes.entityTranslucentEmissive(WHITE),(transform,buffer)->{
             float x0=.014f,x1=.014f+(width-.028f)*(captured.face()==CabinTuning027.Face.CASSETTE?.67f:1),railY=height-.036f;
             quad(transform,buffer,x0,railY,x1,railY+.0015f,.0024f,tint(0x33443b,captured.brightness()),FULL_BRIGHT);
-            if(captured.progress()>0)quad(transform,buffer,x0,railY,x0+(x1-x0)*captured.progress(),railY+.0015f,.0025f,captured.accent(),FULL_BRIGHT);
+            if(captured.progress()>0)quad(transform,buffer,layout.progressX0(captured.progress()),railY,x1,railY+.0015f,.0025f,captured.accent(),FULL_BRIGHT);
         });
         if(captured.logoTexture()!=null)collector.submitCustomGeometry(pose,RenderTypes.entityTranslucentEmissive(captured.logoTexture()),(transform,buffer)->{
             float contentWidth=(width-.028f)*(captured.face()==CabinTuning027.Face.CASSETTE?.67f:1);
-            float size=Math.min(.024f,contentWidth*.16f),x=.014f+contentWidth-size,y=.010f;
+            float size=layout.logoSize(),x=layout.contentX0(),y=.010f;
             int color=tint(0xffffff,captured.brightness());
-            logoVertex(transform,buffer,x,y,.0026f,color,0,0);
-            logoVertex(transform,buffer,x+size,y,.0026f,color,1,0);
-            logoVertex(transform,buffer,x+size,y+size,.0026f,color,1,1);
-            logoVertex(transform,buffer,x,y+size,.0026f,color,0,1);
+            logoVertex(transform,buffer,x,y,.0026f,color,1,0);
+            logoVertex(transform,buffer,x+size,y,.0026f,color,0,0);
+            logoVertex(transform,buffer,x+size,y+size,.0026f,color,0,1);
+            logoVertex(transform,buffer,x,y+size,.0026f,color,1,1);
         });
-        pose.translate(.014f,.008f,.0025f);float fontScale=Math.min((width-.028f)*(captured.face()==CabinTuning027.Face.CASSETTE?.67f:1)/104,(height-(captured.progressAvailable()?.047f:.04f))/40);
-        pose.scale(fontScale,fontScale,1);
+        pose.translate(layout.textX(),layout.textY(),layout.textZ());
+        pose.scale(layout.scaleX(),layout.scaleY(),layout.scaleZ());
         collector.submitText(pose,0,0,Component.literal(captured.rowA()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,captured.accent(),0,0);
         collector.submitText(pose,0,10,Component.literal(captured.rowB()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,tint(captured.palette().text(),captured.brightness()),0,0);
         collector.submitText(pose,0,20,Component.literal(captured.rowC()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,captured.accent(),0,0);
