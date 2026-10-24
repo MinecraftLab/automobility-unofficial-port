@@ -127,7 +127,7 @@ public final class FabricDrivetrainServer implements ModInitializer, CoreDrivetr
         for (var iterator = state.leases.entrySet().iterator(); iterator.hasNext();) {
             var item = iterator.next(); var lease = item.getValue();
             if (!driver(lease.driver, lease.car) || lease.driver.connection != lease.connection || !compatible(state, lease.driver)) {
-                iterator.remove(); var meta = state.cars.get(item.getKey()); if (meta != null) meta.granted.clear();
+                var meta = state.cars.get(item.getKey()); iterator.remove(); if (meta != null) meta.granted.clear();
             }
         }
         state.cars.entrySet().removeIf(item -> {
