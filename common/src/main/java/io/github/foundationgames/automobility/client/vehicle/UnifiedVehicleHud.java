@@ -55,7 +55,7 @@ public final class UnifiedVehicleHud {
         cachedSettings=value;cachedFont=client.font;cachedLanguage=language;cachedW=w;cachedH=h;cachedEnergy=energy;cachedMechanics=mechanics;cachedGuiScale=guiScale;
         decorationScale=VehicleEnergyPresentation.guiScaleCompensation(guiScale);
         cachedStatusWidth=VehicleEnergyPresentation.PANEL_WIDTH-44;
-        int logicalWidth=cachedStatusWidth+44;
+        int logicalWidth=DashboardClusterLayout.WIDTH;
         int logicalHeight=VehicleEnergyPresentation.panelHeight(energy)+(mechanics?VehicleDrivetrainHud.HEIGHT:0);
         scale=VehicleEnergyPresentation.panelScale(w,h,logicalWidth,logicalHeight,value.basic().scalePercent(),guiScale);
         var reserved=VehicleHudPlacement.reservation(w,h,value.reservation());
@@ -68,6 +68,8 @@ public final class UnifiedVehicleHud {
     }
     public static VehicleHudPlacement.Box panelBox(int w,int h,VehicleUiSettings value) {resolve(w,h,value,value.energyEnabled() && VehicleEnergyHud.preview().present());return panel;}
     public static VehicleHudPlacement.Box hintBox(int w,int h,VehicleUiSettings value) {resolve(w,h,value,value.energyEnabled() && VehicleEnergyHud.preview().present());return hints;}
+    public static VehicleHudPlacement.Box radioBox(int w,int h,VehicleUiSettings value){resolve(w,h,value,value.energyEnabled()&&VehicleEnergyHud.preview().present());return DashboardClusterLayout.radio(panel,scale);}
+    public static float clusterScale(){return scale;}
     public static VehicleHudLayout.Layout statusLayout(int w,int h) {
         resolve(w,h,VehicleUiState.current(),VehicleUiState.current().energyEnabled() && VehicleEnergyHud.preview().present());return new VehicleHudLayout.Layout(panel.x()+Math.round(44*scale),panel.y(),cachedStatusWidth,scale);
     }
@@ -116,6 +118,7 @@ public final class UnifiedVehicleHud {
     public static void drawPreview(GuiGraphicsExtractor graphics,int w,int h,VehicleUiSettings value) {
         var energy=value.energyEnabled()?VehicleEnergyHud.preview():VehicleEnergyReading.NONE;
         resolve(w,h,value,energy.present(),value.basic().enabled());drawPanel(graphics,null,panel,scale,cachedStatusWidth,64,true,64,value.basic().enabled(),energy,false);
+        io.github.foundationgames.automobility.client.dashboard.VehicleDashboardHud.drawPreviewIcon(graphics,DashboardClusterLayout.radio(panel,scale),scale);
         if(value.hintMode()!=VehicleUiSettings.HintMode.OFF) drawHints(graphics,hints);
     }
     private static void drawPanel(GuiGraphicsExtractor graphics,AutomobileEntity auto,VehicleHudPlacement.Box box,float scale,int statusWidth,int speed,boolean cruise,int target,boolean status,VehicleEnergyReading energy,boolean reverse) {
