@@ -164,6 +164,20 @@ public final class VehicleStatusHud {
         }
     }
 
+    /** Compact instruments use symbols; detailed names remain in the vehicle menu. */
+    public static void drawCompactPanel(GuiGraphicsExtractor graphics, AutomobileEntity auto, int width) {
+        int ignition = VehiclePowertrainPresentation.reading(auto)
+                .map(r -> switch (r.snapshot().enginePhase()) { case RUNNING -> 2; case STARTING -> 1; default -> 0; })
+                .orElse(auto.getIgnitionState());
+        int engine = ignition == 2 ? 0xFF8ADEAE : ignition == 1 ? 0xFFFFD095 : 0xFF919DA4;
+        graphics.fill(5,5,14,11,engine); graphics.fill(7,3,12,5,engine);
+        graphics.fill(3,7,5,10,engine); graphics.fill(14,6,16,9,engine);
+        drawLamp(graphics,24,3,lightColor(auto.getEffectiveVehicleLightMode()),auto.getEffectiveVehicleLightMode()==VehicleLightMode.HIGH);
+        int signals=signalMask(auto.getVehicleSignalMode(),auto.vehicleSignalLit());
+        drawSignal(graphics,49,5,false,(signals&1)!=0); drawSignal(graphics,62,5,true,(signals&2)!=0);
+        if(auto.getVehicleAccess().locked()) graphics.text(Minecraft.getInstance().font,Component.literal("•"),width-11,5,0xFFFFD095,false);
+    }
+
     public static java.util.List<Component> warningLines(AutomobileEntity auto) {
         var result=new java.util.ArrayList<Component>();
         if(VehicleClientControls.preferences().enabled() && (auto.input.accelerating || auto.rawBrakePedalHeld()) && auto.getIgnitionState()==0) {

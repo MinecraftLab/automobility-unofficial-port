@@ -18,7 +18,9 @@ public final class DrivetrainSoundModel {
         double pitch = electric ? 0.65 + 1.25 * Math.sqrt(speed) : 0.60 + 1.35 * Math.pow(speed, 0.75);
         double gain = electric ? 0.025 + 0.40 * load + 0.18 * speed : 0.24 + 0.65 * load + 0.10 * speed;
         if (phase == EngineController.Phase.STARTING) gain *= 0.50;
-        if (!active) gain = 0.0;
-        return new Tone((float)Math.clamp(pitch, 0.5, 2.0), (float)Math.clamp(gain, 0.0, 1.0), active && gain > 0.0);
+        // A switched-off crank still takes time to stop. Keep its mechanical run-down
+        // audible from measured shaft speed, without implying combustion or energy use.
+        if (!active) gain = electric ? 0.0 : 0.24 * Math.clamp(Math.abs(shaftRpm) / 800.0, 0.0, 1.0);
+        return new Tone((float)Math.clamp(pitch, 0.5, 2.0), (float)Math.clamp(gain, 0.0, 1.0), gain > 0.001);
     }
 }

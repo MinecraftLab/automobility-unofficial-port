@@ -9,6 +9,11 @@ public final class GarageUiLayout {
 
     private GarageUiLayout() {}
 
+    /** Fit only this showroom; changing Minecraft's global GUI scale is unnecessary. */
+    public static float viewportScale(int width,int height) {
+        return Math.max(.5f,Math.min(1f,Math.min(width/(float)MIN_VIEWPORT_WIDTH,height/(float)MIN_VIEWPORT_HEIGHT)));
+    }
+
     public enum Mode { OVERVIEW, TUNING, DETAILS }
 
     public record Box(int x, int y, int width, int height) {

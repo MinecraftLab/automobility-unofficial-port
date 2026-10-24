@@ -446,7 +446,8 @@ public class GarageScreenHandler extends AbstractContainerMenu {
     private void clearDraft() { engineSource.set(0);engineRevision.set(0);engineOwnerReason.set(0);engineDraft=null;display.setItem(RETURNED_ENGINE,ItemStack.EMPTY);display.setItem(PENDING_ENGINE,ItemStack.EMPTY); display.setItem(PENDING_WHEEL,ItemStack.EMPTY); probedParts=null; nextPlacementCheck=Long.MIN_VALUE; }
     @Override public void broadcastChanges() { if(!level.isClientSide()&&!closed&&!committing) refreshStatus(); super.broadcastChanges(); }
     private boolean finish(GarageService.Status result) {
-        feedback=result; feedbackUntil=level.getGameTime()+40; refreshDisplay(); refreshStatus(); super.broadcastChanges(); return result==GarageService.Status.APPLIED||result==GarageService.Status.CANCELLED||result==GarageService.Status.READY;
+        feedback=result; feedbackUntil=result==GarageService.Status.APPLIED||result==GarageService.Status.CANCELLED||result==GarageService.Status.READY?level.getGameTime()+40:Long.MAX_VALUE;
+        refreshDisplay(); refreshStatus(); super.broadcastChanges(); return result==GarageService.Status.APPLIED||result==GarageService.Status.CANCELLED||result==GarageService.Status.READY;
     }
     private boolean reopen(UUID desired,boolean showCatalog) { return open(level,opening.pos(),owner,true,desired,showCatalog); }
     @Override public boolean clickMenuButton(Player player,int button) {
@@ -475,7 +476,10 @@ public class GarageScreenHandler extends AbstractContainerMenu {
             if(button==4) return deploy();
             if(button==6) return assemble();
             if(button==8) return testDrive();
-        } catch(IOException|RuntimeException error) { return finish(GarageService.Status.STORAGE_ERROR); }
+        } catch(IOException|RuntimeException error) {
+            Automobility.LOG.warn("Garage action {} refused for vehicle {}",button,selectedChoiceId(),error);
+            return finish(GarageService.Status.STORAGE_ERROR);
+        }
         finally { committing=false; }
         return false;
     }

@@ -177,6 +177,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     CompoundTag garageOpaqueSnapshot(){return garageOpaque.copy();}
 
     public static Consumer<AutomobileEntity> engineSound = e -> {};
+    public static java.util.function.Predicate<AutomobileEntity> engineSoundAudible = AutomobileEntity::engineRunning;
     public static Consumer<AutomobileEntity> skidSound = e -> {};
     public static Consumer<AutomobileEntity> hornSound = e -> {};
 
@@ -418,7 +419,9 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
 
         boostTimer = syncedBoostTimer;
-        steering = syncedSteering;
+        // A delayed server echo must not alternate with the driver's current steering.
+        // Observers still follow the server, as do legacy cars without this predictor.
+        if (!drivetrain.active() || !isLocalInstanceAuthoritative()) steering = syncedSteering;
         if (!drivetrain.active() || !isLocalInstanceAuthoritative()) wheelAngle = syncedWheelAngle;
         turboCharge = syncedTurboCharge;
         if (!drivetrain.active() || !isLocalInstanceAuthoritative()) engineSpeed = syncedEngineSpeed;
@@ -1165,10 +1168,11 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         if (lastWheelAngle != wheelAngle) markDirty();
         lastWheelAngle = wheelAngle;
 
-        if (!this.wasEngineRunning && this.engineRunning() && this.level().isClientSide()) {
+        boolean audibleEngine=this.level().isClientSide()&&engineSoundAudible.test(this);
+        if (!this.wasEngineRunning && audibleEngine) {
             engineSound.accept(this);
         }
-        this.wasEngineRunning = this.engineRunning();
+        this.wasEngineRunning = audibleEngine;
 
         var fAtt = this.getFrontAttachment();
         boolean fAttDriving = fAtt != null && fAtt.isProvidingAlternativeInputs(this, getFirstPassenger());
@@ -1690,7 +1694,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         }
     }
 
-    public int getIgnitionState() { return this.entityData.get(IGNITION_STATE); }
+    public int getIgnitionState() { return drivetrain.synchronizedIgnitionState().orElse(this.entityData.get(IGNITION_STATE)); }
     public int getMaximumEngineIdleSeconds() { return this.entityData.get(ENGINE_IDLE_LIMIT); }
     public boolean isManualEngineShutdownAllowed() { return this.entityData.get(ENGINE_ALLOW_MANUAL_SHUTDOWN); }
 
@@ -2202,8 +2206,8 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
     }
 
     public void whenRotated(float dYaw, Entity e) {
-        e.setYRot(Mth.wrapDegrees(e.getYRot() + dYaw));
-        e.setYBodyRot(Mth.wrapDegrees(e.getYRot() + dYaw));
+        e.setYRot(DriverViewRotation.turn(e.getYRot(),dYaw));
+        e.setYBodyRot(e.getYRot());
     }
 
     private void whenRotatedSmooth(Entity passenger) {
@@ -2220,6 +2224,7 @@ public class AutomobileEntity extends Entity implements RenderableAutomobile, En
         var newDir = playerDir.add(selfDir.scale(lockStrength));
 
         float rot = 180 - (float) Math.toDegrees(Math.atan2(newDir.x, newDir.z));
+        rot=DriverViewRotation.nearest(passenger.getYRot(),rot);
         passenger.setYRot(rot);
         passenger.setYBodyRot(rot);
     }
