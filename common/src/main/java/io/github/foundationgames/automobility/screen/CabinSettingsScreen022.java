@@ -19,15 +19,16 @@ public final class CabinSettingsScreen022 extends Screen {
     private long reply=-1;private boolean dirty,small;private int left,top,w,h,ticks;private Button enabled,page,day,night,color,lighting,apply;
     public CabinSettingsScreen022(Screen parent,AutomobileEntity car){super(text("title","Infotainment"));this.parent=parent;this.car=car;CabinSettingsClient022.query(car);CabinTuningClient027.query(car);}
     @Override protected void init(){
-        w=Math.max(1,Math.min(360,width-16));h=Math.max(1,Math.min(252,height-16));left=(width-w)/2;top=(height-h)/2;small=w<260||h<244;
+        w=Math.max(1,Math.min(360,width-16));h=Math.max(1,Math.min(252,height-16));left=(width-w)/2;top=(height-h)/2;small=w<260||h<222;
         enabled=page=day=night=color=lighting=apply=null;
         if(!small){
-            enabled=button(70,()->change(!draft.enabled(),draft.page(),draft.dayBrightness(),draft.nightBrightness(),draft.accentRgb()));
-            page=button(95,()->change(draft.enabled(),CabinPreferences022.Page.values()[(draft.page().ordinal()+1)%3],draft.dayBrightness(),draft.nightBrightness(),draft.accentRgb()));
-            day=button(120,()->change(draft.enabled(),draft.page(),next(draft.dayBrightness()),draft.nightBrightness(),draft.accentRgb()));
-            night=button(145,()->change(draft.enabled(),draft.page(),draft.dayBrightness(),next(draft.nightBrightness()),draft.accentRgb()));
-            color=button(170,()->{themeDraft=InfotainmentTheme.next(themeDraft<0?draft.accentRgb():themeDraft);themeDirty=true;update();});
-            lighting=button(195,()->{draft=new CabinPreferences022.Settings(draft.revision(),draft.enabled(),draft.page(),draft.dayBrightness(),draft.nightBrightness(),draft.accentRgb(),CabinPreferences022.Lighting.values()[(draft.lighting().ordinal()+1)%3]);dirty=true;update();});
+            int first=h<244?58:70,step=h<244?22:25;
+            enabled=button(first+0*step,()->change(!draft.enabled(),draft.page(),draft.dayBrightness(),draft.nightBrightness(),draft.accentRgb()));
+            page=button(first+1*step,()->change(draft.enabled(),CabinPreferences022.Page.values()[(draft.page().ordinal()+1)%3],draft.dayBrightness(),draft.nightBrightness(),draft.accentRgb()));
+            day=button(first+2*step,()->change(draft.enabled(),draft.page(),next(draft.dayBrightness()),draft.nightBrightness(),draft.accentRgb()));
+            night=button(first+3*step,()->change(draft.enabled(),draft.page(),draft.dayBrightness(),next(draft.nightBrightness()),draft.accentRgb()));
+            color=button(first+4*step,()->{themeDraft=InfotainmentTheme.next(themeDraft<0?draft.accentRgb():themeDraft);themeDirty=true;update();});
+            lighting=button(first+5*step,()->{draft=new CabinPreferences022.Settings(draft.revision(),draft.enabled(),draft.page(),draft.dayBrightness(),draft.nightBrightness(),draft.accentRgb(),CabinPreferences022.Lighting.values()[(draft.lighting().ordinal()+1)%3]);dirty=true;update();});
             apply=addRenderableWidget(Button.builder(text("apply","Apply"),b->{
                 if(dirty)CabinSettingsClient022.save(car,draft.next(draft.enabled(),draft.page(),draft.dayBrightness(),draft.nightBrightness(),draft.accentRgb()));
                 if(themeDirty&&acceptedTheme!=null)CabinTuningClient027.save(car,acceptedTheme.nextAccent(themeDraft));
@@ -74,7 +75,9 @@ public final class CabinSettingsScreen022 extends Screen {
                     :!state.mayConfigure()?text("forbidden","Vehicle configuration permission is required.")
                     :state.result()==CabinPayloads022.Result.STALE?text("stale","Settings changed. Review and apply again.")
                     :!dirty&&!themeDirty&&(state.result()==CabinPayloads022.Result.CHANGED||theme!=null&&theme.result()==CabinTuningPayloads027.Result.CHANGED)?text("saved","Cabin settings saved."):text("help","Changes apply to this car after server confirmation.");
-            graphics.textWithWordWrap(font,info,left+16,top+36,w-32,AutomobilityUiTheme.MUTED);
+            var lines=font.split(info,w-32);
+            for(int index=0;index<Math.min(2,lines.size());index++)
+                graphics.text(font,lines.get(index),left+16,top+36+index*10,AutomobilityUiTheme.MUTED,false);
         }
         super.extractRenderState(graphics,mouseX,mouseY,delta);
     }
