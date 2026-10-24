@@ -26,11 +26,11 @@ public final class VehicleCabinDashboard {
     private static final Identifier WHITE = Identifier.withDefaultNamespace("textures/block/white_concrete.png");
     private static final int FULL_BRIGHT = 0x00f000f0;
     private record Mount(float x, float y, float z, float width, float height, int accent) {}
-    // Per-body mounts in model metres. T3 is raised onto the dashboard; keep each panel bottom anchored.
+    // Native167: sit above each dashboard pad, behind its glass, and keep the lower edge anchored.
     private static final Map<String, Mount> MOUNTS = Map.of(
-        "automobility:frame/mx5_na", new Mount(-.15f, -.515f, -.255f, .30f, .140f, 0xffffb449),
-        "automobility:frame/defender_90", new Mount(-.16f, -.800f, -.492f, .32f, .140f, 0xff95d48b),
-        "automobility:frame/vw_t3", new Mount(-.165f, -1.100f, -1.800f, .33f, .145f, 0xffffb449));
+        "automobility:frame/mx5_na", new Mount(-.15f, -.680f, -.310f, .30f, .140f, 0xffffb449),
+        "automobility:frame/defender_90", new Mount(-.16f, -.950f, -.650f, .32f, .140f, 0xff95d48b),
+        "automobility:frame/vw_t3", new Mount(-.165f, -1.100f, -2.050f, .33f, .145f, 0xffffb449));
     public record Captured(float raise, float qx, float qy, float qz, float qw, float yaw,
                            float bodyOffset, float x, float y, float z, float width, float height,
                            int ambientLight, int accent, String rowA, String rowB, String rowC, String rowD, float vu, long revision,
@@ -162,6 +162,7 @@ public final class VehicleCabinDashboard {
         pose.translate(0, captured.bodyOffset(), 0); pose.translate(captured.x(), captured.y(), captured.z());
         pose.mulPose(Axis.XP.rotationDegrees(12));
         float width = captured.width(), height = captured.height();
+        var displayPalette=InfotainmentTheme.dim(captured.palette(),captured.brightness());
         var layout=CabinDisplayLayout.forPanel(width,height,captured.face()==CabinTuning027.Face.CASSETTE,captured.progressAvailable());
         collector.submitCustomGeometry(pose, RenderTypes.entitySolid(WHITE), (transform, buffer) -> {
             quad(transform, buffer, -.008f, -.008f, width + .008f, height + .008f, 0, captured.face()==CabinTuning027.Face.RETRO?0xff757878:captured.face()==CabinTuning027.Face.DIGITAL?0xff11171e:0xff23282a, captured.ambientLight());
@@ -198,7 +199,7 @@ public final class VehicleCabinDashboard {
         });
         float vu = Math.clamp(captured.vu(), 0, 1);
         collector.submitCustomGeometry(pose, RenderTypes.entityTranslucentEmissive(WHITE), (transform, buffer) -> {
-            quad(transform,buffer,.008f,.008f,width-.008f,height-.027f,.001f,tint(captured.palette().surface(),captured.brightness()),FULL_BRIGHT);
+            quad(transform,buffer,.008f,.008f,width-.008f,height-.027f,.001f,0xff000000|displayPalette.surface(),FULL_BRIGHT);
             if (captured.decorationIntensity() > 0) {
                 int rgb = captured.decorationRgb();
                 float strength = captured.decorationIntensity();
@@ -230,10 +231,10 @@ public final class VehicleCabinDashboard {
         });
         pose.translate(layout.textX(),layout.textY(),layout.textZ());
         pose.scale(layout.scaleX(),layout.scaleY(),layout.scaleZ());
-        collector.submitText(pose,0,0,Component.literal(captured.rowA()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,captured.accent(),0,0);
-        collector.submitText(pose,0,10,Component.literal(captured.rowB()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,tint(captured.palette().text(),captured.brightness()),0,0);
-        collector.submitText(pose,0,20,Component.literal(captured.rowC()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,captured.accent(),0,0);
-        collector.submitText(pose,0,30,Component.literal(captured.rowD()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,tint(captured.palette().text(),captured.brightness()),0,0);
+        collector.submitText(pose,0,0,Component.literal(captured.rowA()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,0xff000000|displayPalette.accent(),0,0);
+        collector.submitText(pose,0,10,Component.literal(captured.rowB()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,0xff000000|displayPalette.text(),0,0);
+        collector.submitText(pose,0,20,Component.literal(captured.rowC()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,0xff000000|displayPalette.accent(),0,0);
+        collector.submitText(pose,0,30,Component.literal(captured.rowD()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,0xff000000|displayPalette.text(),0,0);
         pose.popPose();
     }
     private static void disc(PoseStack.Pose pose,VertexConsumer buffer,float x,float y,float radius,float z,int color,int light,float angle){
