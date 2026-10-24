@@ -59,11 +59,12 @@ public final class VehicleCabinDashboard {
     private VehicleCabinDashboard() {}
     private record Lighting(double sampledTick,float night) { }
     private static final Map<AutomobileEntity,Lighting> LIGHTING=new WeakHashMap<>();
-    private static float night(AutomobileEntity car,CabinPreferences022.Settings settings,float delta){
+    private static float night(AutomobileEntity car,CabinPreferences022.Settings settings,float delta,int packedLight){
         float sky=Math.clamp(car.level().getSkyDarken()/11f,0,1);
+        float ambient=1-Math.max(((packedLight>>>4)&15)/15f,((packedLight>>>20)&15)/15f*(1-sky));
         boolean manualHeadlights=car.getVehicleLightMode()!=io.github.foundationgames.automobility.automobile.light.VehicleLightMode.AUTO
                 &&car.getEffectiveVehicleLightMode().emitsHeadlightBeam();
-        float target=switch(settings.lighting()){case DAY->0;case NIGHT->1;case AUTO->Math.max(sky,manualHeadlights?1:0);};
+        float target=switch(settings.lighting()){case DAY->0;case NIGHT->1;case AUTO->Math.max(Math.max(sky,ambient),manualHeadlights?1:0);};
         double now=car.level().getGameTime()+delta;var previous=LIGHTING.get(car);
         float value=previous==null||now<previous.sampledTick()?target:(float)(previous.night()+(target-previous.night())*(1-Math.exp(-Math.min(5,now-previous.sampledTick())*.15)));
         LIGHTING.put(car,new Lighting(now,value));return value;
@@ -77,7 +78,7 @@ public final class VehicleCabinDashboard {
         CabinSettingsClient022.observe(car);
         var preferences=CabinSettingsClient022.preferences(car).orElse(null);
         if(preferences==null||!preferences.enabled())return null;
-        float night=night(car,preferences,state.tickDelta);
+        float night=night(car,preferences,state.tickDelta,state.lightCoords);
         float brightness=preferences.dayBrightness()+(preferences.nightBrightness()-preferences.dayBrightness())*night;
         if(brightness<=0)return null;
         CabinTuningClient027.observe(car);
@@ -162,7 +163,6 @@ public final class VehicleCabinDashboard {
         float width = captured.width(), height = captured.height();
         collector.submitCustomGeometry(pose, RenderTypes.entitySolid(WHITE), (transform, buffer) -> {
             quad(transform, buffer, -.008f, -.008f, width + .008f, height + .008f, 0, captured.face()==CabinTuning027.Face.RETRO?0xff757878:captured.face()==CabinTuning027.Face.DIGITAL?0xff11171e:0xff23282a, captured.ambientLight());
-            quad(transform, buffer, .008f, .008f, width - .008f, height - .027f, .001f, 0xff000000|captured.palette().surface(), captured.ambientLight());
             // Authored panel parts use the same depth-tested car transform and a fixed geometry budget.
             float grille=switch(captured.speakers()){case COMPACT->.016f;case TOURING->.024f;case STUDIO->.032f;};
             for(int side=0;side<2;side++){
@@ -194,6 +194,7 @@ public final class VehicleCabinDashboard {
         });
         float vu = Math.clamp(captured.vu(), 0, 1);
         collector.submitCustomGeometry(pose, RenderTypes.entityTranslucentEmissive(WHITE), (transform, buffer) -> {
+            quad(transform,buffer,.008f,.008f,width-.008f,height-.027f,.001f,tint(captured.palette().surface(),captured.brightness()),FULL_BRIGHT);
             if (captured.decorationIntensity() > 0) {
                 int rgb = captured.decorationRgb();
                 float strength = captured.decorationIntensity();

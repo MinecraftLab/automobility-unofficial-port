@@ -50,7 +50,7 @@ public final class CabinSettingsScreen022 extends Screen {
         boolean themeWritable=theme!=null&&theme.mayConfigure()&&theme.preferences().isPresent()&&!CabinTuningClient027.pending(car)&&theme.preferences().get().revision()<Long.MAX_VALUE;
         enabled.active=page.active=day.active=night.active=lighting.active=writable;color.active=themeWritable;apply.active=writable&&dirty||themeWritable&&themeDirty;
         enabled.setMessage(text("enabled","Cabin display").copy().append(": ").append(Component.translatable(draft.enabled()?"options.on":"options.off")));
-        page.setMessage(text("page","Page").copy().append(": ").append(text("page."+draft.page().name().toLowerCase(Locale.ROOT),switch(draft.page()){case COMBINED->"Combined";case RADIO->"Radio";case POWER->"Powertrain";})));
+        page.setMessage(text("page","Page").copy().append(": ").append(text("page."+draft.page().name().toLowerCase(Locale.ROOT),switch(draft.page()){case COMBINED->"Infotainment";case RADIO->"Radio & Music";case POWER->"Driving";})));
         day.setMessage(text("day","Day brightness").copy().append(String.format(Locale.ROOT,": %.0f%%",draft.dayBrightness()*100)));
         night.setMessage(text("night","Night brightness").copy().append(String.format(Locale.ROOT,": %.0f%%",draft.nightBrightness()*100)));
         color.setMessage(text("theme","Theme").copy().append(": "+InfotainmentTheme.name(themeDraft<0?draft.accentRgb():themeDraft)));
