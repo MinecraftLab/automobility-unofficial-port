@@ -226,10 +226,10 @@ public final class VehicleCabinDashboard {
         });
         pose.translate(.014f,.008f,.0025f);float fontScale=Math.min((width-.028f)*(captured.face()==CabinTuning027.Face.CASSETTE?.67f:1)/104,(height-(captured.progressAvailable()?.047f:.04f))/40);
         pose.scale(fontScale,fontScale,1);
-        collector.submitText(pose,0,0,Component.literal(captured.rowA()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,captured.accent(),0,FULL_BRIGHT,0);
-        collector.submitText(pose,0,10,Component.literal(captured.rowB()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,tint(captured.palette().text(),captured.brightness()),0,FULL_BRIGHT,0);
-        collector.submitText(pose,0,20,Component.literal(captured.rowC()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,captured.accent(),0,FULL_BRIGHT,0);
-        collector.submitText(pose,0,30,Component.literal(captured.rowD()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,tint(captured.palette().text(),captured.brightness()),0,FULL_BRIGHT,0);
+        collector.submitText(pose,0,0,Component.literal(captured.rowA()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,captured.accent(),0,0);
+        collector.submitText(pose,0,10,Component.literal(captured.rowB()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,tint(captured.palette().text(),captured.brightness()),0,0);
+        collector.submitText(pose,0,20,Component.literal(captured.rowC()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,captured.accent(),0,0);
+        collector.submitText(pose,0,30,Component.literal(captured.rowD()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,tint(captured.palette().text(),captured.brightness()),0,0);
         pose.popPose();
     }
     private static void disc(PoseStack.Pose pose,VertexConsumer buffer,float x,float y,float radius,float z,int color,int light,float angle){
@@ -247,6 +247,7 @@ public final class VehicleCabinDashboard {
                 .setUv(u,v).setOverlay(OverlayTexture.NO_OVERLAY).setLight(FULL_BRIGHT).setNormal(pose,0,0,1);
     }
     private static void quad(PoseStack.Pose pose, VertexConsumer buffer, float x0, float y0, float x1, float y1, float z, int color, int light) {
+        // Match the visible logo face and the declared +Z normal.
         vertex(pose, buffer, x0, y0, z, color, light); vertex(pose, buffer, x1, y0, z, color, light);
         vertex(pose, buffer, x1, y1, z, color, light); vertex(pose, buffer, x0, y1, z, color, light);
     }

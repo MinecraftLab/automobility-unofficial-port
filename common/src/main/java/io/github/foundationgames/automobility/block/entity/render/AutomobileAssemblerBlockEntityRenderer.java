@@ -58,7 +58,7 @@ public class AutomobileAssemblerBlockEntityRenderer implements BlockEntityRender
         for (var text : state.label) {
             matrices.pushPose();
             matrices.translate(-0.5 * textRenderer.width(text), 0, 0);
-            submitter.submitText(matrices, 0f, 0f, text.getVisualOrderText(), true, Font.DisplayMode.POLYGON_OFFSET, 0xFFFFFF, 0, state.lightCoords, 0);
+            submitter.submitText(matrices, 0f, 0f, text.getVisualOrderText(), true, Font.DisplayMode.POLYGON_OFFSET, state.lightCoords, 0xFFFFFFFF, 0, 0);
             matrices.popPose();
             matrices.translate(0, 12, 0);
         }
