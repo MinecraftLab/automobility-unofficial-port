@@ -94,10 +94,36 @@ public abstract class AutomobileSoundInstance extends AbstractTickableSoundInsta
     }
 
     public static class EngineSound extends AutomobileSoundInstance {
+        private final io.github.foundationgames.automobility.automobile.AutomobileEngine installedEngine;
+        private final io.github.foundationgames.automobility.automobile.drivetrain.DrivetrainSoundModel.Voice installedVoice;
+        private static SoundEvent engineLoop(AutomobileEntity car) {
+            var event = car.getEngine().sound().get();
+            var voice = io.github.foundationgames.automobility.client.vehicle.VehiclePowertrainPresentation.voice(car);
+            // Preserve custom engine samples. Only revoice known Core loops when fuel configuration changes their family.
+            boolean dieselLoop = event.location().equals(AutomobilitySounds.IRON_ENGINE.require().location()) || event.location().equals(AutomobilitySounds.DIAMOND_ENGINE.require().location());
+            boolean petrolLoop = event.location().equals(AutomobilitySounds.STONE_ENGINE.require().location()) || event.location().equals(AutomobilitySounds.COPPER_ENGINE.require().location()) || event.location().equals(AutomobilitySounds.GOLD_ENGINE.require().location());
+            if (voice == io.github.foundationgames.automobility.automobile.drivetrain.DrivetrainSoundModel.Voice.DIESEL && petrolLoop) return AutomobilitySounds.IRON_ENGINE.require();
+            if (voice == io.github.foundationgames.automobility.automobile.drivetrain.DrivetrainSoundModel.Voice.PETROL && dieselLoop) return AutomobilitySounds.COPPER_ENGINE.require();
+            return event;
+        }
         private float drivetrainPitch = Float.NaN;
         private float drivetrainGain = Float.NaN;
         public EngineSound(Minecraft client, AutomobileEntity automobile) {
-            super(automobile.getEngine().sound().get(), client, automobile);
+            super(engineLoop(automobile), client, automobile);
+            installedEngine = automobile.getEngine();
+            installedVoice = io.github.foundationgames.automobility.client.vehicle.VehiclePowertrainPresentation.voice(automobile);
+        }
+
+        @Override
+        public void tick() {
+            if (!automobile.isRemoved() && client.player != null && (installedEngine != automobile.getEngine()
+                    || installedVoice != io.github.foundationgames.automobility.client.vehicle.VehiclePowertrainPresentation.voice(automobile))) {
+                // A physical engine swap must not leave the old engine's loop running indefinitely.
+                stop();
+                if (!automobile.getEngine().isEmpty() && canPlay(automobile)) client.getSoundManager().play(new EngineSound(client, automobile));
+                return;
+            }
+            super.tick();
         }
 
         @Override

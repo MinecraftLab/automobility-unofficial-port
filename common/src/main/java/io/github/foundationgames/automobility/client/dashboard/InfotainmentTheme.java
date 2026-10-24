@@ -21,8 +21,23 @@ public enum InfotainmentTheme {
     public static int next(int rgb){var theme=find(rgb);return values()[theme==null?0:(theme.ordinal()+1)%values().length].accent;}
     public static Palette palette(int rgb,float night){
         var theme=find(rgb);float t=Math.clamp(night,0,1);
-        return theme==null?new Palette(mix(0xe7e9ea,0x171a1f,t),mix(0x24282e,0xf0f2f4,t),rgb)
-                :new Palette(mix(theme.daySurface,theme.nightSurface,t),mix(theme.dayText,theme.nightText,t),mix(theme.dayText,theme.accent,.30f+.70f*t));
+        int surface=theme==null?mix(0xe7e9ea,0x171a1f,t):mix(theme.daySurface,theme.nightSurface,t);
+        int text=theme==null?mix(0x24282e,0xf0f2f4,t):mix(theme.dayText,theme.nightText,t);
+        int accent=theme==null?rgb:mix(theme.dayText,theme.accent,.30f+.70f*t);
+        // Foreground and background cross during twilight. Preserve the smooth surface transition,
+        // but select readable ink instead of leaving rain/shade at a permanent grey-on-grey midpoint.
+        return new Palette(surface,legibleInk(surface,text),legibleInk(surface,accent));
     }
-    private static int mix(int a,int b,float t){int out=0;for(int shift:new int[]{0,8,16})out|=Math.round(((a>>shift)&255)*(1-t)+((b>>shift)&255)*t)<<shift;return out;}
+    private static int legibleInk(int surface,int desired) {
+        double background=luminance(surface),ink=luminance(desired);
+        if((Math.max(background,ink)+.05)/(Math.min(background,ink)+.05)>=4.5)return desired;
+        return (background+.05)/.05>=1.05/(background+.05)?0x000000:0xffffff;
+    }
+    private static double luminance(int rgb) {
+        return .2126*linear((rgb>>16)&255)+.7152*linear((rgb>>8)&255)+.0722*linear(rgb&255);
+    }
+    private static double linear(int channel) {
+        double value=channel/255.0;return value<=.04045?value/12.92:Math.pow((value+.055)/1.055,2.4);
+    }
+    private static int mix(int a,int b,float t){int out=0;for(int shift=0;shift<24;shift+=8)out|=Math.round(((a>>shift)&255)*(1-t)+((b>>shift)&255)*t)<<shift;return out;}
 }
