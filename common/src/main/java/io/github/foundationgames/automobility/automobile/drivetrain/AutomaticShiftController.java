@@ -41,8 +41,8 @@ public final class AutomaticShiftController {
         /** Prototype calibration, not a final car-specific handling promise. */
         public static Config defaults() {
             return new Config(0.08, 0.04, 0.18, 0.60, 0.50, 150.0,
-                    new ModeMap(0.34, 0.74, 0.14, 0.29, 0.86, 0.60),
-                    new ModeMap(0.45, 0.86, 0.16, 0.40, 0.80, 0.72),
+                    new ModeMap(0.18, 0.34, 0.06, 0.12, 0.96, 0.27),
+                    new ModeMap(0.24, 0.42, 0.08, 0.18, 0.90, 0.33),
                     new ModeMap(0.62, 0.96, 0.22, 0.52, 0.72, 0.85));
         }
 

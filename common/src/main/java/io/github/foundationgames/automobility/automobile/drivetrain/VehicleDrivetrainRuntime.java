@@ -45,6 +45,7 @@ public final class VehicleDrivetrainRuntime {
     private DrivetrainProtocol.Snapshot snapshot;
     private float appliedClutch, load;
     private boolean cruiseRawPresent;
+    private CruiseSpeedController.State cruiseControl = CruiseSpeedController.State.idle();
     private float cruiseRawClutch = 1;
     private double radius, lastWheelOmega;
     private long idleSince = Long.MIN_VALUE;
@@ -112,7 +113,7 @@ public final class VehicleDrivetrainRuntime {
     public void requestIgnition(boolean start) {
         ignitionOn = start;
         automaticCranking = start;
-        if (!start) automaticCranking = false;
+        if (!start) { automaticCranking = false; cruiseControl = CruiseSpeedController.State.idle(); }
     }
     public void committedGarage(DrivetrainSettingsEnvelope.GarageReceipt receipt) {
         receipt.requireCommitFor(car.getUUID());
@@ -122,6 +123,7 @@ public final class VehicleDrivetrainRuntime {
         profileAvailable = false; physicalSelection = null; profileReference = null; payload = null;
         clientMotorBound = false; clientMotorIncarnation = clientMotorWorld = null;
         selected = false; state = null; electricState = null; fuelCoordinator = null; electricCoordinator = null;
+        cruiseControl = CruiseSpeedController.State.idle();
         identity = null; snapshot = null; ownerKind = VehicleEnergyProviders.Kind.BLOCKED;
         cruiseRawPresent = false; cruiseRawClutch = 1;
         lastTick = Long.MIN_VALUE; lastSnapshotSequence = lastReceivedSequence = 0;
@@ -135,17 +137,18 @@ public final class VehicleDrivetrainRuntime {
 
     /** Consumes one authenticated raw sample at most once per actual game tick. */
     public double advance(float movementYaw, boolean grounded, Vec3 contactNormal, double grip, double boostFraction) {
-        if (!selected()) return 0;
+        if (!selected()) { cruiseControl = CruiseSpeedController.State.idle(); return 0; }
         long tick = car.level().getGameTime();
         if (tick == lastTick) return speed();
         lastTick = tick;
-        if (GarageTransferAccess.blocked(car)) return speed();
+        if (GarageTransferAccess.blocked(car)) { cruiseControl = CruiseSpeedController.State.idle(); return speed(); }
         boolean client = car.level().isClientSide();
-        if (client && !car.isLocalInstanceAuthoritative()) { reconcileSnapshot(); return speed(); }
+        if (client && !car.isLocalInstanceAuthoritative()) { cruiseControl = CruiseSpeedController.State.idle(); reconcileSnapshot(); return speed(); }
         if (!client) {
             var driver = car.getControllingPassenger();
             if (driver != null && !driver.getUUID().equals(lastDriver)) {
                 lastDriver = driver.getUUID(); previousDriveDemand = false; automaticCranking = false;
+                cruiseControl = CruiseSpeedController.State.idle();
                 legacyHandoff = !CoreDrivetrainBridge.maySimulateMechanics(car);
             }
             if (CoreDrivetrainBridge.maySimulateMechanics(car)) legacyHandoff = false;
@@ -165,6 +168,7 @@ public final class VehicleDrivetrainRuntime {
         cruiseRawPresent = raw.present; cruiseRawClutch = raw.clutch;
         if (client) reconcileSnapshot();
         if (!profileAvailable) {
+            cruiseControl = CruiseSpeedController.State.idle();
             blocked = true; cruiseRawPresent = false; predictionPowerPermitted = false; acceptedCoastRegenerationTorqueNm = 0;
             measured = RuntimeMetadata018.Measured.unavailable(electric != null ? RuntimeMetadata018.Kind.ELECTRIC : RuntimeMetadata018.Kind.COMBUSTION, RuntimeMetadata018.Availability.UNKNOWN_PROFILE);
             return speed();
@@ -173,6 +177,7 @@ public final class VehicleDrivetrainRuntime {
             var currentIdentity = CoreDrivetrainBridge.serverIdentity(car).orElse(null);
             if (identity != null && currentIdentity != null && !identity.equals(currentIdentity)) {
                 automaticCranking = false;
+                cruiseControl = CruiseSpeedController.State.idle();
                 predictionPowerPermitted = false; acceptedCoastRegenerationTorqueNm = 0;
                 if (!identity.worldInstance().equals(currentIdentity.worldInstance()) || !identity.incarnation().equals(currentIdentity.incarnation())) {
                     fuelCoordinator = null; electricCoordinator = null; ownerKind = VehicleEnergyProviders.Kind.BLOCKED;
@@ -222,13 +227,6 @@ public final class VehicleDrivetrainRuntime {
         boolean clutchIntent = controls && !blocked && raw.clutch > .05;
         if (clutchIntent) cancelCruise(io.github.foundationgames.automobility.automobile.driving.VehicleCruiseMotorLimit.MechanicalReason.CLUTCH);
         if (!ignitionOn) cancelCruise(io.github.foundationgames.automobility.automobile.driving.VehicleCruiseMotorLimit.MechanicalReason.ENGINE_STOPPED);
-        if (Double.isFinite(policy.approvedCruiseTargetMetresPerSecond()) && controls && !clutchIntent
-                && range == DrivetrainProtocol.RangeRequest.KEEP && ignitionOn && !reverse && physical == 0
-                && !policy.handbrakeHeld() && !policy.unsafeForRecovery() && gear() > 0) {
-            double target = policy.approvedCruiseTargetMetresPerSecond();
-            throttle = Math.max(throttle, clamp((target - speed()) * .35, 0, 1));
-            if (speed() >= target) throttle = 0;
-        }
         Vec3 normal = grounded && contactNormal.lengthSqr() > .1 ? contactNormal.normalize() : new Vec3(0, 1, 0);
         if (normal.y < 0) normal = normal.reverse();
         Vec3 direction = forward(movementYaw);
@@ -251,6 +249,13 @@ public final class VehicleDrivetrainRuntime {
                 ? CoreDrivetrainBridge.maySimulateMechanics(car)
                     && DrivetrainPredictionGuard.power(snapshot, identity, engineId, profileHash, lastSnapshotClientTick, tick, 5)
                 : ownerKind != VehicleEnergyProviders.Kind.BLOCKED);
+        boolean cruiseEnabled = Double.isFinite(policy.approvedCruiseTargetMetresPerSecond()) && controls && !clutchIntent
+                && range == DrivetrainProtocol.RangeRequest.KEEP && ignitionOn && running() && permitted && !reverse && physical == 0
+                && !policy.handbrakeHeld() && !policy.unsafeForRecovery() && gear() > 0;
+        var cruiseCommand = CruiseSpeedController.advance(CruiseSpeedController.Config.defaults(), cruiseControl, cruiseEnabled,
+                cruiseEnabled ? Math.max(0, policy.approvedCruiseTargetMetresPerSecond()) : 0, speed(), DT);
+        cruiseControl = cruiseCommand.state();
+        if (cruiseEnabled) throttle = cruiseCommand.throttle();
         if (electric != null) advanceElectric(raw, range, throttle, physical, physicalService, service, controls, permitted,
                 grounded, grade, normalLoad, friction, rolling, drag, boost, policy.unsafeForRecovery() || car.burningOut());
         else advanceCombustion(raw, preferences, policy, range, throttle, physical, service, controls, permitted,
