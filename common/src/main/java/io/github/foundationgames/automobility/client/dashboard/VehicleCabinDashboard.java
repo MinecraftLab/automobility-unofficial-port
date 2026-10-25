@@ -36,7 +36,15 @@ public final class VehicleCabinDashboard {
                            float bodyOffset, float x, float y, float z, float width, float height,
                            int ambientLight, int accent, String rowA, String rowB, String rowC, String rowD, float vu, long revision,
                            int decorationRgb, float decorationIntensity, float brightness,CabinTuning027.Face face,CabinTuning027.Speakers speakers,
-                           boolean tapeInserted,int tapeRgb,float leftCoil,float rightCoil, boolean progressAvailable, float progress, Identifier logoTexture,InfotainmentTheme.Palette palette) {
+                           boolean tapeInserted,int tapeRgb,float leftCoil,float rightCoil, boolean progressAvailable, float progress, Identifier logoTexture,InfotainmentTheme.Palette palette,CabinPreferences022.Page page) {
+        /** Retain every previous captured-snapshot constructor descriptor. */
+        public Captured(float raise, float qx, float qy, float qz, float qw, float yaw,
+                           float bodyOffset, float x, float y, float z, float width, float height,
+                           int ambientLight, int accent, String rowA, String rowB, String rowC, String rowD, float vu, long revision,
+                           int decorationRgb, float decorationIntensity, float brightness,CabinTuning027.Face face,CabinTuning027.Speakers speakers,
+                           boolean tapeInserted,int tapeRgb,float leftCoil,float rightCoil, boolean progressAvailable, float progress, Identifier logoTexture,InfotainmentTheme.Palette palette){
+            this(raise,qx,qy,qz,qw,yaw,bodyOffset,x,y,z,width,height,ambientLight,accent,rowA,rowB,rowC,rowD,vu,revision,decorationRgb,decorationIntensity,brightness,face,speakers,tapeInserted,tapeRgb,leftCoil,rightCoil,progressAvailable,progress,logoTexture,palette,CabinPreferences022.Page.COMBINED);
+        }
         public Captured(float raise,float qx,float qy,float qz,float qw,float yaw,float bodyOffset,float x,float y,float z,float width,float height,
                 int ambientLight,int accent,String rowA,String rowB,String rowC,String rowD,float vu,long revision,int decorationRgb,float decorationIntensity,
                 float brightness,CabinTuning027.Face face,CabinTuning027.Speakers speakers,boolean tapeInserted,int tapeRgb,float leftCoil,float rightCoil,
@@ -53,7 +61,7 @@ public final class VehicleCabinDashboard {
             this(raise, qx, qy, qz, qw, yaw, bodyOffset, x, y, z, width, height, ambientLight, accent, rowA, rowB, rowC, rowD, vu, revision, decorationRgb, decorationIntensity, brightness, face, speakers, tapeInserted, tapeRgb, leftCoil, rightCoil, false, 0, null);
         }
         public Captured {
-            if (!Float.isFinite(progress) || progress < 0 || progress > 1 || !progressAvailable && progress != 0)
+            if (page==null || !Float.isFinite(progress) || progress < 0 || progress > 1 || !progressAvailable && progress != 0)
                 throw new IllegalArgumentException("invalid captured dashboard progress");
         }
     }
@@ -101,8 +109,7 @@ public final class VehicleCabinDashboard {
         String station=presentation==null||cassetteOnlySnapshot?text("radio_unknown","Radio --"):presentation.station();
         if(station.isBlank())station="RADIO "+status;
         String track=presentation==null?"":presentation.title();
-        String artist=presentation==null?"":presentation.artist();
-        Identifier logo=preferences.page()==CabinPreferences022.Page.POWER||presentation==null||presentation.logoTexture().isEmpty()?null:Identifier.tryParse(presentation.logoTexture());
+                Identifier logo=preferences.page()==CabinPreferences022.Page.POWER||presentation==null||presentation.logoTexture().isEmpty()?null:Identifier.tryParse(presentation.logoTexture());
         if(logo!=null&&Minecraft.getInstance().getResourceManager().getResource(logo).isEmpty())logo=null;
         boolean progressAvailable=preferences.page()!=CabinPreferences022.Page.POWER&&presentation!=null&&presentation.progressAvailable();
         float progress=progressAvailable?(float)presentation.progress():0;
@@ -130,12 +137,12 @@ public final class VehicleCabinDashboard {
         String a,b,c,d;
         switch(preferences.page()){
             case POWER->{a=speed;b=rpm;c=powerTorque;d=energyLine;}
-            case RADIO->{a=station;b=track.isBlank()?artist:track;c=track.isBlank()||artist.isBlank()?tape:artist;d=track.isBlank()||artist.isBlank()||tape.isBlank()?status:status+" · "+tape;}
-            default->{a=speed;b=rpm;c=station;d=trackLine(Minecraft.getInstance().font,track,artist,logo==null?104:84);}
+            case RADIO->{a=recordedTape?tape:status;b=recordedTape?status:energyLine;c=station;d=track;}
+            default->{a=speed;b=paired?String.format(Locale.ROOT,"%.0f rpm",Units.radiansPerSecondToRpm(mechanical.engineOmega())):"RPM --";c=station;d=track;}
         }
         var font=Minecraft.getInstance().font;
-        int textWidth=logo==null?104:84;
-        a=font.plainSubstrByWidth(a,textWidth);b=font.plainSubstrByWidth(b,textWidth);c=font.plainSubstrByWidth(c,textWidth);d=font.plainSubstrByWidth(d,textWidth);
+        a=font.plainSubstrByWidth(a,104);b=font.plainSubstrByWidth(b,66);
+        c=font.plainSubstrByWidth(c,104);d=font.plainSubstrByWidth(d,118);
         float vu=radio!=null&&radio.analysis().available()&&activeMedia&&preferences.page()!=CabinPreferences022.Page.POWER?radio.analysis().level():0;
         float offset=-car.getWheels().model().radius()/16+car.getSuspensionBounce(state.tickDelta)*.048f
                 +(car.engineRunning()?(float)(Math.cos((car.getTime()+state.tickDelta)*2.7)/156):0);
@@ -148,14 +155,7 @@ public final class VehicleCabinDashboard {
                 radio==null?0:radio.decoration().rgb(),radio==null?0:radio.decoration().intensity()*brightness,brightness,tuning.face(),tuning.speakers(),
                 recordedTape,radio==null?0:radio.cassette().map(DashboardCassetteSnapshot::labelRgb).orElse(0),
                 radio==null?0:radio.cassetteMotion().map(DashboardCassetteMotion027::leftAngle).orElse(0f),
-                radio==null?0:radio.cassetteMotion().map(DashboardCassetteMotion027::rightAngle).orElse(0f),progressAvailable,progress,logo,palette);
-    }
-    /** Both names receive a share of the fixed row budget; a long title cannot erase the artist. */
-    private static String trackLine(Font font,String title,String artist,int width){
-        if(title.isBlank())return font.plainSubstrByWidth(artist,width);
-        if(artist.isBlank())return font.plainSubstrByWidth(title,width);
-        String separator=" · ";var budget=CabinMediaPresentation060.textBudget(width,font.width(separator),font.width(title),font.width(artist));
-        return font.plainSubstrByWidth(title,budget.titlePixels())+separator+font.plainSubstrByWidth(artist,budget.artistPixels());
+                radio==null?0:radio.cassetteMotion().map(DashboardCassetteMotion027::rightAngle).orElse(0f),progressAvailable,progress,logo,palette,preferences.page());
     }
     private static String label(String key,String fallback,Object...args){return Component.translatableWithFallback("vehicle.automobility.cabin."+key,fallback,args).getString();}
     private static String text(String key,String fallback){return Component.translatableWithFallback("vehicle.automobility.cabin."+key,fallback).getString();}
@@ -207,6 +207,18 @@ public final class VehicleCabinDashboard {
         float vu = Math.clamp(captured.vu(), 0, 1);
         collector.submitCustomGeometry(pose, RenderTypes.entityTranslucentEmissive(DISPLAY_WHITE), (transform, buffer) -> {
             quad(transform,buffer,.008f,.008f,width-.008f,height-.027f,.001f,0xff000000|displayPalette.surface(),FULL_BRIGHT);
+            // Theme accents frame a quiet telemetry header and a larger media body.
+            float divider=layout.textY()+10*layout.fontScale();
+            int themeInk=0xff000000|displayPalette.accent();
+            quad(transform,buffer,layout.contentX0(),divider,layout.contentX1(),divider+.001f,.0021f,themeInk,FULL_BRIGHT);
+            quad(transform,buffer,layout.contentX1()+.002f,.011f,layout.contentX1()+.0032f,height-.030f,.0021f,themeInk,FULL_BRIGHT);
+            float middle=(layout.contentX0()+layout.contentX1())*.5f;
+            for(int page=0;page<3;page++){
+                float cx=middle+(.007f-page*.007f);
+                quad(transform,buffer,cx-.002f,height-.0245f,cx+.002f,height-.0225f,.0021f,
+                        page==captured.page().ordinal()?themeInk:tint(0x596166,captured.brightness()),FULL_BRIGHT);
+            }
+
             if (captured.decorationIntensity() > 0) {
                 int rgb = captured.decorationRgb();
                 float strength = captured.decorationIntensity();
@@ -229,7 +241,7 @@ public final class VehicleCabinDashboard {
         });
         if(captured.logoTexture()!=null)collector.submitCustomGeometry(pose,RenderTypes.entityTranslucentEmissive(captured.logoTexture()),(transform,buffer)->{
             float contentWidth=(width-.028f)*(captured.face()==CabinTuning027.Face.CASSETTE?.67f:1);
-            float size=layout.logoSize(),x=layout.contentX0(),y=.010f;
+            float size=layout.fontScale()*9,x=layout.contentX1()-size,y=layout.textY();
             int color=tint(0xffffff,captured.brightness());
             logoVertex(transform,buffer,x,y,.0026f,color,1,0);
             logoVertex(transform,buffer,x+size,y,.0026f,color,0,0);
@@ -238,10 +250,23 @@ public final class VehicleCabinDashboard {
         });
         pose.translate(layout.textX(),layout.textY(),layout.textZ());
         pose.scale(layout.scaleX(),layout.scaleY(),layout.scaleZ());
-        collector.submitText(pose,0,0,Component.literal(captured.rowA()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,0xff000000|displayPalette.text(),0,0);
-        collector.submitText(pose,0,10,Component.literal(captured.rowB()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,0xff000000|displayPalette.text(),0,0);
-        collector.submitText(pose,0,20,Component.literal(captured.rowC()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,0xff000000|displayPalette.text(),0,0);
-        collector.submitText(pose,0,30,Component.literal(captured.rowD()).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,0xff000000|displayPalette.text(),0,0);
+        int ink=0xff000000|displayPalette.text();
+        float headerScale=.72f,headerX=captured.logoTexture()==null?0:13;
+        submitLabel(pose,collector,captured.rowA(),headerX,1,headerScale,(int)((57-headerX)/headerScale),ink);
+        var font=Minecraft.getInstance().font;
+        String detail=font.plainSubstrByWidth(captured.rowB(),59);
+        submitLabel(pose,collector,detail,104-font.width(detail)*headerScale,1,headerScale,59,ink);
+        float primaryScale=captured.page()==CabinPreferences022.Page.POWER?1.0f:1.12f;
+        submitLabel(pose,collector,captured.rowC(),0,14,primaryScale,(int)(104/primaryScale),ink);
+        submitLabel(pose,collector,captured.rowD(),0,29,.88f,118,ink);
+        pose.popPose();
+    }
+    private static void submitLabel(PoseStack pose,SubmitNodeCollector collector,String value,float x,float y,float scale,int width,int color){
+        if(value.isBlank())return;
+        var font=Minecraft.getInstance().font;
+        String fitted=font.plainSubstrByWidth(value,Math.max(1,width));
+        pose.pushPose();pose.translate(x,y,0);pose.scale(scale,scale,scale);
+        collector.submitText(pose,0,0,Component.literal(fitted).getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,color,0,0);
         pose.popPose();
     }
     private static void disc(PoseStack.Pose pose,VertexConsumer buffer,float x,float y,float radius,float z,int color,int light,float angle){

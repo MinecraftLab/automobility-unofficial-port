@@ -27,13 +27,17 @@ public final class VehicleEnergyGauge {
         }
         var amount = value.known() ? Component.translatable("ui.automobility.energy.percent",value.percent()) : Component.literal("—");
         int amountWidth = Math.max(font.width(Component.translatable("ui.automobility.energy.percent",100)),font.width(amount));
-        int start=22, barWidth=Math.min(76,Math.max(0,width-amountWidth-start-12)), right=start+barWidth+7;
-        int count = barWidth/4, filled = value.filledSegments(count);
+        boolean compact=width<100;
+        int start=compact?18:22,gap=compact?4:7;
+        int errorRoom=compact&&value.state()==VehicleEnergyReading.State.WRONG_FUEL?8:0;
+        int barWidth=Math.min(76,Math.max(0,width-amountWidth-start-(compact?8:12)-errorRoom)),right=start+barWidth+gap;
+        int stride=compact?3:4;
+        int count=barWidth/stride,filled=value.filledSegments(count);
         for (int i=0;i<count;i++) {
-            int x=start+i*4;
-            graphics.fill(x,y+3,x+3,y+7,i<filled?color:0xFF40534F);
+            int x=start+i*stride;
+            graphics.fill(x,y+3,x+stride-1,y+7,i<filled?color:0xFF40534F);
         }
         graphics.text(font,amount,right,y+2,color,false);
-        if (value.state()==VehicleEnergyReading.State.WRONG_FUEL) graphics.text(font,Component.literal("!"),width-5,y+2,color,false);
+        if (value.state()==VehicleEnergyReading.State.WRONG_FUEL) graphics.text(font,Component.literal("!"),width-(compact?8:5),y+2,color,false);
     }
 }

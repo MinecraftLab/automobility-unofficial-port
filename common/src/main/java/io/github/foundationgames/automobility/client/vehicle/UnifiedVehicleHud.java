@@ -54,9 +54,9 @@ public final class UnifiedVehicleHud {
         if(value.equals(cachedSettings) && cachedFont==client.font && language.equals(cachedLanguage) && cachedW==w && cachedH==h && cachedEnergy==energy && cachedMechanics==mechanics && Double.compare(cachedGuiScale,guiScale)==0) return;
         cachedSettings=value;cachedFont=client.font;cachedLanguage=language;cachedW=w;cachedH=h;cachedEnergy=energy;cachedMechanics=mechanics;cachedGuiScale=guiScale;
         decorationScale=VehicleEnergyPresentation.guiScaleCompensation(guiScale);
-        cachedStatusWidth=VehicleEnergyPresentation.PANEL_WIDTH-44;
+        cachedStatusWidth=DashboardClusterLayout.INSTRUMENT_WIDTH;
         int logicalWidth=DashboardClusterLayout.WIDTH;
-        int logicalHeight=VehicleEnergyPresentation.panelHeight(energy)+(mechanics?VehicleDrivetrainHud.HEIGHT:0);
+        int logicalHeight=DashboardClusterLayout.instrumentHeight(energy,mechanics);
         scale=VehicleEnergyPresentation.panelScale(w,h,logicalWidth,logicalHeight,value.basic().scalePercent(),guiScale);
         var reserved=VehicleHudPlacement.reservation(w,h,value.reservation());
         var hotbar=new VehicleHudPlacement.Box(Math.max(0,(w-186)/2),Math.max(0,h-52),Math.min(w,186),Math.min(h,52));
@@ -71,7 +71,7 @@ public final class UnifiedVehicleHud {
     public static VehicleHudPlacement.Box radioBox(int w,int h,VehicleUiSettings value){resolve(w,h,value,value.energyEnabled()&&VehicleEnergyHud.preview().present());return DashboardClusterLayout.radio(panel,scale);}
     public static float clusterScale(){return scale;}
     public static VehicleHudLayout.Layout statusLayout(int w,int h) {
-        resolve(w,h,VehicleUiState.current(),VehicleUiState.current().energyEnabled() && VehicleEnergyHud.preview().present());return new VehicleHudLayout.Layout(panel.x()+Math.round(44*scale),panel.y(),cachedStatusWidth,scale);
+        resolve(w,h,VehicleUiState.current(),VehicleUiState.current().energyEnabled() && VehicleEnergyHud.preview().present());return new VehicleHudLayout.Layout(panel.x(),panel.y(),cachedStatusWidth,scale);
     }
     public static void render(GuiGraphicsExtractor graphics,AutomobileEntity auto) {
         var client=Minecraft.getInstance();if(client.player==null || client.level==null || client.gui.hud.isHidden() || client.gui.screen()!=null) return;
@@ -81,6 +81,7 @@ public final class UnifiedVehicleHud {
         int speed=contributor!=null && contributor.enabled()?contributor.speedKmh(auto):(int)Math.round(Math.abs(auto.getEffectiveSpeed()*72));
         boolean active=contributor!=null && contributor.enabled() && contributor.cruiseActive(auto);
         drawPanel(graphics,auto,panel,scale,cachedStatusWidth,speed,active,active?contributor.cruiseTarget():0,value.basic().enabled() && VehicleClientControls.isDriver(client,auto),energy,VehicleEnergyHud.reversing(auto));
+        io.github.foundationgames.automobility.client.dashboard.VehicleDashboardHud.renderClusterSymbol(graphics,auto,DashboardClusterLayout.radio(panel,scale),scale);
         var warnings=new java.util.ArrayList<Component>();
         if(VehicleClientControls.isDriver(client,auto)) {
             warnings.addAll(VehicleStatusHud.warningLines(auto));
@@ -123,27 +124,60 @@ public final class UnifiedVehicleHud {
     }
     private static void drawPanel(GuiGraphicsExtractor graphics,AutomobileEntity auto,VehicleHudPlacement.Box box,float scale,int statusWidth,int speed,boolean cruise,int target,boolean status,VehicleEnergyReading energy,boolean reverse) {
         var font=Minecraft.getInstance().font;
+        int width=DashboardClusterLayout.INSTRUMENT_WIDTH;
+        int height=DashboardClusterLayout.instrumentHeight(energy.present(),cachedMechanics);
         graphics.pose().pushMatrix();graphics.pose().translate(box.x(),box.y());graphics.pose().scale(scale);
-        graphics.fill(0,0,43,32,0xEA171A18);
-        String digits=Integer.toString(speed);float digitScale=Math.min(1.65f,36f/Math.max(1,font.width(digits)));
-        graphics.pose().pushMatrix();graphics.pose().translate(4,4);graphics.pose().scale(digitScale);
-        graphics.text(font,Component.literal(digits),0,0,0xFFE4EDF1,false);graphics.pose().popMatrix();
-        graphics.text(font,Component.literal("km/h"),7,22,0xFFA7BAC5,false);
-        if(reverse) graphics.text(font,Component.literal("R"),34,22,0xFFFFD095,false);
-        graphics.fill(44,0,44+statusWidth,32,0xEA171A18);
-        if(status) {
-            graphics.pose().pushMatrix();graphics.pose().translate(44,0);
-            if(auto!=null) VehicleStatusHud.drawCompactPanel(graphics,auto,statusWidth);
-            else {
-                graphics.text(font,Component.translatable("vehicle.automobility.engine.state.2"),5,3,0xFF8ADEAE,false);
-                graphics.text(font,Component.translatable("vehicle.automobility.light.mode.low"),5,13,0xFF8ADEAE,false);
+        try {
+            graphics.fill(0,0,width,height,0xEA171A18);
+            graphics.fill(0,0,width,1,0xFF596E7B);
+            String digits=Integer.toString(speed);
+            float digitScale=Math.min(2.1f,43f/Math.max(1,font.width(digits)));
+            graphics.pose().pushMatrix();graphics.pose().translate(4,4);graphics.pose().scale(digitScale);
+            graphics.text(font,Component.literal(digits),0,0,0xFFE4EDF1,false);graphics.pose().popMatrix();
+            graphics.text(font,Component.literal("km/h"),4,25,0xFFA7BAC5,false);
+            if(cruise){
+                String text="↗"+target;float fitted=Math.min(1,20f/Math.max(1,font.width(text)));
+                graphics.pose().pushMatrix();graphics.pose().translate(31,25);graphics.pose().scale(fitted);
+                graphics.text(font,Component.literal(text),0,0,0xFF8ADEAE,false);graphics.pose().popMatrix();
             }
-            graphics.pose().popMatrix();
-        }
-        if(cruise) graphics.text(font,Component.literal("↗ " + target + " km/h"),49,22,0xFF8ADEAE,false);
-        VehicleEnergyGauge.draw(graphics,energy,44+statusWidth);
-        if(cachedMechanics) VehicleDrivetrainHud.draw(graphics,auto,VehicleEnergyPresentation.panelHeight(energy.present()),44+statusWidth);
-        graphics.pose().popMatrix();
+            if(cachedMechanics) drawMechanics(graphics,auto,width);
+            else if(reverse) graphics.text(font,Component.literal("R"),57,25,0xFFFFD095,false);
+            if(energy.present()){
+                graphics.pose().pushMatrix();graphics.pose().translate(0,DashboardClusterLayout.energyY(cachedMechanics)-VehicleEnergyPresentation.BASE_HEIGHT);
+                VehicleEnergyGauge.draw(graphics,energy,width);graphics.pose().popMatrix();
+            }
+            if(status){
+                graphics.pose().pushMatrix();graphics.pose().translate(0,DashboardClusterLayout.statusY(energy.present(),cachedMechanics)+1);graphics.pose().scale(.65f);
+                if(auto!=null)VehicleStatusHud.drawCompactPanel(graphics,auto,80);
+                else {
+                    graphics.fill(5,5,14,11,0xFF8ADEAE);graphics.fill(7,3,12,5,0xFF8ADEAE);
+                    graphics.fill(25,4,31,11,0xFF8ADEAE);
+                    graphics.fill(49,7,56,9,0xFF40534F);graphics.fill(62,7,69,9,0xFF40534F);
+                }
+                graphics.pose().popMatrix();
+            }
+        } finally {graphics.pose().popMatrix();}
+    }
+    /** Already synchronized readings only; no drivetrain, energy or audio state changes. */
+    private static void drawMechanics(GuiGraphicsExtractor graphics,AutomobileEntity auto,int width){
+        var reading=VehiclePowertrainPresentation.reading(auto).orElse(null);
+        if(auto!=null&&reading==null)return;
+        String range=reading==null?"3":reading.rangeLabel();
+        String mode=reading==null?"A":reading.electric()?"EV":reading.snapshot().controlMode()==io.github.foundationgames.automobility.automobile.drivetrain.PowertrainSimulation.ControlMode.AUTOMATIC?"A":"M";
+        double rpm=reading==null?3200:Math.abs(reading.signedRpm()),maximum=reading==null?6500:Math.max(1,reading.maximumRpm());
+        boolean stalled=reading!=null&&reading.snapshot().enginePhase()==io.github.foundationgames.automobility.automobile.drivetrain.EngineController.Phase.STALLED;
+        int color=stalled||rpm>maximum?0xFFFF8A79:0xFFD7E3DF;
+        var font=Minecraft.getInstance().font;
+        graphics.fill(width-21,3,width-4,23,0xFF26352F);
+        float size=Math.min(1.8f,13f/Math.max(1,font.width(range)));
+        graphics.pose().pushMatrix();graphics.pose().translate(width-18,5);graphics.pose().scale(size);
+        graphics.text(font,Component.literal(range),0,0,color,false);graphics.pose().popMatrix();
+        graphics.text(font,Component.literal(mode),width-20,25,0xFFA7BAC5,false);
+        int y=DashboardClusterLayout.HEADER_HEIGHT;
+        graphics.text(font,Component.literal(font.plainSubstrByWidth(String.format(java.util.Locale.ROOT,"%.0f rpm",rpm),width-8)),4,y+2,color,false);
+        int rail=width-8,fill=(int)Math.round(Math.clamp(rpm/maximum,0,1)*rail);
+        graphics.fill(4,y+13,width-4,y+15,0xFF39443F);
+        graphics.fill(4,y+13,4+fill,y+15,rpm>maximum*.9?0xFFFFA06A:0xFF8ADEAE);
     }
     public static Component hintBinding(AutomobileHud.ControlHint hint,net.minecraft.client.Options options) {
         var fallback=hint.getKeybindText(options);
