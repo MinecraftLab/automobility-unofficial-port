@@ -90,9 +90,15 @@ public final class VehicleCabinDashboard {
         boolean paired=metadata!=null&&metadata.pairs(mechanical);
         var measured=paired?metadata.measured():null;
         var presentation=radio==null?null:CabinMediaPresentation060.capture(radio.media());
-        String status=presentation==null?"RADIO --":text("media_status."+presentation.status().name().toLowerCase(Locale.ROOT),presentation.status().fallback());
+        // A physical cassette-slot observation without admitted media is not an audio failure.
+        boolean cassetteOnlySnapshot=radio!=null&&radio.cassette().isPresent()
+                &&radio.media().sourceKind()==DashboardMediaSnapshot.SourceKind.UNKNOWN
+                &&radio.media().status()==DashboardMediaSnapshot.Status.UNAVAILABLE&&radio.media().revision()==0
+                &&radio.media().clock().kind()==DashboardClock.Kind.UNKNOWN_DURATION
+                &&presentation.station().isBlank()&&presentation.title().isBlank()&&presentation.artist().isBlank();
+        String status=presentation==null||cassetteOnlySnapshot?"RADIO --":text("media_status."+presentation.status().name().toLowerCase(Locale.ROOT),presentation.status().fallback());
         boolean activeMedia=presentation!=null&&(presentation.status()==CabinMediaPresentation060.DisplayStatus.PLAY||presentation.status()==CabinMediaPresentation060.DisplayStatus.LIVE);
-        String station=presentation==null?text("radio_unknown","Radio --"):presentation.station();
+        String station=presentation==null||cassetteOnlySnapshot?text("radio_unknown","Radio --"):presentation.station();
         if(station.isBlank())station="RADIO "+status;
         String track=presentation==null?"":presentation.title();
         String artist=presentation==null?"":presentation.artist();
