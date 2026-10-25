@@ -30,12 +30,7 @@ public final class VehicleDashboardHud {
         if (frame.isEmpty() || !DashboardHudPresentation060.resolve(frame.get().media()).visible()) return;
         int sw = graphics.guiWidth(), sh = graphics.guiHeight();
         var settings = VehicleUiState.current();
-        if(UnifiedVehicleHud.unified()){
-            var box=UnifiedVehicleHud.radioBox(sw,sh,settings);float scale=UnifiedVehicleHud.clusterScale();
-            graphics.pose().pushMatrix();graphics.pose().translate(box.x(),box.y());graphics.pose().scale(scale);
-            try{draw(graphics,frame.get(),new VehicleHudPlacement.Box(0,0,36,18));}finally{graphics.pose().popMatrix();}
-            return;
-        }
+        if(UnifiedVehicleHud.unified())return;
         var instruments = UnifiedVehicleHud.panelBox(sw, sh, settings);
         var hints = UnifiedVehicleHud.hintBox(sw, sh, settings);
         var reservation = VehicleHudPlacement.reservation(sw, sh, settings.reservation());
@@ -62,8 +57,41 @@ public final class VehicleDashboardHud {
     /** In the layout editor this is a static inactive symbol, never a simulated audio meter. */
     public static void drawPreviewIcon(GuiGraphicsExtractor graphics,VehicleHudPlacement.Box box,float scale){
         graphics.pose().pushMatrix();graphics.pose().translate(box.x(),box.y());graphics.pose().scale(scale);
-        try{graphics.fill(0,0,36,18,0xE9191D20);graphics.outline(5,5,11,8,0xFF6F7B80);graphics.fill(7,3,15,4,0xFF6F7B80);}
+        try{if(box.width()/Math.max(.001f,scale)<24)tinyOutline(graphics,0xFF6F7B80);else{graphics.fill(0,0,36,18,0xE9191D20);graphics.outline(5,5,11,8,0xFF6F7B80);graphics.fill(7,3,15,4,0xFF6F7B80);}}
         finally{graphics.pose().popMatrix();}
+    }
+
+    /** Unified instruments paint this after their own background, independent of callback order. */
+    public static void renderClusterSymbol(GuiGraphicsExtractor graphics,AutomobileEntity car,VehicleHudPlacement.Box box,float scale){
+        var client=Minecraft.getInstance();
+        if(!standaloneEnabled||hidden(client)||client.player==null||client.level==null||box==null
+                ||!Float.isFinite(scale)||scale<=0||box.width()<1||box.height()<1||box.x()<0||box.y()<0
+                ||box.x()+box.width()>graphics.guiWidth()||box.y()+box.height()>graphics.guiHeight())return;
+        var frame=VehicleDashboardClient.snapshotFor(car);
+        if(frame.isEmpty()||!DashboardHudPresentation060.resolve(frame.get().media()).visible())return;
+        graphics.pose().pushMatrix();graphics.pose().translate(box.x(),box.y());graphics.pose().scale(scale);
+        try{drawTiny(graphics,frame.get());}finally{graphics.pose().popMatrix();}
+    }
+
+    /** A real source/analysis symbol embedded in the instrument indicator row. */
+    private static void drawTiny(GuiGraphicsExtractor graphics,DashboardSnapshot frame){
+        var rows=DashboardHudPresentation060.resolve(frame.media());
+        if(!rows.visible())return;
+        var media=frame.media();int color=rows.idle()?0xFF6F7B80:media.accentArgb();
+        tinyOutline(graphics,color);
+        boolean playing=media.status()==DashboardMediaSnapshot.Status.PLAYING||media.status()==DashboardMediaSnapshot.Status.LIVE;
+        if(playing&&frame.analysis().available()){
+            int lit=(int)Math.ceil(Math.clamp(frame.analysis().level(),0,1)*3);
+            for(int i=0;i<3;i++)graphics.fill(11+i*3,9-(i+1)*2,13+i*3,9,i<lit?color:0xFF35413E);
+        }else if(media.status()==DashboardMediaSnapshot.Status.PAUSED){
+            graphics.fill(11,3,13,9,color);graphics.fill(16,3,18,9,color);
+        }else if(media.status()==DashboardMediaSnapshot.Status.MUTED){
+            graphics.text(Minecraft.getInstance().font,Component.literal("×"),11,2,color,false);
+        }
+    }
+    private static void tinyOutline(GuiGraphicsExtractor graphics,int color){
+        graphics.outline(1,4,7,6,color);graphics.fill(2,2,7,3,color);
+        graphics.fill(3,6,5,8,color);graphics.fill(6,6,7,7,color);
     }
 
     private static void draw(GuiGraphicsExtractor graphics, DashboardSnapshot frame, VehicleHudPlacement.Box box) {
